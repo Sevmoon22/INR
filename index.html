@@ -37,6 +37,9 @@ input,select,button{font-size:15px} input,select{padding:8px;border:1px solid #b
 .sw{display:inline-block;width:14px;height:14px;border-radius:3px;border:1px solid #fff;box-shadow:inset 0 0 0 1px rgba(0,0,0,.05);margin-right:4px}
 .err{color:#b00020;font-size:12px;margin:6px 0} .debug{font-size:11px;color:#666;margin-top:6px}
 @media(max-width:700px){.container{max-width:96vw}.week{grid-template-columns:repeat(7, minmax(76px,1fr));gap:6px}.cell-input,.grid7 input{width:78px;max-width:78px;font-size:13px;padding:5px}.day{min-height:138px}}
+.orangeCell{background:#ffe0b3!important;box-shadow:inset 0 0 0 2px #ff9800}
+.redCell{background:#ffc2c2!important;box-shadow:inset 0 0 0 2px #e53935}
+.repeat-inr{font-size:11px;color:#b00020;margin-top:3px;text-align:center}
 </style>
 </head>
 <body>
@@ -90,8 +93,10 @@ input,select,button{font-size:15px} input,select{padding:8px;border:1px solid #b
     <button class="btn" id="clearVisible">Clear visible only</button>
     <button class="btn" id="clearAll">Clear ALL</button>
   </div>
-  <div style="margin-top:10px">
+  <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
     <button class="btnp" id="getRec">Get Recommendation</button>
+    <button class="btnS" id="recalcNow" type="button" disabled style="opacity:0.5;">Recalculate with updated INR</button>
+    <span id="recalcHint" class="small" style="display:none;">INR changed since the last recommendation.</span>
   </div>
   <div id="sum" class="small" style="margin-top:6px">Scheduled weekly total: 0.0 mg</div>
 </fieldset>
@@ -132,7 +137,7 @@ function r01(x){return Math.round(x*10)/10} function r05(x){return Math.round(x*
 const weeksEl = document.getElementById('weeks'); const calwrap = document.getElementById('calwrap'); const rangeLabel=document.getElementById('rangeLabel');
 const rec = document.getElementById('rec'); const linEl = document.getElementById('lin'); const sum = document.getElementById('sum'); const err = document.getElementById('err'); const dbg = document.getElementById('dbg');
 
-const planned=new Map(), actual=new Map(), inrVal=new Map(); let repeatKey=null;
+const planned=new Map(), actual=new Map(), inrVal=new Map(); let repeatKey=null; let hasReco=false, pendingRecalc=false;
 
 function base(){return [0,1,2,3,4,5,6].map(i=>{const v=parseFloat(document.getElementById('b'+i).value);return isNaN(v)?0:r01(v)})}
 function baseSum(){return base().reduce((a,b)=>a+b,0)} function updSum(){sum.innerHTML='Scheduled weekly total: <b>'+r01(baseSum()).toFixed(1)+' mg</b>'}
@@ -140,7 +145,7 @@ function schedAtIso(key){const d=new Date(key); const dow=d.getDay(); return bas
 function effAtIso(key){if(actual.has(key))return actual.get(key); if(planned.has(key))return planned.get(key); return schedAtIso(key)}
 
 const today=new Date();
-let start = addDaysLocal(startOfWeekLocal(today), -14);
+let start = startOfWeekLocal(today);
 let totalWeeks = 5;
 
 function renderAll(){
@@ -161,7 +166,8 @@ function renderAll(){
         '<div class="lbl">INR</div>'+
         '<input class="cell-input inrbox" data-k="'+key+'" data-role="inr" type="number" step="0.1" min="0">'+
         '<div class="lbl">Actual dose</div>'+
-        '<input class="cell-input" data-k="'+key+'" data-role="actual" type="number" step="0.1" min="0">';
+        '<input class="cell-input" data-k="'+key+'" data-role="actual" type="number" step="0.1" min="0">'+
+        '<div class="lbl repeat-inr"></div>';
       wk.appendChild(cell);
     }
     weeksEl.appendChild(wk);
@@ -169,8 +175,7 @@ function renderAll(){
   pushDataToCells();
   const weekElems = weeksEl.querySelectorAll('.week');
   if(weekElems.length){
-    const idx = Math.min(Math.max(2, Math.floor(totalWeeks/2)), weekElems.length-1);
-    calwrap.scrollTop = weekElems[idx].offsetTop - 48;
+    calwrap.scrollTop = 0;
   }
   lin7();
   dbg.textContent = 'Calendar rows rendered: '+document.querySelectorAll('.week').length;
@@ -188,7 +193,30 @@ function pushDataToCells(){
       if(inputs[1]) inputs[1].value = i;
       if(inputs[2]) inputs[2].value = (a!==''? Number(a).toFixed(1):'');
       const isToday = key===tIso; const isRepeat=(key===repeatKey);
-      cell.className='day'+(isToday||isRepeat?' blue':((i!=='')||(a!=='')?' manual':''));
+      cell.className='day';
+      const hasManual = (i!=='') || (a!=='');
+      const inrNum = parseFloat(i);
+      if(!isNaN(inrNum)){
+        if(inrNum >= 5.0){
+          cell.classList.add('redCell');
+        }else if(inrNum >= 4.0){
+          cell.classList.add('orangeCell');
+        }
+      }
+      if(hasManual && !cell.classList.contains('redCell') && !cell.classList.contains('orangeCell')){
+        cell.classList.add('manual');
+      }
+      const repEl = cell.querySelector('.repeat-inr');
+      if(repEl){
+        if(isRepeat){
+          repEl.innerHTML = '<b>Repeat INR</b>';
+        }else{
+          repEl.innerHTML = '';
+        }
+      }
+      if(isToday||isRepeat){
+        cell.classList.add('blue');
+      }
     }
   }
 }
@@ -263,12 +291,28 @@ function last6SchedBeforeDate(d){ let s=0; for(let k=6;k>=1;k--){ const key=isoL
 function last6EffBeforeDate(d){ let s=0; for(let k=6;k>=1;k--){ const key=isoLocal(addDaysLocal(d,-k)); s+=effAtIso(key) } return r01(s) }
 function sched7EndOnDate(d){ let s=0; for(let k=6;k>=0;k--){ const key=isoLocal(addDaysLocal(d,-k)); s+=schedAtIso(key) } return r01(s) }
 
+function markNeedsRecalc(){
+  if(hasReco){
+    pendingRecalc=true;
+    const btn=document.getElementById('recalcNow');
+    if(btn){ btn.disabled=false; btn.style.opacity=''; }
+    const hint=document.getElementById('recalcHint');
+    if(hint) hint.style.display='inline';
+  }
+}
+
 function reco(){
   const goalVal = document.getElementById('goal').value;
   const L = (goalVal==='2-3')?2.0:(goalVal==='2.5-3.5')?2.5:parseFloat(document.getElementById('gL').value);
   const H = (goalVal==='2-3')?3.0:(goalVal==='2.5-3.5')?3.5:parseFloat(document.getElementById('gH').value);
   if(isNaN(L)||isNaN(H)||L>=H){ alert('Set a valid INR goal.'); return }
   if(baseSum()<=0){ alert('Enter baseline regimen first.'); return }
+
+  pendingRecalc=false;
+  const hint=document.getElementById('recalcHint');
+  if(hint) hint.style.display='none';
+  const btn=document.getElementById('recalcNow');
+  if(btn){ btn.disabled=true; btn.style.opacity='0.5'; }
 
   const todayIso=isoLocal(new Date());
   planned.delete(todayIso);
@@ -278,7 +322,7 @@ function reco(){
   if(isNaN(bestVal)){
     for(let d=1; d<=3; d++){ const key = isoLocal(addDaysLocal(new Date(), -d)); if(inrVal.has(key)){ bestVal=inrVal.get(key); bestDate=addDaysLocal(new Date(), -d); break; } }
   }
-  if(isNaN(bestVal)){ rec.innerHTML='No recent INR (≤3 days). <b>Repeat INR now</b>; no dose change until result available.'; repeatKey = todayIso; pushDataToCells(); return; }
+  if(isNaN(bestVal)){ rec.innerHTML='No recent INR (≤3 days). <b>Repeat INR now</b>; no dose change until result available.'; repeatKey = todayIso; hasReco=true; pushDataToCells(); return; }
 
   const band = pickPct(bestVal, L, H);
   const age = daysBetween(bestDate, new Date());
@@ -287,6 +331,7 @@ function reco(){
     const rep = (age>=2 && age<=3) ? addDaysLocal(bestDate, 7) : addDaysLocal(new Date(), 7);
     repeatKey = isoLocal(rep);
     rec.innerHTML = `INR ${bestVal.toFixed(1)} is within goal (${L}–${H}). <b>No change.</b> Repeat INR on <b>${isoLocal(rep)}</b>.`;
+    hasReco=true;
     pushDataToCells(); lin7(); return;
   }
 
@@ -326,6 +371,7 @@ function reco(){
     `<b>Repeat INR on ${isoLocal(repDate)}</b> ${ (age>=2 && age<=3) ? '(7 days from the last INR date)' : '' }.`
   ].join(' ');
   rec.innerHTML = verb;
+  hasReco=true;
 
   pushDataToCells(); lin7();
 }
@@ -351,11 +397,27 @@ document.addEventListener('DOMContentLoaded', ()=>{
       inrVal.set(tIso, vv);
       const qi = document.querySelector('#c_'+tIso+' .cell-input.inrbox');
       if(qi) qi.value = vv.toFixed(1);
+    }else{
+      inrVal.delete(tIso);
     }
-    rec.innerHTML=''; pushDataToCells(); lin7();
+    if(hasReco){
+      markNeedsRecalc();
+    }
+    pushDataToCells(); lin7();
   });
 
   document.getElementById('getRec').addEventListener('click', reco);
+
+  const recalcBtn = document.getElementById('recalcNow');
+  if(recalcBtn){
+    recalcBtn.disabled = true;
+    recalcBtn.style.opacity = '0.5';
+    recalcBtn.addEventListener('click', ()=>{
+      if(!hasReco && !pendingRecalc){ return; }
+      reco();
+    });
+  }
+
   document.getElementById('applyCur').addEventListener('click', applyVisible);
   document.getElementById('clearVisible').addEventListener('click', clearVisible);
   document.getElementById('clearAll').addEventListener('click', clearAll);
@@ -395,6 +457,13 @@ document.addEventListener('DOMContentLoaded', ()=>{
       if(role==='planned') planned.set(key, val);
       if(role==='actual')  actual.set(key, val);
       if(role==='inr')     inrVal.set(key, val);
+    }else{
+      if(role==='planned') planned.delete(key);
+      if(role==='actual')  actual.delete(key);
+      if(role==='inr')     inrVal.delete(key);
+    }
+    if(role==='inr' && hasReco){
+      markNeedsRecalc();
     }
     pushDataToCells(); lin7();
   }, true);
