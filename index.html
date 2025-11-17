@@ -204,19 +204,19 @@ function renderAll(){
   }
     pushDataToCells();
 
-   pushDataToCells();
+    pushDataToCells();
 
   const weekElems = weeksEl.querySelectorAll('.week');
   if (weekElems.length) {
-    // Always show the first rendered week at the top.
-    // Since startOfWeekLocal(today) is used, this week IS the current week.
-    calwrap.scrollTop = 0;
+    const tIso = isoLocal(today);
+    let targetIdx = 0;
+    weekElems.forEach((wk, idx) => {
+      if (wk.querySelector('#c_' + tIso)) {
+        targetIdx = idx;
+      }
+    });
+    calwrap.scrollTop = weekElems[targetIdx].offsetTop;
   }
-
-  lin7();
-  dbg.textContent = 'Calendar rows rendered: ' + document.querySelectorAll('.week').length;
-}
-
 
   lin7();
   dbg.textContent = 'Calendar rows rendered: ' + document.querySelectorAll('.week').length;
