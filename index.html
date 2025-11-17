@@ -80,20 +80,19 @@ input,select,button{font-size:15px} input,select{padding:8px;border:1px solid #b
       </div>
     </div>
         <div>
-      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-        <label style="margin:0;">Current INR</label>
-        <input id="inr"
-               class="cell-input inrbox"
-               type="number"
-               step="0.1"
-               min="0"
-               inputmode="decimal"
-               placeholder="e.g., 2.6"
-               style="margin:0;">
-      </div>
-      <div class="small" style="text-align:left; margin-top:4px;">
-        Typing here auto-fills today’s INR cell.
-      </div>
+      <div style="display:flex; flex-direction:column; justify-content:flex-start; padding-top:2px;">
+  <label style="margin-bottom:4px;">Current INR</label>
+  <input id="inr"
+         class="cell-input inrbox"
+         type="number"
+         step="0.1"
+         min="0"
+         inputmode="decimal"
+         placeholder="e.g., 2.6"
+         style="margin:0; max-width:105px;">
+  <div class="small" style="margin-top:4px;">Typing here auto-fills today’s INR cell.</div>
+</div>
+
     </div>
 
   </div>
