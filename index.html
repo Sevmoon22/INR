@@ -175,11 +175,8 @@ function schedAtIso(key){const d=new Date(key); const dow=d.getDay(); return bas
 function effAtIso(key){if(actual.has(key))return actual.get(key); if(planned.has(key))return planned.get(key); return schedAtIso(key)}
 
 const today=new Date();
-// start 2 weeks before the current week so you can scroll back in time
-let start = addDaysLocal(startOfWeekLocal(today), -14);
-// show 9 total weeks (2 before + 7 after)
-let totalWeeks = 9;
-
+let start = startOfWeekLocal(today);
+let totalWeeks = 5;
 
 function renderAll(){
   weeksEl.innerHTML='';
