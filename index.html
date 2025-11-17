@@ -356,10 +356,11 @@ function reco(){
   const btn=document.getElementById('recalcNow');
   if(btn){ btn.disabled=true; btn.style.opacity='0.5'; }
 
-  const todayIso=isoLocal(new Date());
-  planned.delete(todayIso);
+ const todayIso = isoLocal(new Date());
 
-  let bestDate = new Date(); let bestVal = parseFloat(document.getElementById('inr').value);
+let bestDate = new Date(); 
+let bestVal = parseFloat(document.getElementById('inr').value);
+
   if(isNaN(bestVal) && inrVal.has(todayIso)) bestVal = inrVal.get(todayIso), bestDate=new Date();
   if(isNaN(bestVal)){
     for(let d=1; d<=3; d++){ const key = isoLocal(addDaysLocal(new Date(), -d)); if(inrVal.has(key)){ bestVal=inrVal.get(key); bestDate=addDaysLocal(new Date(), -d); break; } }
