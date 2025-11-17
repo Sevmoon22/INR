@@ -181,21 +181,18 @@ function scrollToTodayWeek() {
   if (!weekElems.length) return;
 
   const tIso = isoLocal(today);
-  let targetIdx = 0;
+  let targetWeek = null;
 
-  weekElems.forEach((wk, idx) => {
+  weekElems.forEach((wk) => {
     if (wk.querySelector('#c_' + tIso)) {
-      targetIdx = idx;
+      targetWeek = wk;
     }
   });
 
-  const targetWeek = weekElems[targetIdx];
   if (!targetWeek) return;
 
-  const centerOffset =
-    targetWeek.offsetTop - (calwrap.clientHeight / 2) + (targetWeek.clientHeight / 2);
-
-  calwrap.scrollTop = Math.max(centerOffset, 0);
+  // Align the week containing today's date at the top of the scroll area
+  calwrap.scrollTop = targetWeek.offsetTop;
 }
 
 function renderAll(){
