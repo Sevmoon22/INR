@@ -176,7 +176,7 @@ let start = addDaysLocal(startOfWeekLocal(today), -26 * 7);
 // Show ~52 weeks total (about 1 year)
 let totalWeeks = 52;
 
-function scrollToTodayWeek() {
+ffunction scrollToTodayWeek() {
   const weekElems = weeksEl.querySelectorAll('.week');
   if (!weekElems.length) return;
 
@@ -191,9 +191,16 @@ function scrollToTodayWeek() {
 
   if (!targetWeek) return;
 
-  // Align the week containing today's date at the top of the scroll area
-  calwrap.scrollTop = targetWeek.offsetTop;
+  const weekHeight = targetWeek.clientHeight || 0;
+  const targetTop  = targetWeek.offsetTop;
+
+  // Try to position so there is one full week above today's week:
+  // scrollTop = top of today's week minus one week height.
+  const desiredTop = targetTop - weekHeight;
+
+  calwrap.scrollTop = Math.max(desiredTop, 0);
 }
+
 
 function renderAll(){
   weeksEl.innerHTML='';
