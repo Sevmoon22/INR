@@ -69,6 +69,25 @@ input,select,button{font-size:15px} input,select{padding:8px;border:1px solid #b
 
   <div id="err" class="err"></div>
 
+  <!-- Patient Information -->
+  <h2>Patient Information</h2>
+  <fieldset><legend>Patient</legend>
+    <div class="grid">
+      <div>
+        <label for="patientName">Patient Name</label>
+        <input id="patientName" type="text" placeholder="e.g., John Smith" style="width:100%;max-width:260px;">
+      </div>
+      <div>
+        <label for="patientDob">Date of Birth</label>
+        <input id="patientDob" type="text" placeholder="e.g., 01/02/1970" style="width:100%;max-width:180px;">
+      </div>
+      <div>
+        <label for="patientMrn">MRN</label>
+        <input id="patientMrn" type="text" placeholder="e.g., 1234567" style="width:100%;max-width:160px;">
+      </div>
+    </div>
+  </fieldset>
+
   <h2>Therapeutic Goal & Current INR</h2>
   <fieldset><legend>Inputs</legend>
     <div class="grid">
@@ -153,7 +172,11 @@ input,select,button{font-size:15px} input,select{padding:8px;border:1px solid #b
   </div>
   <div id="dbg" class="debug"></div>
 
-  <h2>Verbal Recommendation</h2>
+  <!-- Verbal Recommendation + Export button -->
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:16px;">
+    <h2 style="margin:0;">Verbal Recommendation</h2>
+    <button class="btnS" id="exportPDF" type="button">Export to PDF</button>
+  </div>
   <div id="rec" class="card"></div>
 
   <h2>7-Day Recommendation (Linear — Today's Week)</h2>
@@ -180,7 +203,7 @@ function effAtIso(key){if(actual.has(key))return actual.get(key); if(planned.has
 const today = new Date();
 // Start one week BEFORE the current week so the initial view shows: previous, current, next.
 let start = addDaysLocal(startOfWeekLocal(today), -7);
-// Show a good chunk of future weeks (e.g., ~30 weeks including the previous week)
+// Show a chunk of future weeks (about 30 including the previous week)
 let totalWeeks = 30;
 
 function renderAll(){
@@ -211,7 +234,7 @@ function renderAll(){
   }
 
   pushDataToCells();
-  // No auto-scroll tweak: initial view starts at the previous week (week 0).
+  // Initial view: previous week at top, current week immediately below
   calwrap.scrollTop = 0;
   lin7();
   dbg.textContent = 'Calendar rows rendered: ' + document.querySelectorAll('.week').length;
@@ -426,6 +449,73 @@ function reco(){
   pushDataToCells(); lin7();
 }
 
+/* ------- PDF export: open print-ready window so user can Save as PDF ------- */
+function exportRecommendationPDF(){
+  const recHtml = rec.innerHTML.trim();
+  const linText = linEl.textContent.trim();
+  const todayStr = isoLocal(today);
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+
+  const pNameEl = document.getElementById('patientName');
+  const pDobEl  = document.getElementById('patientDob');
+  const pMrnEl  = document.getElementById('patientMrn');
+
+  const pName = pNameEl ? pNameEl.value.trim() : '';
+  const pDob  = pDobEl  ? pDobEl.value.trim()  : '';
+  const pMrn  = pMrnEl  ? pMrnEl.value.trim()  : '';
+
+  const patientInfoLine = [
+    pName ? 'Patient Name: ' + pName : '',
+    pDob  ? 'DOB: ' + pDob : '',
+    pMrn  ? 'MRN: ' + pMrn : ''
+  ].filter(Boolean).join('    ');
+
+  const weekdays = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const baselineLines = weekdays.map((name, i)=>{
+    const el = document.getElementById('b'+i);
+    const v = el ? parseFloat(el.value) : NaN;
+    return name+': '+(isNaN(v)?'—':v.toFixed(1)+' mg');
+  }).join('\\n');
+
+  const win = window.open('', '_blank');
+  if(!win){
+    alert('Please allow pop-ups to export the recommendation.');
+    return;
+  }
+  win.document.open();
+  win.document.write(`
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>ThromboLogic INR Recommendation - ${todayStr}</title>
+      <style>
+        body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:24px;color:#111;}
+        h1{font-size:20px;margin-bottom:4px;}
+        h2{font-size:15px;margin:16px 0 6px;}
+        .small{font-size:12px;color:#555;}
+        .card{border:1px solid #ccc;border-radius:10px;padding:12px;margin:8px 0;background:#fafafa;}
+        pre{white-space:pre-wrap;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;}
+      </style>
+    </head>
+    <body>
+      <h1>ThromboLogic INR Recommendation</h1>
+      <div class="small">Generated on ${todayStr} at ${timeStr}</div>
+      ${patientInfoLine ? `<div class="small" style="margin-top:4px;">${patientInfoLine}</div>` : ''}
+      <h2>Baseline Weekly Regimen (Sun → Sat)</h2>
+      <div class="card"><pre>${baselineLines}</pre></div>
+      <h2>Verbal Recommendation</h2>
+      <div class="card">${recHtml || 'No recommendation has been generated yet.'}</div>
+      <h2>7-Day Recommendation (Linear — Today&#39;s Week)</h2>
+      <div class="card"><pre>${linText || ''}</pre></div>
+    </body>
+    </html>
+  `);
+  win.document.close();
+  win.focus();
+  win.print();   // user can choose "Save as PDF"
+}
+
 document.addEventListener('DOMContentLoaded', ()=>{
   try{ renderAll(); updSum(); }catch(e){ err.textContent = 'Calendar failed to render: '+e; }
   for(let i=0;i<7;i++){
@@ -478,6 +568,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
   const goTodayBtn = document.getElementById('goToday');
   if (goTodayBtn) {
     goTodayBtn.addEventListener('click', scrollToTodayWeek);
+  }
+
+  const exportBtn = document.getElementById('exportPDF');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', exportRecommendationPDF);
   }
 
   // Delegated inputs (no re-render while typing)
