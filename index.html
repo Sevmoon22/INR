@@ -178,28 +178,10 @@ function schedAtIso(key){const d=new Date(key); const dow=d.getDay(); return bas
 function effAtIso(key){if(actual.has(key))return actual.get(key); if(planned.has(key))return planned.get(key); return schedAtIso(key)}
 
 const today = new Date();
-// Start ~26 weeks (half a year) before the current week
-let start = addDaysLocal(startOfWeekLocal(today), -26 * 7);
-// Show ~52 weeks total (about 1 year)
-let totalWeeks = 52;
-
-function scrollToTodayWeek() {
-  const weekElems = weeksEl.querySelectorAll('.week');
-  if (!weekElems.length) return;
-
-  // We intentionally started 26 weeks before today's week,
-  // so today's week should be at index 26 (0-based).
-  let idx = 26;
-
-  // Safety clamp in case totalWeeks changes in the future
-  if (idx < 0) idx = 0;
-  if (idx >= weekElems.length) idx = weekElems.length - 1;
-
-  const targetWeek = weekElems[idx];
-  if (!targetWeek) return;
-
-  calwrap.scrollTop = targetWeek.offsetTop;
-}
+// Start one week BEFORE the current week so the initial view shows: previous, current, next.
+let start = addDaysLocal(startOfWeekLocal(today), -7);
+// Show a good chunk of future weeks (e.g., ~30 weeks including the previous week)
+let totalWeeks = 30;
 
 function renderAll(){
   weeksEl.innerHTML='';
@@ -229,9 +211,18 @@ function renderAll(){
   }
 
   pushDataToCells();
-  scrollToTodayWeek();
+  // No auto-scroll tweak: initial view starts at the previous week (week 0).
+  calwrap.scrollTop = 0;
   lin7();
   dbg.textContent = 'Calendar rows rendered: ' + document.querySelectorAll('.week').length;
+}
+
+function scrollToTodayWeek() {
+  const weekElems = weeksEl.querySelectorAll('.week');
+  // Week 0 = previous week, Week 1 = current week
+  if (weekElems.length > 1) {
+    calwrap.scrollTop = weekElems[1].offsetTop;
+  }
 }
 
 function pushDataToCells(){
