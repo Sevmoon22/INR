@@ -187,23 +187,19 @@ function scrollToTodayWeek() {
   const weekElems = weeksEl.querySelectorAll('.week');
   if (!weekElems.length) return;
 
-  // How many whole days between the calendar start and today?
-  const diffDays = daysBetween(start, today);
+  // We intentionally started 26 weeks before today's week,
+  // so today's week should be at index 26 (0-based).
+  let idx = 26;
 
-  // Convert days to week index (0-based)
-  let idx = Math.floor(diffDays / 7);
-
-  // Clamp to valid range just in case
+  // Safety clamp in case totalWeeks changes in the future
   if (idx < 0) idx = 0;
   if (idx >= weekElems.length) idx = weekElems.length - 1;
 
   const targetWeek = weekElems[idx];
   if (!targetWeek) return;
 
-  // Scroll so that today's week is aligned at the top of the view
   calwrap.scrollTop = targetWeek.offsetTop;
 }
-
 
 function renderAll(){
   weeksEl.innerHTML='';
