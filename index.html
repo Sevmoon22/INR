@@ -187,20 +187,23 @@ function scrollToTodayWeek() {
   const weekElems = weeksEl.querySelectorAll('.week');
   if (!weekElems.length) return;
 
-  const tIso = isoLocal(today);
-  let targetWeek = null;
+  // How many whole days between the calendar start and today?
+  const diffDays = daysBetween(start, today);
 
-  weekElems.forEach((wk) => {
-    if (wk.querySelector('#c_' + tIso)) {
-      targetWeek = wk;
-    }
-  });
+  // Convert days to week index (0-based)
+  let idx = Math.floor(diffDays / 7);
 
+  // Clamp to valid range just in case
+  if (idx < 0) idx = 0;
+  if (idx >= weekElems.length) idx = weekElems.length - 1;
+
+  const targetWeek = weekElems[idx];
   if (!targetWeek) return;
 
-  // Align the week containing today's date at the top
+  // Scroll so that today's week is aligned at the top of the view
   calwrap.scrollTop = targetWeek.offsetTop;
 }
+
 
 function renderAll(){
   weeksEl.innerHTML='';
