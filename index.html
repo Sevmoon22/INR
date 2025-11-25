@@ -47,6 +47,16 @@ input,select,button{font-size:15px} input,select{padding:8px;border:1px solid #b
 .orangeCell{background:#ffe0b3!important;box-shadow:inset 0 0 0 2px #ff9800}
 .redCell{background:#ffc2c2!important;box-shadow:inset 0 0 0 2px #e53935}
 .repeat-inr{font-size:11px;color:#b00020;margin-top:3px;text-align:center}
+
+/* Patient info emphasis */
+.patient-grid{display:flex;flex-wrap:wrap;gap:16px}
+.patient-field{display:flex;flex-direction:column;min-width:180px}
+.patient-field label{font-weight:600;margin-bottom:4px}
+
+/* Hide export button when printing */
+@media print {
+  #exportPDF{display:none !important;}
+}
 </style>
 </head>
 <body>
@@ -72,18 +82,18 @@ input,select,button{font-size:15px} input,select{padding:8px;border:1px solid #b
   <!-- Patient Information -->
   <h2>Patient Information</h2>
   <fieldset><legend>Patient</legend>
-    <div class="grid">
-      <div>
+    <div class="patient-grid">
+      <div class="patient-field">
         <label for="patientName">Patient Name</label>
-        <input id="patientName" type="text" placeholder="e.g., John Smith" style="width:100%;max-width:260px;">
+        <input id="patientName" type="text" placeholder="e.g., John Smith">
       </div>
-      <div>
-        <label for="patientDob">Date of Birth</label>
-        <input id="patientDob" type="text" placeholder="e.g., 01/02/1970" style="width:100%;max-width:180px;">
+      <div class="patient-field">
+        <label for="patientDob">DOB</label>
+        <input id="patientDob" type="text" placeholder="e.g., 01/02/1970">
       </div>
-      <div>
+      <div class="patient-field">
         <label for="patientMrn">MRN</label>
-        <input id="patientMrn" type="text" placeholder="e.g., 1234567" style="width:100%;max-width:160px;">
+        <input id="patientMrn" type="text" placeholder="e.g., 1234567">
       </div>
     </div>
   </fieldset>
@@ -201,10 +211,12 @@ function schedAtIso(key){const d=new Date(key); const dow=d.getDay(); return bas
 function effAtIso(key){if(actual.has(key))return actual.get(key); if(planned.has(key))return planned.get(key); return schedAtIso(key)}
 
 const today = new Date();
-// Start one week BEFORE the current week so the initial span is wide
-let start = addDaysLocal(startOfWeekLocal(today), -7);
-// Show a chunk of future weeks (about 30 including the previous week)
-let totalWeeks = 30;
+
+// *** Calendar range: 26 weeks before + current + 26 weeks after (~1 year) ***
+const weeksBefore = 26;
+const weeksAfter  = 26;
+let start = addDaysLocal(startOfWeekLocal(today), -7*weeksBefore);
+let totalWeeks = weeksBefore + weeksAfter + 1;
 
 function renderAll(){
   weeksEl.innerHTML='';
@@ -234,8 +246,6 @@ function renderAll(){
   }
 
   pushDataToCells();
-  // Initial view: we'll center on today via scrollToTodayWeek() after DOMContentLoaded
-  calwrap.scrollTop = 0;
   lin7();
   dbg.textContent = 'Calendar rows rendered: ' + document.querySelectorAll('.week').length;
 }
@@ -452,147 +462,34 @@ function reco(){
   pushDataToCells(); lin7();
 }
 
-/* ------- PDF export: this week + next week calendar ------- */
+/* ------- PDF export: clone visible app so PDF matches screen ------- */
 function exportRecommendationPDF(){
-  const recHtml = rec.innerHTML.trim();
-  const linText = linEl.textContent.trim();
-  const todayStr = isoLocal(today);
-  const now = new Date();
-  const timeStr = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-
-  const pNameEl = document.getElementById('patientName');
-  const pDobEl  = document.getElementById('patientDob');
-  const pMrnEl  = document.getElementById('patientMrn');
-
-  const pName = pNameEl ? pNameEl.value.trim() : '';
-  const pDob  = pDobEl  ? pDobEl.value.trim()  : '';
-  const pMrn  = pMrnEl  ? pMrnEl.value.trim()  : '';
-
-  const patientInfoLine = [
-    pName ? 'Patient Name: ' + pName : '',
-    pDob  ? 'DOB: ' + pDob : '',
-    pMrn  ? 'MRN: ' + pMrn : ''
-  ].filter(Boolean).join('    ');
-
-  // Baseline weekly regimen (Sun→Sat)
-  const weekdays = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  const baselineLines = weekdays.map((name, i)=>{
-    const el = document.getElementById('b'+i);
-    const v = el ? parseFloat(el.value) : NaN;
-    return name+': '+(isNaN(v)?'—':v.toFixed(1)+' mg');
-  }).join('\n');
-
-  // Helper: build a week's rows for calendar table
-  function buildWeekRows(startDate){
-    let rows = '';
-    for(let i=0;i<7;i++){
-      const d = addDaysLocal(startDate,i);
-      const key = isoLocal(d);
-      const dayName = weekdays[d.getDay()];
-      const dateStr = pad(d.getMonth()+1)+'/'+pad(d.getDate());
-
-      const plannedDose = planned.has(key) ? planned.get(key) : '';
-      const inrValNum   = inrVal.has(key) ? inrVal.get(key) : NaN;
-      const actualDose  = actual.has(key) ? actual.get(key) : '';
-
-      const plannedStr = plannedDose === '' || isNaN(plannedDose) ? '—' : plannedDose.toFixed(1)+' mg';
-      const inrStr     = isNaN(inrValNum) ? '—' : inrValNum.toFixed(1);
-      const actualStr  = actualDose === '' || isNaN(actualDose) ? '—' : actualDose.toFixed(1)+' mg';
-      const repeatStr  = (repeatKey === key) ? 'Repeat INR' : '';
-
-      rows += `
-        <tr>
-          <td>${dayName}</td>
-          <td>${dateStr}</td>
-          <td>${plannedStr}</td>
-          <td>${inrStr}</td>
-          <td>${actualStr}</td>
-          <td>${repeatStr}</td>
-        </tr>`;
-    }
-    return rows;
+  const styleTag = document.querySelector('style');
+  const styles = styleTag ? styleTag.innerHTML : '';
+  const container = document.querySelector('.container');
+  if(!container){
+    window.print(); // fallback
+    return;
   }
-
-  const thisWeekStart = startOfWeekLocal(today);
-  const nextWeekStart = addDaysLocal(thisWeekStart, 7);
-
-  const thisWeekRows = buildWeekRows(thisWeekStart);
-  const nextWeekRows = buildWeekRows(nextWeekStart);
 
   const win = window.open('', '_blank');
   if(!win){
     alert('Please allow pop-ups to export the recommendation.');
     return;
   }
+
   win.document.open();
   win.document.write(`
     <html>
     <head>
       <meta charset="utf-8">
-      <title>ThromboLogic INR Recommendation - ${todayStr}</title>
+      <title>ThromboLogic INR</title>
       <style>
-        body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:24px;color:#111;}
-        h1{font-size:20px;margin-bottom:4px;}
-        h2{font-size:15px;margin:16px 0 6px;}
-        .small{font-size:12px;color:#555;}
-        .card{border:1px solid #ccc;border-radius:10px;padding:12px;margin:8px 0;background:#fafafa;}
-        pre{white-space:pre-wrap;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;}
-        table{border-collapse:collapse;width:100%;font-size:12px;margin-top:4px;}
-        th,td{border:1px solid #ccc;padding:4px 6px;text-align:left;}
-        th{background:#f3f3f3;font-weight:600;}
+      ${styles}
       </style>
     </head>
     <body>
-      <h1>ThromboLogic INR Recommendation</h1>
-      <div class="small">Generated on ${todayStr} at ${timeStr}</div>
-      ${patientInfoLine ? `<div class="small" style="margin-top:4px;">${patientInfoLine}</div>` : ''}
-
-      <h2>Baseline Weekly Regimen (Sun → Sat)</h2>
-      <div class="card"><pre>${baselineLines}</pre></div>
-
-      <h2>This Week's Calendar View</h2>
-      <div class="card">
-        <table>
-          <thead>
-            <tr>
-              <th>Day</th>
-              <th>Date</th>
-              <th>Planned dose (mg)</th>
-              <th>INR</th>
-              <th>Actual dose (mg)</th>
-              <th>Notes</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${thisWeekRows}
-          </tbody>
-        </table>
-      </div>
-
-      <h2>Next Week's Calendar View</h2>
-      <div class="card">
-        <table>
-          <thead>
-            <tr>
-              <th>Day</th>
-              <th>Date</th>
-              <th>Planned dose (mg)</th>
-              <th>INR</th>
-              <th>Actual dose (mg)</th>
-              <th>Notes</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${nextWeekRows}
-          </tbody>
-        </table>
-      </div>
-
-      <h2>Verbal Recommendation</h2>
-      <div class="card">${recHtml || 'No recommendation has been generated yet.'}</div>
-
-      <h2>7-Day Recommendation (Linear — Today&#39;s Week)</h2>
-      <div class="card"><pre>${linText || ''}</pre></div>
+      ${container.innerHTML}
     </body>
     </html>
   `);
@@ -603,8 +500,9 @@ function exportRecommendationPDF(){
 
 document.addEventListener('DOMContentLoaded', ()=>{
   try{ renderAll(); updSum(); }catch(e){ err.textContent = 'Calendar failed to render: '+e; }
+
   // After initial render, center on today's date
-  scrollToTodayWeek();
+  setTimeout(scrollToTodayWeek, 50);
 
   for(let i=0;i<7;i++){
     const el=document.getElementById('b'+i);
