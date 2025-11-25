@@ -201,7 +201,7 @@ function schedAtIso(key){const d=new Date(key); const dow=d.getDay(); return bas
 function effAtIso(key){if(actual.has(key))return actual.get(key); if(planned.has(key))return planned.get(key); return schedAtIso(key)}
 
 const today = new Date();
-// Start one week BEFORE the current week so the initial view shows: previous, current, next.
+// Start one week BEFORE the current week so the initial span is wide
 let start = addDaysLocal(startOfWeekLocal(today), -7);
 // Show a chunk of future weeks (about 30 including the previous week)
 let totalWeeks = 30;
@@ -234,18 +234,21 @@ function renderAll(){
   }
 
   pushDataToCells();
-  // Initial view: previous week at top, current week immediately below
+  // Initial view: we'll center on today via scrollToTodayWeek() after DOMContentLoaded
   calwrap.scrollTop = 0;
   lin7();
   dbg.textContent = 'Calendar rows rendered: ' + document.querySelectorAll('.week').length;
 }
 
 function scrollToTodayWeek() {
-  const weekElems = weeksEl.querySelectorAll('.week');
-  // Week 0 = previous week, Week 1 = current week
-  if (weekElems.length > 1) {
-    calwrap.scrollTop = weekElems[1].offsetTop;
-  }
+  const tIso = isoLocal(today);
+  const cell = document.getElementById('c_' + tIso);
+  if (!cell) return;
+  const cellRect = cell.getBoundingClientRect();
+  const wrapRect = calwrap.getBoundingClientRect();
+  const offsetWithinWrap = (cellRect.top - wrapRect.top) + calwrap.scrollTop;
+  // Center today's row in the visible area
+  calwrap.scrollTop = offsetWithinWrap - (calwrap.clientHeight / 2) + (cellRect.height / 2);
 }
 
 function pushDataToCells(){
@@ -449,7 +452,7 @@ function reco(){
   pushDataToCells(); lin7();
 }
 
-/* ------- PDF export: open print-ready window so user can Save as PDF ------- */
+/* ------- PDF export: this week + next week calendar ------- */
 function exportRecommendationPDF(){
   const recHtml = rec.innerHTML.trim();
   const linText = linEl.textContent.trim();
@@ -471,12 +474,50 @@ function exportRecommendationPDF(){
     pMrn  ? 'MRN: ' + pMrn : ''
   ].filter(Boolean).join('    ');
 
+  // Baseline weekly regimen (Sun→Sat)
   const weekdays = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   const baselineLines = weekdays.map((name, i)=>{
     const el = document.getElementById('b'+i);
     const v = el ? parseFloat(el.value) : NaN;
     return name+': '+(isNaN(v)?'—':v.toFixed(1)+' mg');
-  }).join('\\n');
+  }).join('\n');
+
+  // Helper: build a week's rows for calendar table
+  function buildWeekRows(startDate){
+    let rows = '';
+    for(let i=0;i<7;i++){
+      const d = addDaysLocal(startDate,i);
+      const key = isoLocal(d);
+      const dayName = weekdays[d.getDay()];
+      const dateStr = pad(d.getMonth()+1)+'/'+pad(d.getDate());
+
+      const plannedDose = planned.has(key) ? planned.get(key) : '';
+      const inrValNum   = inrVal.has(key) ? inrVal.get(key) : NaN;
+      const actualDose  = actual.has(key) ? actual.get(key) : '';
+
+      const plannedStr = plannedDose === '' || isNaN(plannedDose) ? '—' : plannedDose.toFixed(1)+' mg';
+      const inrStr     = isNaN(inrValNum) ? '—' : inrValNum.toFixed(1);
+      const actualStr  = actualDose === '' || isNaN(actualDose) ? '—' : actualDose.toFixed(1)+' mg';
+      const repeatStr  = (repeatKey === key) ? 'Repeat INR' : '';
+
+      rows += `
+        <tr>
+          <td>${dayName}</td>
+          <td>${dateStr}</td>
+          <td>${plannedStr}</td>
+          <td>${inrStr}</td>
+          <td>${actualStr}</td>
+          <td>${repeatStr}</td>
+        </tr>`;
+    }
+    return rows;
+  }
+
+  const thisWeekStart = startOfWeekLocal(today);
+  const nextWeekStart = addDaysLocal(thisWeekStart, 7);
+
+  const thisWeekRows = buildWeekRows(thisWeekStart);
+  const nextWeekRows = buildWeekRows(nextWeekStart);
 
   const win = window.open('', '_blank');
   if(!win){
@@ -496,16 +537,60 @@ function exportRecommendationPDF(){
         .small{font-size:12px;color:#555;}
         .card{border:1px solid #ccc;border-radius:10px;padding:12px;margin:8px 0;background:#fafafa;}
         pre{white-space:pre-wrap;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;}
+        table{border-collapse:collapse;width:100%;font-size:12px;margin-top:4px;}
+        th,td{border:1px solid #ccc;padding:4px 6px;text-align:left;}
+        th{background:#f3f3f3;font-weight:600;}
       </style>
     </head>
     <body>
       <h1>ThromboLogic INR Recommendation</h1>
       <div class="small">Generated on ${todayStr} at ${timeStr}</div>
       ${patientInfoLine ? `<div class="small" style="margin-top:4px;">${patientInfoLine}</div>` : ''}
+
       <h2>Baseline Weekly Regimen (Sun → Sat)</h2>
       <div class="card"><pre>${baselineLines}</pre></div>
+
+      <h2>This Week's Calendar View</h2>
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>Day</th>
+              <th>Date</th>
+              <th>Planned dose (mg)</th>
+              <th>INR</th>
+              <th>Actual dose (mg)</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${thisWeekRows}
+          </tbody>
+        </table>
+      </div>
+
+      <h2>Next Week's Calendar View</h2>
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>Day</th>
+              <th>Date</th>
+              <th>Planned dose (mg)</th>
+              <th>INR</th>
+              <th>Actual dose (mg)</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${nextWeekRows}
+          </tbody>
+        </table>
+      </div>
+
       <h2>Verbal Recommendation</h2>
       <div class="card">${recHtml || 'No recommendation has been generated yet.'}</div>
+
       <h2>7-Day Recommendation (Linear — Today&#39;s Week)</h2>
       <div class="card"><pre>${linText || ''}</pre></div>
     </body>
@@ -518,6 +603,9 @@ function exportRecommendationPDF(){
 
 document.addEventListener('DOMContentLoaded', ()=>{
   try{ renderAll(); updSum(); }catch(e){ err.textContent = 'Calendar failed to render: '+e; }
+  // After initial render, center on today's date
+  scrollToTodayWeek();
+
   for(let i=0;i<7;i++){
     const el=document.getElementById('b'+i);
     if(el){ el.addEventListener('input', ()=>{ updSum(); }) }
