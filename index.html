@@ -697,6 +697,16 @@ document.addEventListener('DOMContentLoaded', ()=>{
     exportBtn.addEventListener('click', exportRecommendationPDF);
   }
 
+    const exportBtn = document.getElementById('exportPDF');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', exportRecommendationPDF);
+  }
+
+  const handoutBtn = document.getElementById('patientHandout');
+  if (handoutBtn) {
+    handoutBtn.addEventListener('click', openPatientHandout);
+  }
+
   // Delegated inputs (no re-render while typing)
   weeksEl.addEventListener('input', (e)=>{
     const t = e.target;
