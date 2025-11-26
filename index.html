@@ -687,7 +687,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   document.getElementById('clearVisible').addEventListener('click', clearVisible);
   document.getElementById('clearAll').addEventListener('click', clearAll);
 
-  const goTodayBtn = document.getElementById('goToday');
+    const goTodayBtn = document.getElementById('goToday');
   if (goTodayBtn) {
     goTodayBtn.addEventListener('click', scrollToTodayWeek);
   }
@@ -697,15 +697,11 @@ document.addEventListener('DOMContentLoaded', ()=>{
     exportBtn.addEventListener('click', exportRecommendationPDF);
   }
 
-    const exportBtn = document.getElementById('exportPDF');
-  if (exportBtn) {
-    exportBtn.addEventListener('click', exportRecommendationPDF);
-  }
-
   const handoutBtn = document.getElementById('patientHandout');
   if (handoutBtn) {
     handoutBtn.addEventListener('click', openPatientHandout);
   }
+
 
   // Delegated inputs (no re-render while typing)
   weeksEl.addEventListener('input', (e)=>{
