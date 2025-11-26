@@ -183,10 +183,14 @@ input,select,button{font-size:15px} input,select{padding:8px;border:1px solid #b
   <div id="dbg" class="debug"></div>
 
   <!-- Verbal Recommendation + Export button -->
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:16px;">
     <h2 style="margin:0;">Verbal Recommendation</h2>
-    <button class="btnS" id="exportPDF" type="button">Export to PDF</button>
+    <div>
+      <button class="btnS" id="patientHandout" type="button">Patient handout view</button>
+      <button class="btnS" id="exportPDF" type="button">Export to PDF</button>
+    </div>
   </div>
+
   <div id="rec" class="card"></div>
 
   <h2>7-Day Recommendation (Linear — Today's Week)</h2>
