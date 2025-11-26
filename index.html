@@ -183,7 +183,7 @@ input,select,button{font-size:15px} input,select{padding:8px;border:1px solid #b
   <div id="dbg" class="debug"></div>
 
   <!-- Verbal Recommendation + Export button -->
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:16px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:16px;">
     <h2 style="margin:0;">Verbal Recommendation</h2>
     <div>
       <button class="btnS" id="patientHandout" type="button">Patient handout view</button>
@@ -261,7 +261,6 @@ function scrollToTodayWeek() {
   const cellRect = cell.getBoundingClientRect();
   const wrapRect = calwrap.getBoundingClientRect();
   const offsetWithinWrap = (cellRect.top - wrapRect.top) + calwrap.scrollTop;
-  // Center today's row in the visible area
   calwrap.scrollTop = offsetWithinWrap - (calwrap.clientHeight / 2) + (cellRect.height / 2);
 }
 
@@ -502,7 +501,7 @@ function exportRecommendationPDF(){
   win.print();   // user can choose "Save as PDF"
 }
 
-  /* ------- Patient handout view: this week + next week tables ------- */
+/* ------- Patient handout view: this week + next week tables ------- */
 function openPatientHandout(){
   const todayStr = isoLocal(today);
   const now = new Date();
@@ -542,15 +541,14 @@ function openPatientHandout(){
       const actualStr  = isNaN(actualDose)  ? '—' : actualDose.toFixed(1)+' mg';
       const notesStr   = (repeatKey === key) ? 'Repeat INR' : '';
 
-      rows += `
-        <tr>
-          <td>${dayName}</td>
-          <td>${dateStr}</td>
-          <td>${plannedStr}</td>
-          <td>${inrStr}</td>
-          <td>${actualStr}</td>
-          <td>${notesStr}</td>
-        </tr>`;
+      rows += '<tr>' +
+              '<td>'+dayName+'</td>' +
+              '<td>'+dateStr+'</td>' +
+              '<td>'+plannedStr+'</td>' +
+              '<td>'+inrStr+'</td>' +
+              '<td>'+actualStr+'</td>' +
+              '<td>'+notesStr+'</td>' +
+              '</tr>';
     }
     return rows;
   }
@@ -567,71 +565,77 @@ function openPatientHandout(){
     return;
   }
 
+  // build patient info HTML separately to avoid nested template strings
+  let patientInfoHTML = '';
+  if (patientInfoLine) {
+    patientInfoHTML = '<div class="small" style="margin-top:6px;">' + patientInfoLine + '</div>';
+  }
+
+  const docHtml =
+    '<html>' +
+    '<head>' +
+      '<meta charset="utf-8">' +
+      '<title>ThromboLogic INR – Patient Handout</title>' +
+      '<style>' +
+        'body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:24px;color:#111;}' +
+        'h1{font-size:20px;margin-bottom:4px;}' +
+        'h2{font-size:16px;margin:18px 0 8px;}' +
+        '.small{font-size:12px;color:#555;}' +
+        'table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px;}' +
+        'th,td{border:1px solid #ccc;padding:4px 6px;text-align:left;}' +
+        'th{background:#f3f3f3;font-weight:600;}' +
+        '.card{border:1px solid #ccc;border-radius:10px;padding:12px;margin:8px 0;background:#fafafa;}' +
+      '</style>' +
+    '</head>' +
+    '<body>' +
+      '<h1>ThromboLogic INR – Patient Dosing Summary</h1>' +
+      '<div class="small">Generated on '+todayStr+' at '+timeStr+'</div>' +
+      patientInfoHTML +
+
+      '<h2>This Week&#39;s Calendar View</h2>' +
+      '<div class="card">' +
+        '<table>' +
+          '<thead>' +
+            '<tr>' +
+              '<th>Day</th>' +
+              '<th>Date</th>' +
+              '<th>Planned dose (mg)</th>' +
+              '<th>INR</th>' +
+              '<th>Actual dose (mg)</th>' +
+              '<th>Notes</th>' +
+            '</tr>' +
+          '</thead>' +
+          '<tbody>' +
+            thisWeekRows +
+          '</tbody>' +
+        '</table>' +
+      '</div>' +
+
+      '<h2>Next Week&#39;s Calendar View</h2>' +
+      '<div class="card">' +
+        '<table>' +
+          '<thead>' +
+            '<tr>' +
+              '<th>Day</th>' +
+              '<th>Date</th>' +
+              '<th>Planned dose (mg)</th>' +
+              '<th>INR</th>' +
+              '<th>Actual dose (mg)</th>' +
+              '<th>Notes</th>' +
+            '</tr>' +
+          '</thead>' +
+          '<tbody>' +
+            nextWeekRows +
+          '</tbody>' +
+        '</table>' +
+      '</div>' +
+    '</body>' +
+    '</html>';
+
   win.document.open();
-  win.document.write(`
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <title>ThromboLogic INR – Patient Handout</title>
-      <style>
-        body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:24px;color:#111;}
-        h1{font-size:20px;margin-bottom:4px;}
-        h2{font-size:16px;margin:18px 0 8px;}
-        .small{font-size:12px;color:#555;}
-        table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px;}
-        th,td{border:1px solid #ccc;padding:4px 6px;text-align:left;}
-        th{background:#f3f3f3;font-weight:600;}
-        .card{border:1px solid #ccc;border-radius:10px;padding:12px;margin:8px 0;background:#fafafa;}
-      </style>
-    </head>
-    <body>
-      <h1>ThromboLogic INR – Patient Dosing Summary</h1>
-      <div class="small">Generated on ${todayStr} at ${timeStr}</div>
-      ${patientInfoLine ? `<div class="small" style="margin-top:6px;">${patientInfoLine}</div>` : ''}
-
-      <h2>This Week's Calendar View</h2>
-      <div class="card">
-        <table>
-          <thead>
-            <tr>
-              <th>Day</th>
-              <th>Date</th>
-              <th>Planned dose (mg)</th>
-              <th>INR</th>
-              <th>Actual dose (mg)</th>
-              <th>Notes</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${thisWeekRows}
-          </tbody>
-        </table>
-      </div>
-
-      <h2>Next Week's Calendar View</h2>
-      <div class="card">
-        <table>
-          <thead>
-            <tr>
-              <th>Day</th>
-              <th>Date</th>
-              <th>Planned dose (mg)</th>
-              <th>INR</th>
-              <th>Actual dose (mg)</th>
-              <th>Notes</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${nextWeekRows}
-          </tbody>
-        </table>
-      </div>
-    </body>
-    </html>
-  `);
+  win.document.write(docHtml);
   win.document.close();
   win.focus();
-  // From here they can print or "Save as PDF"
 }
 
 document.addEventListener('DOMContentLoaded', ()=>{
@@ -687,7 +691,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   document.getElementById('clearVisible').addEventListener('click', clearVisible);
   document.getElementById('clearAll').addEventListener('click', clearAll);
 
-    const goTodayBtn = document.getElementById('goToday');
+  const goTodayBtn = document.getElementById('goToday');
   if (goTodayBtn) {
     goTodayBtn.addEventListener('click', scrollToTodayWeek);
   }
@@ -701,7 +705,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
   if (handoutBtn) {
     handoutBtn.addEventListener('click', openPatientHandout);
   }
-
 
   // Delegated inputs (no re-render while typing)
   weeksEl.addEventListener('input', (e)=>{
