@@ -470,36 +470,74 @@ function exportRecommendationPDF(){
   const styleTag = document.querySelector('style');
   const styles = styleTag ? styleTag.innerHTML : '';
   const container = document.querySelector('.container');
-  if(!container){
+  if (!container) {
     window.print(); // fallback
     return;
   }
 
+  // Clone the whole app so we can freeze current values into HTML
+  const clone = container.cloneNode(true);
+
+  // Copy current values from the real DOM into the clone
+  const srcFields   = container.querySelectorAll('input, select, textarea');
+  const cloneFields = clone.querySelectorAll('input, select, textarea');
+
+  srcFields.forEach((src, idx) => {
+    const copy = cloneFields[idx];
+    if (!copy) return;
+
+    const tag = src.tagName;
+
+    if (tag === 'INPUT') {
+      const type = src.type;
+      if (type === 'checkbox' || type === 'radio') {
+        if (src.checked) {
+          copy.setAttribute('checked', 'checked');
+        } else {
+          copy.removeAttribute('checked');
+        }
+      } else {
+        copy.setAttribute('value', src.value);
+      }
+    } else if (tag === 'SELECT') {
+      const optsSrc  = src.options;
+      const optsCopy = copy.options;
+      for (let i = 0; i < optsSrc.length; i++) {
+        if (optsSrc[i].selected) {
+          optsCopy[i].setAttribute('selected', 'selected');
+        } else {
+          optsCopy[i].removeAttribute('selected');
+        }
+      }
+    } else if (tag === 'TEXTAREA') {
+      copy.textContent = src.value;
+    }
+  });
+
   const win = window.open('', '_blank');
-  if(!win){
+  if (!win) {
     alert('Please allow pop-ups to export the recommendation.');
     return;
   }
 
   win.document.open();
-  win.document.write(`
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <title>ThromboLogic INR</title>
-      <style>
-      ${styles}
-      </style>
-    </head>
-    <body>
-      ${container.innerHTML}
-    </body>
-    </html>
-  `);
+  win.document.write(
+    '<html>' +
+      '<head>' +
+        '<meta charset="utf-8">' +
+        '<title>ThromboLogic INR</title>' +
+        '<style>' + styles + '</style>' +
+      '</head>' +
+      '<body>' +
+        clone.outerHTML +
+      '</body>' +
+    '</html>'
+  );
   win.document.close();
   win.focus();
-  win.print();   // user can choose "Save as PDF"
+  win.print();   // user chooses "Save as PDF"
 }
+
 
 /* ------- Patient handout view: this week + next week tables ------- */
 function openPatientHandout(){
