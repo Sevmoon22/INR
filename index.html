@@ -191,10 +191,19 @@ input,select,button{font-size:15px} input,select{padding:8px;border:1px solid #b
     </div>
   </div>
 
-  <div id="rec" class="card"></div>
+    <div id="rec" class="card"></div>
+
+  <!-- Provider notes (included in PDF export) -->
+  <h2>Provider Notes</h2>
+  <div class="card">
+    <textarea id="providerNotes"
+              style="width:100%;min-height:80px;border:1px solid #ccc;border-radius:6px;padding:6px;font-size:13px;resize:vertical;"
+              placeholder="Optional notes to appear on the PDF / handout (e.g., phone follow-up date, dietary counseling, bridging instructions)..."></textarea>
+  </div>
 
   <h2>7-Day Recommendation (Linear — Today's Week)</h2>
   <div id="lin" class="card mono"></div>
+
 
 <script>
 function pad(n){return (n<10?'0':'')+n}
