@@ -53,7 +53,7 @@ input,select,button{font-size:15px} input,select{padding:8px;border:1px solid #b
 .patient-field{display:flex;flex-direction:column;min-width:180px}
 .patient-field label{font-weight:600;margin-bottom:4px}
 
-/* Hide export button when printing */
+/* Hide export button when printing main page */
 @media print {
   #exportPDF{display:none !important;}
 }
@@ -88,16 +88,14 @@ input,select,button{font-size:15px} input,select{padding:8px;border:1px solid #b
         <input id="patientName" type="text" placeholder="e.g., John Smith">
       </div>
       <div class="patient-field">
-  <label for="patientDob">DOB</label>
-  <input
-    id="patientDob"
-    type="text"
-    placeholder="e.g., 01/02/1970"
-    inputmode="numeric"
-    maxlength="10"
-  >
-</div>
-
+        <label for="patientDob">DOB</label>
+        <input
+          id="patientDob"
+          type="text"
+          placeholder="e.g., 01/02/1970"
+          inputmode="numeric"
+          maxlength="10">
+      </div>
       <div class="patient-field">
         <label for="patientMrn">MRN</label>
         <input id="patientMrn" type="text" placeholder="e.g., 1234567">
@@ -189,7 +187,7 @@ input,select,button{font-size:15px} input,select{padding:8px;border:1px solid #b
   </div>
   <div id="dbg" class="debug"></div>
 
-  <!-- Verbal Recommendation + Export button -->
+  <!-- Verbal Recommendation + Export/Handout buttons -->
   <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:16px;">
     <h2 style="margin:0;">Verbal Recommendation</h2>
     <div>
@@ -198,9 +196,9 @@ input,select,button{font-size:15px} input,select{padding:8px;border:1px solid #b
     </div>
   </div>
 
-    <div id="rec" class="card"></div>
+  <div id="rec" class="card"></div>
 
-  <!-- Provider notes (included in PDF export) -->
+  <!-- Provider notes (included in PDF) -->
   <h2>Provider Notes</h2>
   <div class="card">
     <textarea id="providerNotes"
@@ -210,7 +208,6 @@ input,select,button{font-size:15px} input,select{padding:8px;border:1px solid #b
 
   <h2>7-Day Recommendation (Linear — Today's Week)</h2>
   <div id="lin" class="card mono"></div>
-
 
 <script>
 function pad(n){return (n<10?'0':'')+n}
@@ -232,7 +229,7 @@ function effAtIso(key){if(actual.has(key))return actual.get(key); if(planned.has
 
 const today = new Date();
 
-// *** Calendar range: 26 weeks before + current + 26 weeks after (~1 year) ***
+// Calendar range: 26 weeks before + current + 26 weeks after
 const weeksBefore = 26;
 const weeksAfter  = 26;
 let start = addDaysLocal(startOfWeekLocal(today), -7*weeksBefore);
@@ -402,10 +399,21 @@ function markNeedsRecalc(){
 
 function reco(){
   const goalVal = document.getElementById('goal').value;
-  const L = (goalVal==='2-3')?2.0:(goalVal==='2.5-3.5')?2.5:parseFloat(document.getElementById('gL').value);
-  const H = (goalVal==='2-3')?3.0:(goalVal==='2.5-3.5')?3.5:parseFloat(document.getElementById('gH').value);
-  if(isNaN(L)||isNaN(H)||L>=H){ alert('Set a valid INR goal.'); return }
-  if(baseSum()<=0){ alert('Enter baseline regimen first.'); return }
+  const L = (goalVal==='2-3') ? 2.0 :
+            (goalVal==='2.5-3.5') ? 2.5 :
+            parseFloat(document.getElementById('gL').value);
+  const H = (goalVal==='2-3') ? 3.0 :
+            (goalVal==='2.5-3.5') ? 3.5 :
+            parseFloat(document.getElementById('gH').value);
+
+  if(isNaN(L)||isNaN(H)||L>=H){
+    alert('Set a valid INR goal.');
+    return;
+  }
+  if(baseSum()<=0){
+    alert('Enter baseline regimen first.');
+    return;
+  }
 
   pendingRecalc=false;
   const hint=document.getElementById('recalcHint');
@@ -414,30 +422,59 @@ function reco(){
   if(btn){ btn.disabled=true; btn.style.opacity='0.5'; }
 
   const todayIso = isoLocal(new Date());
-  let bestDate = new Date(); 
+  let bestDate = new Date();
   let bestVal = parseFloat(document.getElementById('inr').value);
 
-  if(isNaN(bestVal) && inrVal.has(todayIso)) bestVal = inrVal.get(todayIso), bestDate=new Date();
+  if(isNaN(bestVal) && inrVal.has(todayIso)){
+    bestVal = inrVal.get(todayIso);
+    bestDate = new Date();
+  }
+
   if(isNaN(bestVal)){
     for(let d=1; d<=3; d++){
       const key = isoLocal(addDaysLocal(new Date(), -d));
-      if(inrVal.has(key)){ bestVal=inrVal.get(key); bestDate=addDaysLocal(new Date(), -d); break; }
+      if(inrVal.has(key)){
+        bestVal = inrVal.get(key);
+        bestDate = addDaysLocal(new Date(), -d);
+        break;
+      }
     }
   }
+
   if(isNaN(bestVal)){
-    rec.innerHTML='No recent INR (≤3 days). <b>Repeat INR now</b>; no dose change until result available.';
-    repeatKey = todayIso; hasReco=true; pushDataToCells(); return;
+    rec.innerHTML = `
+      <p>We do not have an INR result from the last 3 days.</p>
+      <p><b>Please get an INR blood test as soon as possible.</b></p>
+      <p>Do not change your warfarin dose until you have a new result.</p>
+    `;
+    repeatKey = todayIso;
+    hasReco = true;
+    pushDataToCells();
+    return;
   }
 
   const band = pickPct(bestVal, L, H);
   const age = daysBetween(bestDate, new Date());
+  const datePhrase = (age === 0 ? 'today' : isoLocal(bestDate));
 
-  if(band.pct===0){
-    const rep = (age>=2 && age<=3) ? addDaysLocal(bestDate, 7) : addDaysLocal(new Date(), 7);
-    repeatKey = isoLocal(rep);
-    rec.innerHTML = `INR ${bestVal.toFixed(1)} is within goal (${L}–${H}). <b>No change.</b> Repeat INR on <b>${isoLocal(rep)}</b>.`;
-    hasReco=true;
-    pushDataToCells(); lin7(); return;
+  if(band.pct === 0){
+    const rep = (age>=2 && age<=3) ? addDaysLocal(bestDate, 7)
+                                   : addDaysLocal(new Date(), 7);
+    const repIso = isoLocal(rep);
+    repeatKey = repIso;
+
+    rec.innerHTML = `
+      <p>Your INR is <b style="font-size:18px;">${bestVal.toFixed(1)}</b>, which is
+         inside your target range of <b>${L}–${H}</b>.</p>
+      <p><b>No change</b> in your warfarin dose is recommended today.</p>
+      <p>Please have your INR checked again on
+         <b style="font-size:16px;">${repIso}</b>.</p>
+    `;
+
+    hasReco = true;
+    pushDataToCells();
+    lin7();
+    return;
   }
 
   const baseToday = schedAtIso(todayIso);
@@ -450,7 +487,7 @@ function reco(){
   const remaining   = r01(targetDelta - priorDelta);
 
   const naive = r01((e6 + baseToday) * band.pct);
-  const sign  = remaining>0?1:-1;
+  const sign  = remaining>0 ? 1 : -1;
   const capped= Math.min(Math.abs(naive), Math.abs(remaining)) * sign;
   const target= Math.max(0, r01(baseToday + capped));
   const newDose = r05(target);
@@ -458,36 +495,41 @@ function reco(){
   planned.set(todayIso, newDose);
 
   let repDate;
-  if(bestVal>4.5){
+  if(bestVal > 4.5){
     repDate = addDaysLocal(new Date(), 2);
   }else if(age>=2 && age<=3){
     repDate = addDaysLocal(bestDate, 7);
   }else{
     repDate = addDaysLocal(new Date(), 7);
   }
-  repeatKey = isoLocal(repDate);
+  const repIso = isoLocal(repDate);
+  repeatKey = repIso;
 
-  const verb = [
-    `Goal ${L}–${H}; INR ${bestVal.toFixed(1)} (${age===0?'today':isoLocal(bestDate)}).`,
-    `Band: ${band.label} → ${(band.pct>0?'+':'') + Math.round(Math.abs(band.pct)*100)}%.`,
-    `Scheduled 7-day (Sun→today): ${s7.toFixed(1)} mg; prior Δ (last 6 days): ${priorDelta.toFixed(1)} mg.`,
-    `Remaining Δ this week: ${remaining.toFixed(1)} mg.`,
-    `<b>Set today to ${newDose.toFixed(1)} mg</b> (rounded to 0.5 mg).`,
-    `<b>Repeat INR on ${isoLocal(repDate)}</b> ${ (age>=2 && age<=3) ? '(7 days from the last INR date)' : '' }.`
-  ].join(' ');
-  rec.innerHTML = verb;
-  hasReco=true;
+  const tooHighOrLow = bestVal < L ? 'low' : 'high';
 
-  pushDataToCells(); lin7();
+  rec.innerHTML = `
+    <p>Your INR result is
+       <b style="font-size:18px;">${bestVal.toFixed(1)}</b> (from <b>${datePhrase}</b>).</p>
+    <p>Your target INR range is <b>${L}–${H}</b>, so this result is
+       <b>too ${tooHighOrLow}</b>.</p>
+    <p>For <b>today</b>, take
+       <b style="font-size:16px;">${newDose.toFixed(1)} mg of warfarin</b>
+       instead of your usual dose.</p>
+    <p>Please have your INR checked again on
+       <b style="font-size:16px;">${repIso}</b>.</p>
+  `;
+
+  hasReco = true;
+  pushDataToCells();
+  lin7();
 }
 
-/* ------- PDF export: clone visible app so PDF matches screen ------- */
-ffunction exportRecommendationPDF(){
+/* ------- PDF export: patient-style summary (this week + next week) ------- */
+function exportRecommendationPDF(){
   const todayStr = isoLocal(today);
   const now = new Date();
   const timeStr = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 
-  // Patient info
   const pName = (document.getElementById('patientName')?.value || '').trim();
   const pDob  = (document.getElementById('patientDob')?.value  || '').trim();
   const pMrn  = (document.getElementById('patientMrn')?.value  || '').trim();
@@ -498,7 +540,6 @@ ffunction exportRecommendationPDF(){
     pMrn  ? '<strong>MRN:</strong> ' + pMrn : ''
   ].filter(Boolean).join('&nbsp;&nbsp;&nbsp;&nbsp;');
 
-  // Provider notes
   const rawNotes = (document.getElementById('providerNotes')?.value || '').trim();
   const notesHtml = rawNotes
     ? rawNotes
@@ -521,20 +562,30 @@ ffunction exportRecommendationPDF(){
       const plannedDose = planned.has(key) ? planned.get(key) : NaN;
       const inrValNum   = inrVal.has(key) ? inrVal.get(key) : NaN;
       const actualDose  = actual.has(key) ? actual.get(key) : NaN;
+      const isRepeatDay = (repeatKey === key);
 
       const plannedStr = isNaN(plannedDose) ? '—' : plannedDose.toFixed(1)+' mg';
-      const inrStr     = isNaN(inrValNum)   ? '—' : inrValNum.toFixed(1);
+      const inrHtml    = isNaN(inrValNum)
+        ? '—'
+        : `<span style="font-weight:bold;font-size:13px;">${inrValNum.toFixed(1)}</span>`;
       const actualStr  = isNaN(actualDose)  ? '—' : actualDose.toFixed(1)+' mg';
-      const notesStr   = (repeatKey === key) ? 'Repeat INR' : '';
+
+      const dateHtml = isRepeatDay
+        ? `<span style="font-weight:bold;font-size:13px;">${dateStr}</span>`
+        : dateStr;
+
+      const notesHtmlCell = isRepeatDay
+        ? `<span style="font-weight:bold;font-size:13px;">Repeat INR</span>`
+        : '';
 
       rows += `
         <tr>
           <td>${dayName}</td>
-          <td>${dateStr}</td>
+          <td>${dateHtml}</td>
           <td>${plannedStr}</td>
-          <td>${inrStr}</td>
+          <td>${inrHtml}</td>
           <td>${actualStr}</td>
-          <td>${notesStr}</td>
+          <td>${notesHtmlCell}</td>
         </tr>`;
     }
     return rows;
@@ -638,15 +689,12 @@ ffunction exportRecommendationPDF(){
   win.print();
 }
 
-
-
 /* ------- Patient handout view: this week + next week tables ------- */
 function openPatientHandout(){
   const todayStr = isoLocal(today);
   const now = new Date();
   const timeStr = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 
-  // Patient info to show at top
   const pNameEl = document.getElementById('patientName');
   const pDobEl  = document.getElementById('patientDob');
   const pMrnEl  = document.getElementById('patientMrn');
@@ -674,20 +722,31 @@ function openPatientHandout(){
       const plannedDose = planned.has(key) ? planned.get(key) : NaN;
       const inrValNum   = inrVal.has(key) ? inrVal.get(key) : NaN;
       const actualDose  = actual.has(key) ? actual.get(key) : NaN;
+      const isRepeatDay = (repeatKey === key);
 
       const plannedStr = isNaN(plannedDose) ? '—' : plannedDose.toFixed(1)+' mg';
-      const inrStr     = isNaN(inrValNum)   ? '—' : inrValNum.toFixed(1);
+      const inrHtml    = isNaN(inrValNum)
+        ? '—'
+        : `<span style="font-weight:bold;font-size:13px;">${inrValNum.toFixed(1)}</span>`;
       const actualStr  = isNaN(actualDose)  ? '—' : actualDose.toFixed(1)+' mg';
-      const notesStr   = (repeatKey === key) ? 'Repeat INR' : '';
 
-      rows += '<tr>' +
-              '<td>'+dayName+'</td>' +
-              '<td>'+dateStr+'</td>' +
-              '<td>'+plannedStr+'</td>' +
-              '<td>'+inrStr+'</td>' +
-              '<td>'+actualStr+'</td>' +
-              '<td>'+notesStr+'</td>' +
-              '</tr>';
+      const dateHtml = isRepeatDay
+        ? `<span style="font-weight:bold;font-size:13px;">${dateStr}</span>`
+        : dateStr;
+
+      const notesHtmlCell = isRepeatDay
+        ? `<span style="font-weight:bold;font-size:13px;">Repeat INR</span>`
+        : '';
+
+      rows += `
+        <tr>
+          <td>${dayName}</td>
+          <td>${dateHtml}</td>
+          <td>${plannedStr}</td>
+          <td>${inrHtml}</td>
+          <td>${actualStr}</td>
+          <td>${notesHtmlCell}</td>
+        </tr>`;
     }
     return rows;
   }
@@ -704,81 +763,90 @@ function openPatientHandout(){
     return;
   }
 
-  // build patient info HTML separately to avoid nested template strings
-  let patientInfoHTML = '';
-  if (patientInfoLine) {
-    patientInfoHTML = '<div class="small" style="margin-top:6px;">' + patientInfoLine + '</div>';
-  }
-
-  const docHtml =
-    '<html>' +
-    '<head>' +
-      '<meta charset="utf-8">' +
-      '<title>ThromboLogic INR – Patient Handout</title>' +
-      '<style>' +
-        'body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:24px;color:#111;}' +
-        'h1{font-size:20px;margin-bottom:4px;}' +
-        'h2{font-size:16px;margin:18px 0 8px;}' +
-        '.small{font-size:12px;color:#555;}' +
-        'table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px;}' +
-        'th,td{border:1px solid #ccc;padding:4px 6px;text-align:left;}' +
-        'th{background:#f3f3f3;font-weight:600;}' +
-        '.card{border:1px solid #ccc;border-radius:10px;padding:12px;margin:8px 0;background:#fafafa;}' +
-      '</style>' +
-    '</head>' +
-    '<body>' +
-      '<h1>ThromboLogic INR – Patient Dosing Summary</h1>' +
-      '<div class="small">Generated on '+todayStr+' at '+timeStr+'</div>' +
-      patientInfoHTML +
-
-      '<h2>This Week&#39;s Calendar View</h2>' +
-      '<div class="card">' +
-        '<table>' +
-          '<thead>' +
-            '<tr>' +
-              '<th>Day</th>' +
-              '<th>Date</th>' +
-              '<th>Planned dose (mg)</th>' +
-              '<th>INR</th>' +
-              '<th>Actual dose (mg)</th>' +
-              '<th>Notes</th>' +
-            '</tr>' +
-          '</thead>' +
-          '<tbody>' +
-            thisWeekRows +
-          '</tbody>' +
-        '</table>' +
-      '</div>' +
-
-      '<h2>Next Week&#39;s Calendar View</h2>' +
-      '<div class="card">' +
-        '<table>' +
-          '<thead>' +
-            '<tr>' +
-              '<th>Day</th>' +
-              '<th>Date</th>' +
-              '<th>Planned dose (mg)</th>' +
-              '<th>INR</th>' +
-              '<th>Actual dose (mg)</th>' +
-              '<th>Notes</th>' +
-            '</tr>' +
-          '</thead>' +
-          '<tbody>' +
-            nextWeekRows +
-          '</tbody>' +
-        '</table>' +
-      '</div>' +
-    '</body>' +
-    '</html>';
-
   win.document.open();
-  win.document.write(docHtml);
+  win.document.write(`
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>ThromboLogic INR – Patient Handout</title>
+      <style>
+        body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:24px;color:#111;}
+        h1{font-size:20px;margin-bottom:4px;}
+        h2{font-size:16px;margin:18px 0 8px;}
+        .small{font-size:12px;color:#555;}
+        table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px;}
+        th,td{border:1px solid #ccc;padding:4px 6px;text-align:left;}
+        th{background:#f3f3f3;font-weight:600;}
+        .card{border:1px solid #ccc;border-radius:10px;padding:12px;margin:8px 0;background:#fafafa;}
+      </style>
+    </head>
+    <body>
+      <h1>ThromboLogic INR – Patient Dosing Summary</h1>
+      <div class="small">Generated on ${todayStr} at ${timeStr}</div>
+      ${patientInfoLine ? `<div class="small" style="margin-top:6px;">${patientInfoLine}</div>` : ''}
+
+      <h2>This Week's Calendar View</h2>
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>Day</th>
+              <th>Date</th>
+              <th>Planned dose (mg)</th>
+              <th>INR</th>
+              <th>Actual dose (mg)</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${thisWeekRows}
+          </tbody>
+        </table>
+      </div>
+
+      <h2>Next Week's Calendar View</h2>
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>Day</th>
+              <th>Date</th>
+              <th>Planned dose (mg)</th>
+              <th>INR</th>
+              <th>Actual dose (mg)</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${nextWeekRows}
+          </tbody>
+        </table>
+      </div>
+    </body>
+    </html>
+  `);
   win.document.close();
   win.focus();
 }
 
+/* ------- DOMContentLoaded setup ------- */
 document.addEventListener('DOMContentLoaded', ()=>{
   try{ renderAll(); updSum(); }catch(e){ err.textContent = 'Calendar failed to render: '+e; }
+
+  // Enforce DOB format MM/DD/YYYY
+  const dobEl = document.getElementById('patientDob');
+  if (dobEl) {
+    dobEl.addEventListener('blur', () => {
+      const v = dobEl.value.trim();
+      if (!v) return;  // allow blank entries
+
+      const re = /^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/\d{4}$/;
+      if (!re.test(v)) {
+        alert('Please enter DOB in MM/DD/YYYY format (example: 02/14/1975).');
+        dobEl.focus();
+      }
+    });
+  }
 
   // After initial render, center on today's date
   setTimeout(scrollToTodayWeek, 50);
