@@ -467,75 +467,125 @@ function reco(){
 
 /* ------- PDF export: clone visible app so PDF matches screen ------- */
 function exportRecommendationPDF(){
-  const styleTag = document.querySelector('style');
-  const styles = styleTag ? styleTag.innerHTML : '';
-  const container = document.querySelector('.container');
-  if (!container) {
-    window.print(); // fallback
-    return;
+  const todayStr = isoLocal(today);
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+
+  // Patient info
+  const pName = document.getElementById('patientName').value.trim();
+  const pDob  = document.getElementById('patientDob').value.trim();
+  const pMrn  = document.getElementById('patientMrn').value.trim();
+
+  const patientInfoLine = [
+    pName ? '<strong>Patient Name:</strong> ' + pName : '',
+    pDob  ? '<strong>DOB:</strong> ' + pDob : '',
+    pMrn  ? '<strong>MRN:</strong> ' + pMrn : ''
+  ].filter(Boolean).join('&nbsp;&nbsp;&nbsp;&nbsp;');
+
+  const weekdays = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  function buildWeekRows(startDate){
+    let rows = '';
+    for(let i=0;i<7;i++){
+      const d = addDaysLocal(startDate, i);
+      const key = isoLocal(d);
+      const dayName = weekdays[d.getDay()];
+      const dateStr = pad(d.getMonth()+1)+'/'+pad(d.getDate());
+
+      const plannedDose = planned.has(key) ? planned.get(key) : NaN;
+      const inrValNum   = inrVal.has(key) ? inrVal.get(key) : NaN;
+      const actualDose  = actual.has(key) ? actual.get(key) : NaN;
+
+      const plannedStr = isNaN(plannedDose) ? '—' : plannedDose.toFixed(1)+' mg';
+      const inrStr     = isNaN(inrValNum)   ? '—' : inrValNum.toFixed(1);
+      const actualStr  = isNaN(actualDose)  ? '—' : actualDose.toFixed(1)+' mg';
+      const notesStr   = (repeatKey === key) ? 'Repeat INR' : '';
+
+      rows += `
+        <tr>
+          <td>${dayName}</td>
+          <td>${dateStr}</td>
+          <td>${plannedStr}</td>
+          <td>${inrStr}</td>
+          <td>${actualStr}</td>
+          <td>${notesStr}</td>
+        </tr>`;
+    }
+    return rows;
   }
 
-  // Clone the whole app so we can freeze current values into HTML
-  const clone = container.cloneNode(true);
+  const thisWeekStart = startOfWeekLocal(today);
+  const nextWeekStart = addDaysLocal(thisWeekStart, 7);
 
-  // Copy current values from the real DOM into the clone
-  const srcFields   = container.querySelectorAll('input, select, textarea');
-  const cloneFields = clone.querySelectorAll('input, select, textarea');
+  const thisWeekRows = buildWeekRows(thisWeekStart);
+  const nextWeekRows = buildWeekRows(nextWeekStart);
 
-  srcFields.forEach((src, idx) => {
-    const copy = cloneFields[idx];
-    if (!copy) return;
-
-    const tag = src.tagName;
-
-    if (tag === 'INPUT') {
-      const type = src.type;
-      if (type === 'checkbox' || type === 'radio') {
-        if (src.checked) {
-          copy.setAttribute('checked', 'checked');
-        } else {
-          copy.removeAttribute('checked');
-        }
-      } else {
-        copy.setAttribute('value', src.value);
-      }
-    } else if (tag === 'SELECT') {
-      const optsSrc  = src.options;
-      const optsCopy = copy.options;
-      for (let i = 0; i < optsSrc.length; i++) {
-        if (optsSrc[i].selected) {
-          optsCopy[i].setAttribute('selected', 'selected');
-        } else {
-          optsCopy[i].removeAttribute('selected');
-        }
-      }
-    } else if (tag === 'TEXTAREA') {
-      copy.textContent = src.value;
-    }
-  });
+  const verbalRec = document.getElementById('rec').innerHTML;
 
   const win = window.open('', '_blank');
-  if (!win) {
-    alert('Please allow pop-ups to export the recommendation.');
+  if(!win){
+    alert('Please allow pop-ups to export the PDF.');
     return;
   }
 
   win.document.open();
-  win.document.write(
-    '<html>' +
-      '<head>' +
-        '<meta charset="utf-8">' +
-        '<title>ThromboLogic INR</title>' +
-        '<style>' + styles + '</style>' +
-      '</head>' +
-      '<body>' +
-        clone.outerHTML +
-      '</body>' +
-    '</html>'
-  );
+  win.document.write(`
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>ThromboLogic INR – PDF Export</title>
+      <style>
+        body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:24px;color:#111;}
+        h1{font-size:22px;margin-bottom:4px;}
+        h2{font-size:16px;margin:18px 0 10px;}
+        .small{font-size:12px;color:#555;}
+        table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px;}
+        th,td{border:1px solid #ccc;padding:4px 6px;text-align:left;}
+        th{background:#f3f3f3;font-weight:600;}
+        .card{border:1px solid #ccc;border-radius:10px;padding:12px;margin:8px 0;background:#fafafa;}
+      </style>
+    </head>
+    <body>
+
+      <h1>ThromboLogic INR – Dosing Summary</h1>
+      <div class="small">Generated on ${todayStr} at ${timeStr}</div>
+
+      ${patientInfoLine ? `<div class="small" style="margin-top:8px;">${patientInfoLine}</div>` : ''}
+
+      <h2>This Week</h2>
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>Day</th><th>Date</th><th>Planned Dose</th><th>INR</th><th>Actual</th><th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>${thisWeekRows}</tbody>
+        </table>
+      </div>
+
+      <h2>Next Week</h2>
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>Day</th><th>Date</th><th>Planned Dose</th><th>INR</th><th>Actual</th><th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>${nextWeekRows}</tbody>
+        </table>
+      </div>
+
+      <h2>Clinical Recommendation</h2>
+      <div class="card">${verbalRec}</div>
+
+    </body>
+    </html>
+  `);
+
   win.document.close();
   win.focus();
-  win.print();   // user chooses "Save as PDF"
+  win.print();
 }
 
 
