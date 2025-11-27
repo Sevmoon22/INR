@@ -88,9 +88,16 @@ input,select,button{font-size:15px} input,select{padding:8px;border:1px solid #b
         <input id="patientName" type="text" placeholder="e.g., John Smith">
       </div>
       <div class="patient-field">
-        <label for="patientDob">DOB</label>
-        <input id="patientDob" type="text" placeholder="e.g., 01/02/1970">
-      </div>
+  <label for="patientDob">DOB</label>
+  <input
+    id="patientDob"
+    type="text"
+    placeholder="e.g., 01/02/1970"
+    inputmode="numeric"
+    maxlength="10"
+  >
+</div>
+
       <div class="patient-field">
         <label for="patientMrn">MRN</label>
         <input id="patientMrn" type="text" placeholder="e.g., 1234567">
