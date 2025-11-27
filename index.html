@@ -475,21 +475,31 @@ function reco(){
 }
 
 /* ------- PDF export: clone visible app so PDF matches screen ------- */
-function exportRecommendationPDF(){
+ffunction exportRecommendationPDF(){
   const todayStr = isoLocal(today);
   const now = new Date();
   const timeStr = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 
   // Patient info
-  const pName = document.getElementById('patientName').value.trim();
-  const pDob  = document.getElementById('patientDob').value.trim();
-  const pMrn  = document.getElementById('patientMrn').value.trim();
+  const pName = (document.getElementById('patientName')?.value || '').trim();
+  const pDob  = (document.getElementById('patientDob')?.value  || '').trim();
+  const pMrn  = (document.getElementById('patientMrn')?.value  || '').trim();
 
   const patientInfoLine = [
     pName ? '<strong>Patient Name:</strong> ' + pName : '',
     pDob  ? '<strong>DOB:</strong> ' + pDob : '',
     pMrn  ? '<strong>MRN:</strong> ' + pMrn : ''
   ].filter(Boolean).join('&nbsp;&nbsp;&nbsp;&nbsp;');
+
+  // Provider notes
+  const rawNotes = (document.getElementById('providerNotes')?.value || '').trim();
+  const notesHtml = rawNotes
+    ? rawNotes
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;')
+        .replace(/\n/g,'<br>')
+    : '';
 
   const weekdays = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
@@ -529,7 +539,7 @@ function exportRecommendationPDF(){
   const thisWeekRows = buildWeekRows(thisWeekStart);
   const nextWeekRows = buildWeekRows(nextWeekStart);
 
-  const verbalRec = document.getElementById('rec').innerHTML;
+  const verbalRec = document.getElementById('rec')?.innerHTML || '';
 
   const win = window.open('', '_blank');
   if(!win){
@@ -542,7 +552,7 @@ function exportRecommendationPDF(){
     <html>
     <head>
       <meta charset="utf-8">
-      <title>ThromboLogic INR – PDF Export</title>
+      <title>ThromboLogic INR – Dosing Summary</title>
       <style>
         body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:24px;color:#111;}
         h1{font-size:22px;margin-bottom:4px;}
@@ -556,9 +566,18 @@ function exportRecommendationPDF(){
     </head>
     <body>
 
-      <h1>ThromboLogic INR – Dosing Summary</h1>
-      <div class="small">Generated on ${todayStr} at ${timeStr}</div>
+      <!-- Header with logo -->
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+        <img src="ThromboLogic INR Logo Design.png"
+             alt="ThromboLogic INR Logo"
+             style="height:60px;width:auto;">
+        <div>
+          <div style="font-size:22px;font-weight:800;">ThromboLogic</div>
+          <div style="font-size:14px;font-weight:600;">INR Dosing Summary</div>
+        </div>
+      </div>
 
+      <div class="small">Generated on ${todayStr} at ${timeStr}</div>
       ${patientInfoLine ? `<div class="small" style="margin-top:8px;">${patientInfoLine}</div>` : ''}
 
       <h2>This Week</h2>
@@ -566,7 +585,7 @@ function exportRecommendationPDF(){
         <table>
           <thead>
             <tr>
-              <th>Day</th><th>Date</th><th>Planned Dose</th><th>INR</th><th>Actual</th><th>Notes</th>
+              <th>Day</th><th>Date</th><th>Planned Dose (mg)</th><th>INR</th><th>Actual Dose (mg)</th><th>Notes</th>
             </tr>
           </thead>
           <tbody>${thisWeekRows}</tbody>
@@ -578,7 +597,7 @@ function exportRecommendationPDF(){
         <table>
           <thead>
             <tr>
-              <th>Day</th><th>Date</th><th>Planned Dose</th><th>INR</th><th>Actual</th><th>Notes</th>
+              <th>Day</th><th>Date</th><th>Planned Dose (mg)</th><th>INR</th><th>Actual Dose (mg)</th><th>Notes</th>
             </tr>
           </thead>
           <tbody>${nextWeekRows}</tbody>
@@ -586,7 +605,22 @@ function exportRecommendationPDF(){
       </div>
 
       <h2>Clinical Recommendation</h2>
-      <div class="card">${verbalRec}</div>
+      <div class="card">${verbalRec || '<span class="small">No recommendation generated yet.</span>'}</div>
+
+      ${notesHtml ? `
+        <h2>Provider Notes</h2>
+        <div class="card">
+          <div style="white-space:pre-wrap;font-size:13px;">${notesHtml}</div>
+        </div>
+      ` : ''}
+
+      <h2>Provider Signature</h2>
+      <div style="margin-top:20px;">
+        <div style="border-top:1px solid #333;width:260px;"></div>
+        <div class="small">Provider signature / stamp</div>
+        <div style="margin-top:18px;border-top:1px solid #333;width:160px;"></div>
+        <div class="small">Date</div>
+      </div>
 
     </body>
     </html>
@@ -596,6 +630,7 @@ function exportRecommendationPDF(){
   win.focus();
   win.print();
 }
+
 
 
 /* ------- Patient handout view: this week + next week tables ------- */
