@@ -30,4 +30,925 @@ input,select,button{font-size:15px} input,select{padding:8px;border:1px solid #b
              linear-gradient(180deg,#f7f8fa,#fff) border-box;
 }
 .week{display:grid;grid-template-columns:repeat(7, minmax(90px,1fr));gap:8px;padding:10px;border-bottom:1px solid #f0f0f0}
-.weekHeader
+.weekHeader{position:sticky;top:0;background:#fff;padding:8px 12px;border-bottom:1px solid #eee;z-index:2;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.day{border:1px solid #fff;border-radius:10px;padding:6px;background:var(--ylw);position:relative;display:flex;flex-direction:column;min-height:148px}
+.day .hdr{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:2px}
+.day .hdr b{font-size:12px} .date{font-size:11px;color:#666}
+.blue{background:var(--blue)!important;box-shadow:inset 0 0 0 2px var(--blue-ring)}
+.manual{background:var(--man)!important;box-shadow:inset 0 0 0 2px var(--man-b)}
+.lbl{font-size:11px;color:#444;text-align:center;margin-top:2px}
+.cell-input{display:block;width:84px;max-width:84px;margin:4px auto;border:1px solid #b7c3d0;border-radius:10px;padding:6px;text-align:center;font-size:14px}
+.inrbox{font-weight:800}
+.card{border:1px solid #eee;border-radius:10px;padding:10px;background:var(--card)}
+.legend{display:flex;gap:12px;align-items:center;font-size:12px;margin:6px 0 10px}
+.sw{display:inline-block;width:14px;height:14px;border-radius:3px;border:1px solid #fff;box-shadow:inset 0 0 0 1px rgba(0,0,0,.05);margin-right:4px}
+.err{color:#b00020;font-size:12px;margin:6px 0} .debug{font-size:11px;color:#666;margin-top:6px}
+@media(max-width:700px){.container{max-width:96vw}.week{grid-template-columns:repeat(7, minmax(76px,1fr));gap:6px}.cell-input,.grid7 input{width:78px;max-width:78px;font-size:13px;padding:5px}.day{min-height:138px}}
+.orangeCell{background:#ffe0b3!important;box-shadow:inset 0 0 0 2px #ff9800}
+.redCell{background:#ffc2c2!important;box-shadow:inset 0 0 0 2px #e53935}
+.repeat-inr{font-size:11px;color:#b00020;margin-top:3px;text-align:center}
+
+/* Patient info emphasis */
+.patient-grid{display:flex;flex-wrap:wrap;gap:16px}
+.patient-field{display:flex;flex-direction:column;min-width:180px}
+.patient-field label{font-weight:600;margin-bottom:4px}
+
+/* Hide export button when printing main page */
+@media print {
+  #exportPDF{display:none !important;}
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ThromboLogic Header Branding -->
+  <div style="display:flex; align-items:center; gap:14px; margin:0 0 16px 0;">
+    <img src="ThromboLogic INR Logo Design.png"
+         alt="ThromboLogic INR Logo"
+         style="height:80px; width:auto;">
+    <div style="display:flex; flex-direction:column; line-height:1.1;">
+      <span style="font-size:26px; font-weight:800;">ThromboLogic</span>
+      <span style="font-size:16px; font-weight:600;">INR</span>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <span class="small" id="rangeLabel"></span>
+  </div>
+
+  <div id="err" class="err"></div>
+
+  <!-- Patient Information -->
+  <h2>Patient Information</h2>
+  <fieldset><legend>Patient</legend>
+    <div class="patient-grid">
+      <div class="patient-field">
+        <label for="patientName">Patient Name</label>
+        <input id="patientName" type="text" placeholder="e.g., John Smith">
+      </div>
+      <div class="patient-field">
+        <label for="patientDob">DOB</label>
+        <input
+          id="patientDob"
+          type="text"
+          placeholder="e.g., 01/02/1970"
+          inputmode="numeric"
+          maxlength="10">
+      </div>
+      <div class="patient-field">
+        <label for="patientMrn">MRN</label>
+        <input id="patientMrn" type="text" placeholder="e.g., 1234567">
+      </div>
+    </div>
+  </fieldset>
+
+  <h2>Therapeutic Goal & Current INR</h2>
+  <fieldset><legend>Inputs</legend>
+    <div class="grid">
+      <div>
+        <label>Therapeutic Goal INR</label>
+        <select id="goal">
+          <option value="2-3" selected>Preset: 2.0–3.0</option>
+          <option value="2.5-3.5">Preset: 2.5–3.5</option>
+          <option value="custom">Custom…</option>
+        </select>
+        <div id="cust" style="display:none; margin-top:6px;">
+          <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+            <label>Low</label>
+            <input id="gL" type="number" step="0.1" min="0" inputmode="decimal"
+                   placeholder="e.g., 2.3"
+                   style="width:80px; padding:6px;">
+          </div>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <label>High</label>
+            <input id="gH" type="number" step="0.1" min="0" inputmode="decimal"
+                   placeholder="e.g., 3.3"
+                   style="width:80px; padding:6px;">
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div style="display:flex; flex-direction:column; justify-content:flex-start; padding-top:2px;">
+          <label style="margin-bottom:4px;">Current INR</label>
+          <input id="inr"
+                 class="cell-input inrbox"
+                 type="number"
+                 step="0.1"
+                 min="0"
+                 inputmode="decimal"
+                 placeholder="e.g., 2.6"
+                 style="margin:0; max-width:105px;">
+          <div class="small" style="margin-top:4px;">Typing here auto-fills today’s INR cell.</div>
+        </div>
+      </div>
+
+    </div>
+  </fieldset>
+
+  <h2>Scheduled Maintenance Dosing</h2>
+  <fieldset><legend>Baseline regimen (Sun → Sat)</legend>
+    <div class="grid7">
+      <div>Sun<input id="b0" type="number" step="0.1" min="0" inputmode="decimal"></div>
+      <div>Mon<input id="b1" type="number" step="0.1" min="0" inputmode="decimal"></div>
+      <div>Tue<input id="b2" type="number" step="0.1" min="0" inputmode="decimal"></div>
+      <div>Wed<input id="b3" type="number" step="0.1" min="0" inputmode="decimal"></div>
+      <div>Thu<input id="b4" type="number" step="0.1" min="0" inputmode="decimal"></div>
+      <div>Fri<input id="b5" type="number" step="0.1" min="0" inputmode="decimal"></div>
+      <div>Sat<input id="b6" type="number" step="0.1" min="0" inputmode="decimal"></div>
+    </div>
+    <div style="margin-top:8px">
+      <button class="btn" id="applyCur">Apply to visible weeks</button>
+      <button class="btn" id="clearVisible">Clear visible only</button>
+      <button class="btn" id="clearAll">Clear ALL</button>
+    </div>
+    <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <button class="btnp" id="getRec">Get Recommendation</button>
+      <button class="btnS" id="recalcNow" type="button" disabled style="opacity:0.5;">Recalculate with updated INR</button>
+      <span id="recalcHint" class="small" style="display:none;">INR changed since the last recommendation.</span>
+    </div>
+    <div id="sum" class="small" style="margin-top:6px">Scheduled weekly total: 0.0 mg</div>
+  </fieldset>
+
+  <div class="legend">
+    <span><span class="sw" style="background:var(--blue);box-shadow:inset 0 0 0 2px var(--blue-ring)"></span>Today / Repeat INR</span>
+    <span><span class="sw" style="background:var(--man);box-shadow:inset 0 0 0 2px var(--man-b)"></span>Manual entry present</span>
+    <span><span class="sw" style="background:var(--ylw)"></span>Default</span>
+  </div>
+
+  <h2>Scrollable Live Calendar</h2>
+  <div class="calwrap" id="calwrap">
+    <div class="weekHeader">
+      <b>Scroll within this window to view past and future weeks.</b>
+      <button class="btnS" id="goToday">Go to today</button>
+    </div>
+    <div id="weeks"></div>
+  </div>
+  <div id="dbg" class="debug"></div>
+
+  <!-- Verbal Recommendation + Export/Handout buttons -->
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:16px;">
+    <h2 style="margin:0;">Verbal Recommendation</h2>
+    <div>
+      <button class="btnS" id="patientHandout" type="button">Patient handout view</button>
+      <button class="btnS" id="exportPDF" type="button">Export to PDF</button>
+    </div>
+  </div>
+
+  <div id="rec" class="card"></div>
+
+  <!-- Provider notes (included in PDF) -->
+  <h2>Provider Notes</h2>
+  <div class="card">
+    <textarea id="providerNotes"
+              style="width:100%;min-height:80px;border:1px solid #ccc;border-radius:6px;padding:6px;font-size:13px;resize:vertical;"
+              placeholder="Optional notes to appear on the PDF / handout (e.g., phone follow-up date, dietary counseling, bridging instructions)..."></textarea>
+  </div>
+
+  <h2>7-Day Recommendation (Linear — Today's Week)</h2>
+  <div id="lin" class="card mono"></div>
+
+<script>
+function pad(n){return (n<10?'0':'')+n}
+function isoLocal(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function startOfWeekLocal(d){const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); const dow=x.getDay(); x.setHours(0,0,0,0); x.setDate(x.getDate()-dow); return x}
+function addDaysLocal(d,days){const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); x.setDate(x.getDate()+days); return x}
+function daysBetween(a,b){const d1=new Date(a.getFullYear(),a.getMonth(),a.getDate()); const d2=new Date(b.getFullYear(),b.getMonth(),b.getDate()); return Math.round((d2-d1)/86400000)}
+function r01(x){return Math.round(x*10)/10} function r05(x){return Math.round(x*2)/2}
+
+const weeksEl = document.getElementById('weeks'); const calwrap = document.getElementById('calwrap'); const rangeLabel=document.getElementById('rangeLabel');
+const rec = document.getElementById('rec'); const linEl = document.getElementById('lin'); const sum = document.getElementById('sum'); const err = document.getElementById('err'); const dbg = document.getElementById('dbg');
+
+const planned=new Map(), actual=new Map(), inrVal=new Map(); let repeatKey=null; let hasReco=false, pendingRecalc=false;
+
+function base(){return [0,1,2,3,4,5,6].map(i=>{const v=parseFloat(document.getElementById('b'+i).value);return isNaN(v)?0:r01(v)})}
+function baseSum(){return base().reduce((a,b)=>a+b,0)} function updSum(){sum.innerHTML='Scheduled weekly total: <b>'+r01(baseSum()).toFixed(1)+' mg</b>'}
+function schedAtIso(key){const d=new Date(key); const dow=d.getDay(); return base()[dow]||0}
+function effAtIso(key){if(actual.has(key))return actual.get(key); if(planned.has(key))return planned.get(key); return schedAtIso(key)}
+
+const today = new Date();
+
+// Calendar range: 26 weeks before + current + 26 weeks after
+const weeksBefore = 26;
+const weeksAfter  = 26;
+let start = addDaysLocal(startOfWeekLocal(today), -7*weeksBefore);
+let totalWeeks = weeksBefore + weeksAfter + 1;
+
+function renderAll(){
+  weeksEl.innerHTML='';
+  const spanStart = isoLocal(start);
+  const spanEnd = isoLocal(addDaysLocal(start, totalWeeks*7-1));
+  rangeLabel.textContent = spanStart+' → '+spanEnd+'  ('+totalWeeks+' weeks)';
+  for(let w=0; w<totalWeeks; w++){
+    const wk = document.createElement('div'); wk.className='week';
+    for(let d=0; d<7; d++){
+      const date = addDaysLocal(start, w*7+d); const key=isoLocal(date);
+      const cell=document.createElement('div'); cell.className='day'; cell.id='c_'+key;
+      const isToday = key===isoLocal(today); const isRepeat=(key===repeatKey);
+      if(isToday||isRepeat) cell.classList.add('blue');
+      cell.innerHTML =
+        '<div class="hdr"><b>'+['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][date.getDay()]+'</b> '+
+        '<span class="date">'+(date.getMonth()+1).toString().padStart(2,'0')+'/'+date.getDate().toString().padStart(2,'0')+'</span></div>'+
+        '<div class="lbl">Planned dose (mg)</div>'+
+        '<input class="cell-input" data-k="'+key+'" data-role="planned" type="number" step="0.1" min="0">'+
+        '<div class="lbl">INR</div>'+
+        '<input class="cell-input inrbox" data-k="'+key+'" data-role="inr" type="number" step="0.1" min="0">'+
+        '<div class="lbl">Actual dose</div>'+
+        '<input class="cell-input" data-k="'+key+'" data-role="actual" type="number" step="0.1" min="0">'+
+        '<div class="lbl repeat-inr"></div>';
+      wk.appendChild(cell);
+    }
+    weeksEl.appendChild(wk);
+  }
+
+  pushDataToCells();
+  lin7();
+  dbg.textContent = 'Calendar rows rendered: ' + document.querySelectorAll('.week').length;
+}
+
+function scrollToTodayWeek() {
+  const tIso = isoLocal(today);
+  const cell = document.getElementById('c_' + tIso);
+  if (!cell) return;
+  const cellRect = cell.getBoundingClientRect();
+  const wrapRect = calwrap.getBoundingClientRect();
+  const offsetWithinWrap = (cellRect.top - wrapRect.top) + calwrap.scrollTop;
+  calwrap.scrollTop = offsetWithinWrap - (calwrap.clientHeight / 2) + (cellRect.height / 2);
+}
+
+function pushDataToCells(){
+  const tIso=isoLocal(today);
+  for(let w=0; w<totalWeeks; w++){
+    for(let d=0; d<7; d++){
+      const date = addDaysLocal(start, w*7+d); const key=isoLocal(date);
+      const cell=document.getElementById('c_'+key); if(!cell) continue;
+      const p=planned.has(key)?planned.get(key):''; const a=actual.has(key)?actual.get(key):''; const i=inrVal.has(key)?inrVal.get(key).toFixed(1):'';
+      const inputs=cell.querySelectorAll('input');
+      if(inputs[0]) inputs[0].value = (p!==''? Number(p).toFixed(1):'');
+      if(inputs[1]) inputs[1].value = i;
+      if(inputs[2]) inputs[2].value = (a!==''? Number(a).toFixed(1):'');
+      const isToday = key===tIso; const isRepeat=(key===repeatKey);
+      cell.className='day';
+      const hasManual = (i!=='') || (a!=='');
+      const inrNum = parseFloat(i);
+      if(!isNaN(inrNum)){
+        if(inrNum >= 5.0){
+          cell.classList.add('redCell');
+        }else if(inrNum >= 4.0){
+          cell.classList.add('orangeCell');
+        }
+      }
+      if(hasManual && !cell.classList.contains('redCell') && !cell.classList.contains('orangeCell')){
+        cell.classList.add('manual');
+      }
+      const repEl = cell.querySelector('.repeat-inr');
+      if(repEl){
+        if(isRepeat){
+          repEl.innerHTML = '<b>Repeat INR</b>';
+        }else{
+          repEl.innerHTML = '';
+        }
+      }
+      if(isToday||isRepeat){
+        cell.classList.add('blue');
+      }
+    }
+  }
+}
+
+function applyVisible(){
+  const base7=base();
+  const rect = calwrap.getBoundingClientRect();
+  const weekNodes = Array.from(weeksEl.querySelectorAll('.week'));
+  weekNodes.forEach((wk, wi)=>{
+    const r = wk.getBoundingClientRect();
+    if(r.bottom < rect.top-200 || r.top > rect.bottom+200) return;
+    for(let d=0; d<7; d++){
+      const date = addDaysLocal(start, wi*7+d); const key=isoLocal(date);
+      planned.set(key, base7[d]);
+    }
+  });
+  pushDataToCells(); lin7(); updSum();
+}
+
+function clearVisible(){
+  const rect = calwrap.getBoundingClientRect();
+  const weekNodes = Array.from(weeksEl.querySelectorAll('.week'));
+  weekNodes.forEach((wk, wi)=>{
+    const r = wk.getBoundingClientRect();
+    if(r.bottom < rect.top-200 || r.top > rect.bottom+200) return;
+    for(let d=0; d<7; d++){
+      const date = addDaysLocal(start, wi*7+d); const key=isoLocal(date);
+      planned.delete(key); actual.delete(key); inrVal.delete(key); if(repeatKey===key) repeatKey=null;
+    }
+  });
+  pushDataToCells(); lin7(); rec.innerHTML='';
+}
+
+function clearAll(){
+  planned.clear(); actual.clear(); inrVal.clear(); repeatKey=null;
+  for(let i=0;i<7;i++) document.getElementById('b'+i).value='';
+  updSum(); pushDataToCells(); lin7(); rec.innerHTML='';
+}
+
+function lin7(){
+  const weekStart = startOfWeekLocal(today);
+  const names=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  let parts=[];
+  for(let i=0;i<7;i++){
+    const d=addDaysLocal(weekStart,i); const key=isoLocal(d);
+    let dose = (actual.has(key)? actual.get(key) : (planned.has(key)? planned.get(key) : NaN));
+    if(isNaN(dose)) dose = undefined;
+    parts.push(names[i]+' '+(dose===undefined? '—' : dose.toFixed(1)+' mg'));
+  }
+  linEl.textContent = parts.join('  |  ');
+}
+
+function pickPct(inr, L, H){
+  const withinRange = (inr>=L && inr<=H);
+  if(withinRange) return {pct:0, label:'in range', repeat:7};
+  const gap = (inr<L) ? (L - inr) : (inr - H);
+  if(inr < 1.5)       return {pct:+0.15, label:'+15–20%', repeat:7};
+  if(inr < L){
+    if(gap <= 3.5)    return {pct:+0.07, label:'+5–10%', repeat:7};
+    else              return {pct:+0.10, label:'+10–15%', repeat:7};
+  }
+  if(inr > 4.5)       return {pct:-0.20, label:'-15–20% (≥4.5 → 20%)', repeat:2};
+  if(inr >= 4.0){
+    if(gap <= 3.5)    return {pct:-0.08, label:'-5–10%', repeat:7};
+    else              return {pct:-0.11, label:'-10–15%', repeat:7};
+  }
+  if(gap <= 3.5)      return {pct:-0.07, label:'-5–10%', repeat:7};
+  else                return {pct:-0.10, label:'-10–15%', repeat:7};
+}
+
+function last6SchedBeforeDate(d){ let s=0; for(let k=6;k>=1;k--){ const key=isoLocal(addDaysLocal(d,-k)); s+=schedAtIso(key) } return r01(s) }
+function last6EffBeforeDate(d){ let s=0; for(let k=6;k>=1;k--){ const key=isoLocal(addDaysLocal(d,-k)); s+=effAtIso(key) } return r01(s) }
+function sched7EndOnDate(d){ let s=0; for(let k=6;k>=0;k--){ const key=isoLocal(addDaysLocal(d,-k)); s+=schedAtIso(key) } return r01(s) }
+
+function markNeedsRecalc(){
+  if(hasReco){
+    pendingRecalc=true;
+    const btn=document.getElementById('recalcNow');
+    if(btn){ btn.disabled=false; btn.style.opacity=''; }
+    const hint=document.getElementById('recalcHint');
+    if(hint) hint.style.display='inline';
+  }
+}
+
+function reco(){
+  const goalVal = document.getElementById('goal').value;
+  const L = (goalVal==='2-3') ? 2.0 :
+            (goalVal==='2.5-3.5') ? 2.5 :
+            parseFloat(document.getElementById('gL').value);
+  const H = (goalVal==='2-3') ? 3.0 :
+            (goalVal==='2.5-3.5') ? 3.5 :
+            parseFloat(document.getElementById('gH').value);
+
+  if(isNaN(L)||isNaN(H)||L>=H){
+    alert('Set a valid INR goal.');
+    return;
+  }
+  if(baseSum()<=0){
+    alert('Enter baseline regimen first.');
+    return;
+  }
+
+  pendingRecalc=false;
+  const hint=document.getElementById('recalcHint');
+  if(hint) hint.style.display='none';
+  const btn=document.getElementById('recalcNow');
+  if(btn){ btn.disabled=true; btn.style.opacity='0.5'; }
+
+  const todayIso = isoLocal(new Date());
+  let bestDate = new Date();
+  let bestVal = parseFloat(document.getElementById('inr').value);
+
+  if(isNaN(bestVal) && inrVal.has(todayIso)){
+    bestVal = inrVal.get(todayIso);
+    bestDate = new Date();
+  }
+
+  if(isNaN(bestVal)){
+    for(let d=1; d<=3; d++){
+      const key = isoLocal(addDaysLocal(new Date(), -d));
+      if(inrVal.has(key)){
+        bestVal = inrVal.get(key);
+        bestDate = addDaysLocal(new Date(), -d);
+        break;
+      }
+    }
+  }
+
+  if(isNaN(bestVal)){
+    rec.innerHTML = `
+      <p>We do not have an INR result from the last 3 days.</p>
+      <p><b>Please get an INR blood test as soon as possible.</b></p>
+      <p>Do not change your warfarin dose until you have a new result.</p>
+    `;
+    repeatKey = todayIso;
+    hasReco = true;
+    pushDataToCells();
+    return;
+  }
+
+  const band = pickPct(bestVal, L, H);
+  const age = daysBetween(bestDate, new Date());
+  const datePhrase = (age === 0 ? 'today' : isoLocal(bestDate));
+
+  if(band.pct === 0){
+    const rep = (age>=2 && age<=3) ? addDaysLocal(bestDate, 7)
+                                   : addDaysLocal(new Date(), 7);
+    const repIso = isoLocal(rep);
+    repeatKey = repIso;
+
+    rec.innerHTML = `
+      <p>Your INR is <b style="font-size:18px;">${bestVal.toFixed(1)}</b>, which is
+         inside your target range of <b>${L}–${H}</b>.</p>
+      <p><b>No change</b> in your warfarin dose is recommended today.</p>
+      <p>Please have your INR checked again on
+         <b style="font-size:16px;">${repIso}</b>.</p>
+    `;
+
+    hasReco = true;
+    pushDataToCells();
+    lin7();
+    return;
+  }
+
+  const baseToday = schedAtIso(todayIso);
+  const s7 = sched7EndOnDate(new Date());
+  const p6 = last6SchedBeforeDate(new Date());
+  const e6 = last6EffBeforeDate(new Date());
+
+  const targetDelta = r01(s7 * band.pct);
+  const priorDelta  = r01(e6 - p6);
+  const remaining   = r01(targetDelta - priorDelta);
+
+  const naive = r01((e6 + baseToday) * band.pct);
+  const sign  = remaining>0 ? 1 : -1;
+  const capped= Math.min(Math.abs(naive), Math.abs(remaining)) * sign;
+  const target= Math.max(0, r01(baseToday + capped));
+  const newDose = r05(target);
+
+  planned.set(todayIso, newDose);
+
+  let repDate;
+  if(bestVal > 4.5){
+    repDate = addDaysLocal(new Date(), 2);
+  }else if(age>=2 && age<=3){
+    repDate = addDaysLocal(bestDate, 7);
+  }else{
+    repDate = addDaysLocal(new Date(), 7);
+  }
+  const repIso = isoLocal(repDate);
+  repeatKey = repIso;
+
+  const tooHighOrLow = bestVal < L ? 'low' : 'high';
+
+  rec.innerHTML = `
+    <p>Your INR result is
+       <b style="font-size:18px;">${bestVal.toFixed(1)}</b> (from <b>${datePhrase}</b>).</p>
+    <p>Your target INR range is <b>${L}–${H}</b>, so this result is
+       <b>too ${tooHighOrLow}</b>.</p>
+    <p>For <b>today</b>, take
+       <b style="font-size:16px;">${newDose.toFixed(1)} mg of warfarin</b>
+       instead of your usual dose.</p>
+    <p>Please have your INR checked again on
+       <b style="font-size:16px;">${repIso}</b>.</p>
+  `;
+
+  hasReco = true;
+  pushDataToCells();
+  lin7();
+}
+
+/* ------- PDF export: patient-style summary (this week + next week) ------- */
+function exportRecommendationPDF(){
+  const todayStr = isoLocal(today);
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+
+  const pName = (document.getElementById('patientName')?.value || '').trim();
+  const pDob  = (document.getElementById('patientDob')?.value  || '').trim();
+  const pMrn  = (document.getElementById('patientMrn')?.value  || '').trim();
+
+  const patientInfoLine = [
+    pName ? '<strong>Patient Name:</strong> ' + pName : '',
+    pDob  ? '<strong>DOB:</strong> ' + pDob : '',
+    pMrn  ? '<strong>MRN:</strong> ' + pMrn : ''
+  ].filter(Boolean).join('&nbsp;&nbsp;&nbsp;&nbsp;');
+
+  const rawNotes = (document.getElementById('providerNotes')?.value || '').trim();
+  const notesHtml = rawNotes
+    ? rawNotes
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;')
+        .replace(/\n/g,'<br>')
+    : '';
+
+  const weekdays = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  function buildWeekRows(startDate){
+    let rows = '';
+    for(let i=0;i<7;i++){
+      const d = addDaysLocal(startDate, i);
+      const key = isoLocal(d);
+      const dayName = weekdays[d.getDay()];
+      const dateStr = pad(d.getMonth()+1)+'/'+pad(d.getDate());
+
+      const plannedDose = planned.has(key) ? planned.get(key) : NaN;
+      const inrValNum   = inrVal.has(key) ? inrVal.get(key) : NaN;
+      const actualDose  = actual.has(key) ? actual.get(key) : NaN;
+      const isRepeatDay = (repeatKey === key);
+
+      const plannedStr = isNaN(plannedDose) ? '—' : plannedDose.toFixed(1)+' mg';
+      const inrHtml    = isNaN(inrValNum)
+        ? '—'
+        : `<span style="font-weight:bold;font-size:13px;">${inrValNum.toFixed(1)}</span>`;
+      const actualStr  = isNaN(actualDose)  ? '—' : actualDose.toFixed(1)+' mg';
+
+      const dateHtml = isRepeatDay
+        ? `<span style="font-weight:bold;font-size:13px;">${dateStr}</span>`
+        : dateStr;
+
+      const notesHtmlCell = isRepeatDay
+        ? `<span style="font-weight:bold;font-size:13px;">Repeat INR</span>`
+        : '';
+
+      rows += `
+        <tr>
+          <td>${dayName}</td>
+          <td>${dateHtml}</td>
+          <td>${plannedStr}</td>
+          <td>${inrHtml}</td>
+          <td>${actualStr}</td>
+          <td>${notesHtmlCell}</td>
+        </tr>`;
+    }
+    return rows;
+  }
+
+  const thisWeekStart = startOfWeekLocal(today);
+  const nextWeekStart = addDaysLocal(thisWeekStart, 7);
+
+  const thisWeekRows = buildWeekRows(thisWeekStart);
+  const nextWeekRows = buildWeekRows(nextWeekStart);
+
+  const verbalRec = document.getElementById('rec')?.innerHTML || '';
+
+  const win = window.open('', '_blank');
+  if(!win){
+    alert('Please allow pop-ups to export the PDF.');
+    return;
+  }
+
+  win.document.open();
+  win.document.write(`
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>ThromboLogic INR – Dosing Summary</title>
+      <style>
+        body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:24px;color:#111;}
+        h1{font-size:22px;margin-bottom:4px;}
+        h2{font-size:16px;margin:18px 0 10px;}
+        .small{font-size:12px;color:#555;}
+        table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px;}
+        th,td{border:1px solid #ccc;padding:4px 6px;text-align:left;}
+        th{background:#f3f3f3;font-weight:600;}
+        .card{border:1px solid #ccc;border-radius:10px;padding:12px;margin:8px 0;background:#fafafa;}
+      </style>
+    </head>
+    <body>
+
+      <!-- Header with logo -->
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+        <img src="ThromboLogic INR Logo Design.png"
+             alt="ThromboLogic INR Logo"
+             style="height:60px;width:auto;">
+        <div>
+          <div style="font-size:22px;font-weight:800;">ThromboLogic</div>
+          <div style="font-size:14px;font-weight:600;">INR Dosing Summary</div>
+        </div>
+      </div>
+
+      <div class="small">Generated on ${todayStr} at ${timeStr}</div>
+      ${patientInfoLine ? `<div class="small" style="margin-top:8px;">${patientInfoLine}</div>` : ''}
+
+      <h2>This Week</h2>
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>Day</th><th>Date</th><th>Planned Dose (mg)</th><th>INR</th><th>Actual Dose (mg)</th><th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>${thisWeekRows}</tbody>
+        </table>
+      </div>
+
+      <h2>Next Week</h2>
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>Day</th><th>Date</th><th>Planned Dose (mg)</th><th>INR</th><th>Actual Dose (mg)</th><th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>${nextWeekRows}</tbody>
+        </table>
+      </div>
+
+      <h2>Clinical Recommendation</h2>
+      <div class="card">${verbalRec || '<span class="small">No recommendation generated yet.</span>'}</div>
+
+      ${notesHtml ? `
+        <h2>Provider Notes</h2>
+        <div class="card">
+          <div style="white-space:pre-wrap;font-size:13px;">${notesHtml}</div>
+        </div>
+      ` : ''}
+
+      <h2>Provider Signature</h2>
+      <div style="margin-top:20px;">
+        <div style="border-top:1px solid #333;width:260px;"></div>
+        <div class="small">Provider signature / stamp</div>
+        <div style="margin-top:18px;border-top:1px solid #333;width:160px;"></div>
+        <div class="small">Date</div>
+      </div>
+
+    </body>
+    </html>
+  `);
+
+  win.document.close();
+  win.focus();
+  win.print();
+}
+
+/* ------- Patient handout view: this week + next week tables ------- */
+function openPatientHandout(){
+  const todayStr = isoLocal(today);
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+
+  const pNameEl = document.getElementById('patientName');
+  const pDobEl  = document.getElementById('patientDob');
+  const pMrnEl  = document.getElementById('patientMrn');
+
+  const pName = pNameEl ? pNameEl.value.trim() : '';
+  const pDob  = pDobEl  ? pDobEl.value.trim()  : '';
+  const pMrn  = pMrnEl  ? pMrnEl.value.trim()  : '';
+
+  const patientInfoLine = [
+    pName ? '<strong>Patient Name:</strong> ' + pName : '',
+    pDob  ? '<strong>DOB:</strong> ' + pDob : '',
+    pMrn  ? '<strong>MRN:</strong> ' + pMrn : ''
+  ].filter(Boolean).join('&nbsp;&nbsp;&nbsp;&nbsp;');
+
+  const weekdays = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  function buildWeekRows(startDate){
+    let rows = '';
+    for(let i=0;i<7;i++){
+      const d = addDaysLocal(startDate, i);
+      const key = isoLocal(d);
+      const dayName = weekdays[d.getDay()];
+      const dateStr = pad(d.getMonth()+1)+'/'+pad(d.getDate());
+
+      const plannedDose = planned.has(key) ? planned.get(key) : NaN;
+      const inrValNum   = inrVal.has(key) ? inrVal.get(key) : NaN;
+      const actualDose  = actual.has(key) ? actual.get(key) : NaN;
+      const isRepeatDay = (repeatKey === key);
+
+      const plannedStr = isNaN(plannedDose) ? '—' : plannedDose.toFixed(1)+' mg';
+      const inrHtml    = isNaN(inrValNum)
+        ? '—'
+        : `<span style="font-weight:bold;font-size:13px;">${inrValNum.toFixed(1)}</span>`;
+      const actualStr  = isNaN(actualDose)  ? '—' : actualDose.toFixed(1)+' mg';
+
+      const dateHtml = isRepeatDay
+        ? `<span style="font-weight:bold;font-size:13px;">${dateStr}</span>`
+        : dateStr;
+
+      const notesHtmlCell = isRepeatDay
+        ? `<span style="font-weight:bold;font-size:13px;">Repeat INR</span>`
+        : '';
+
+      rows += `
+        <tr>
+          <td>${dayName}</td>
+          <td>${dateHtml}</td>
+          <td>${plannedStr}</td>
+          <td>${inrHtml}</td>
+          <td>${actualStr}</td>
+          <td>${notesHtmlCell}</td>
+        </tr>`;
+    }
+    return rows;
+  }
+
+  const thisWeekStart = startOfWeekLocal(today);
+  const nextWeekStart = addDaysLocal(thisWeekStart, 7);
+
+  const thisWeekRows = buildWeekRows(thisWeekStart);
+  const nextWeekRows = buildWeekRows(nextWeekStart);
+
+  const win = window.open('', '_blank');
+  if(!win){
+    alert('Please allow pop-ups to open the patient handout view.');
+    return;
+  }
+
+  win.document.open();
+  win.document.write(`
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <title>ThromboLogic INR – Patient Handout</title>
+      <style>
+        body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:24px;color:#111;}
+        h1{font-size:20px;margin-bottom:4px;}
+        h2{font-size:16px;margin:18px 0 8px;}
+        .small{font-size:12px;color:#555;}
+        table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px;}
+        th,td{border:1px solid #ccc;padding:4px 6px;text-align:left;}
+        th{background:#f3f3f3;font-weight:600;}
+        .card{border:1px solid #ccc;border-radius:10px;padding:12px;margin:8px 0;background:#fafafa;}
+      </style>
+    </head>
+    <body>
+      <h1>ThromboLogic INR – Patient Dosing Summary</h1>
+      <div class="small">Generated on ${todayStr} at ${timeStr}</div>
+      ${patientInfoLine ? `<div class="small" style="margin-top:6px;">${patientInfoLine}</div>` : ''}
+
+      <h2>This Week's Calendar View</h2>
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>Day</th>
+              <th>Date</th>
+              <th>Planned dose (mg)</th>
+              <th>INR</th>
+              <th>Actual dose (mg)</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${thisWeekRows}
+          </tbody>
+        </table>
+      </div>
+
+      <h2>Next Week's Calendar View</h2>
+      <div class="card">
+        <table>
+          <thead>
+            <tr>
+              <th>Day</th>
+              <th>Date</th>
+              <th>Planned dose (mg)</th>
+              <th>INR</th>
+              <th>Actual dose (mg)</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${nextWeekRows}
+          </tbody>
+        </table>
+      </div>
+    </body>
+    </html>
+  `);
+  win.document.close();
+  win.focus();
+}
+
+/* ------- DOMContentLoaded setup ------- */
+document.addEventListener('DOMContentLoaded', ()=>{
+  try{ renderAll(); updSum(); }catch(e){ err.textContent = 'Calendar failed to render: '+e; }
+
+  // Enforce DOB format MM/DD/YYYY
+  const dobEl = document.getElementById('patientDob');
+  if (dobEl) {
+    dobEl.addEventListener('blur', () => {
+      const v = dobEl.value.trim();
+      if (!v) return;  // allow blank entries
+
+      const re = /^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/\d{4}$/;
+      if (!re.test(v)) {
+        alert('Please enter DOB in MM/DD/YYYY format (example: 02/14/1975).');
+        dobEl.focus();
+      }
+    });
+  }
+
+  // After initial render, center on today's date
+  setTimeout(scrollToTodayWeek, 50);
+
+  for(let i=0;i<7;i++){
+    const el=document.getElementById('b'+i);
+    if(el){ el.addEventListener('input', ()=>{ updSum(); }) }
+  }
+  document.getElementById('goal').addEventListener('change', (ev)=>{
+    const v = ev.target.value;
+    document.getElementById('cust').style.display = (v==='custom')?'block':'none';
+  });
+
+  const inrTop = document.getElementById('inr');
+  const tIso = isoLocal(new Date());
+  inrTop.addEventListener('input', e=>{
+    const v = parseFloat(e.target.value);
+    if(!isNaN(v)) inrVal.set(tIso, v); else inrVal.delete(tIso);
+  });
+  inrTop.addEventListener('blur', e=>{
+    const v = parseFloat(e.target.value);
+    if(!isNaN(v)){
+      const vv = r01(v);
+      inrVal.set(tIso, vv);
+      const qi = document.querySelector('#c_'+tIso+' .cell-input.inrbox');
+      if(qi) qi.value = vv.toFixed(1);
+    }else{
+      inrVal.delete(tIso);
+    }
+    if(hasReco){
+      markNeedsRecalc();
+    }
+    pushDataToCells(); lin7();
+  });
+
+  document.getElementById('getRec').addEventListener('click', reco);
+
+  const recalcBtn = document.getElementById('recalcNow');
+  if(recalcBtn){
+    recalcBtn.disabled = true;
+    recalcBtn.style.opacity = '0.5';
+    recalcBtn.addEventListener('click', ()=>{
+      if(!hasReco && !pendingRecalc){ return; }
+      reco();
+    });
+  }
+
+  document.getElementById('applyCur').addEventListener('click', applyVisible);
+  document.getElementById('clearVisible').addEventListener('click', clearVisible);
+  document.getElementById('clearAll').addEventListener('click', clearAll);
+
+  const goTodayBtn = document.getElementById('goToday');
+  if (goTodayBtn) {
+    goTodayBtn.addEventListener('click', scrollToTodayWeek);
+  }
+
+  const exportBtn = document.getElementById('exportPDF');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', exportRecommendationPDF);
+  }
+
+  const handoutBtn = document.getElementById('patientHandout');
+  if (handoutBtn) {
+    handoutBtn.addEventListener('click', openPatientHandout);
+  }
+
+  // Delegated inputs (no re-render while typing)
+  weeksEl.addEventListener('input', (e)=>{
+    const t = e.target;
+    if(!(t instanceof HTMLInputElement)) return;
+    const key = t.getAttribute('data-k'); const role = t.getAttribute('data-role');
+    if(!key||!role) return;
+    const v = t.value === '' ? NaN : parseFloat(t.value);
+    if(role==='planned'){ if(isNaN(v)) planned.delete(key); else planned.set(key, v); }
+    if(role==='actual'){ if(isNaN(v)) actual.delete(key); else actual.set(key, v); }
+    if(role==='inr'){    if(isNaN(v)) inrVal.delete(key); else inrVal.set(key, v); }
+  });
+
+  // On blur normalize
+  weeksEl.addEventListener('blur', (e)=>{
+    const t = e.target;
+    if(!(t instanceof HTMLInputElement)) return;
+    const key = t.getAttribute('data-k'); const role = t.getAttribute('data-role');
+    if(!key||!role) return;
+    const v = parseFloat(t.value);
+    if(!isNaN(v)){
+      const val = r01(v);
+      if(role==='planned') planned.set(key, val);
+      if(role==='actual')  actual.set(key, val);
+      if(role==='inr')     inrVal.set(key, val);
+    }else{
+      if(role==='planned') planned.delete(key);
+      if(role==='actual')  actual.delete(key);
+      if(role==='inr')     inrVal.delete(key);
+    }
+    if(role==='inr' && hasReco){
+      markNeedsRecalc();
+    }
+    pushDataToCells(); lin7();
+  }, true);
+});
+</script>
+</div>
+</body>
+</html>
