@@ -467,7 +467,7 @@ function reco(){
     }
   }
   if(isNaN(bestVal)){
-    rec.innerHTML='We do not have a recent INR result (within the last 3 days). <b>Please obtain a new INR as soon as possible.</b> Do not change the warfarin dose until a new result is available.';
+    rec.innerHTML = 'No recent INR in the last 3 days. <b>Get a new INR as soon as possible.</b> Do not change warfarin until a new result is available.';
     repeatKey = todayIso; hasReco=true;
     lastRecoINR = null; lastRepeatIso = null;
     pushDataToCells(); return;
@@ -476,6 +476,7 @@ function reco(){
   const band = pickPct(bestVal, L, H);
   const age = daysBetween(bestDate, new Date());
 
+  // IN-RANGE: very concise
   if(band.pct===0){
     const rep = (age>=2 && age<=3) ? addDaysLocal(bestDate, 7) : addDaysLocal(new Date(), 7);
     repeatKey = isoLocal(rep);
@@ -483,13 +484,14 @@ function reco(){
     lastRepeatIso = repeatKey;
 
     rec.innerHTML =
-      `Your INR is <b>${bestVal.toFixed(1)}</b>, which is within your target range (${L}–${H}). ` +
-      `Based on this result, <b>no change</b> in your warfarin dosing is needed today. ` +
-      `We recommend repeating your INR on <b>${niceDate(repeatKey)}</b> unless your clinic advises otherwise.`;
+      `INR <b>${bestVal.toFixed(1)}</b> is in goal (${L}–${H}). ` +
+      `<b>No change</b> to today’s warfarin dose. ` +
+      `Repeat INR on <b>${niceDate(repeatKey)}</b>.`;
     hasReco=true;
     pushDataToCells(); lin7(); return;
   }
 
+  // OUT-OF-RANGE: concise lay-language
   const baseToday = schedAtIso(todayIso);
   const s7 = sched7EndOnDate(new Date());
   const p6 = last6SchedBeforeDate(new Date());
@@ -520,23 +522,17 @@ function reco(){
   lastRepeatIso = repeatKey;
 
   const isHigh = bestVal > H;
+  const dirText = isHigh ? 'above' : 'below';
 
-  const mainMsg = isHigh
-    ? `Your INR is <b>${bestVal.toFixed(1)}</b>, which is <b>above</b> your target range (${L}–${H}). This means your blood is thinner than we want, and your bleeding risk is higher.`
-    : `Your INR is <b>${bestVal.toFixed(1)}</b>, which is <b>below</b> your target range (${L}–${H}). This means your blood is a bit thicker than we want, and your risk of clotting may be higher.`;
+  rec.innerHTML =
+    `INR <b>${bestVal.toFixed(1)}</b> is <b>${dirText}</b> goal (${L}–${H}). ` +
+    `Take <b>${newDose.toFixed(1)} mg warfarin today</b> based on your recent dosing. ` +
+    `Plan to recheck INR on <b>${niceDate(repeatKey)}</b>, or sooner if your clinic advises.`;
 
-  const doseMsg =
-    `Based on your usual weekly warfarin dose and recent doses, we recommend taking <b>${newDose.toFixed(1)} mg of warfarin today</b>. ` +
-    `Your clinic may also adjust upcoming doses to bring your INR back into range.`;
-
-  const followMsg =
-    `We recommend checking your INR again on <b>${niceDate(repeatKey)}</b>, or sooner if your clinic instructs you, you have a procedure planned, or you notice signs of bleeding or clotting.`;
-
-  rec.innerHTML = `${mainMsg} ${doseMsg} ${followMsg}`;
   hasReco=true;
-
   pushDataToCells(); lin7();
 }
+
 
 /* Helper: build table rows for a given week (for PDFs/handouts) */
 function buildWeekRowsHtml(startDate){
