@@ -218,6 +218,7 @@ textarea{width:100%;resize:vertical}
     </div>
     <div>
       <button class="btnS" id="calcBridge" type="button">Generate bridging plan</button>
+      <button class="btnS" id="cancelBridge" type="button">No bridging required</button>
       <span class="small">This helper does not replace local protocols or guidelines.</span>
     </div>
   </fieldset>
@@ -900,7 +901,13 @@ function calcBridgingPlan(){
   bridgeDiv.innerHTML = summary;
 }
 
-/* ------- DOB validation ------- */
+/* NEW: Cancel / No bridging required */
+function cancelBridgingPlan(){
+  bridgeDiv.innerHTML =
+    '<p><b>Bridging is not planned.</b> Warfarin interruption and resumption will follow the standard protocol without LMWH bridging for this procedure, according to clinician judgment and local guidelines.</p>';
+}
+
+/* ------- DOB validation + auto-format ------- */
 function validateDobField(){
   const dobInput = document.getElementById('patientDob');
   if(!dobInput) return;
@@ -920,6 +927,20 @@ function validateDobField(){
     alert('Please enter a valid calendar date in MM/DD/YYYY format.');
     dobInput.focus();
   }
+}
+
+function formatDobOnInput(e){
+  let v = e.target.value.replace(/\D/g,''); // digits only
+  if(v.length > 8) v = v.slice(0,8);
+  let out = '';
+  if(v.length <= 2){
+    out = v;
+  } else if(v.length <= 4){
+    out = v.slice(0,2) + '/' + v.slice(2);
+  } else {
+    out = v.slice(0,2) + '/' + v.slice(2,4) + '/' + v.slice(4);
+  }
+  e.target.value = out;
 }
 
 document.addEventListener('DOMContentLoaded', ()=>{
@@ -992,8 +1013,14 @@ document.addEventListener('DOMContentLoaded', ()=>{
     bridgeBtn.addEventListener('click', calcBridgingPlan);
   }
 
+  const cancelBridgeBtn = document.getElementById('cancelBridge');
+  if (cancelBridgeBtn) {
+    cancelBridgeBtn.addEventListener('click', cancelBridgingPlan);
+  }
+
   const dobInput = document.getElementById('patientDob');
   if(dobInput){
+    dobInput.addEventListener('input', formatDobOnInput);
     dobInput.addEventListener('blur', validateDobField);
   }
 
