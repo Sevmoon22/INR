@@ -10,9 +10,7 @@ body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-se
 h1{font-size:19px;margin:0 0 8px} h2{font-size:15px;margin:16px 0 6px}
 .small{font-size:12px;color:#555} .mono{font-family:ui-monospace,Menlo,Consolas,monospace}
 fieldset{border:1px solid #ddd;border-radius:10px;padding:10px;margin:10px 0} legend{padding:0 6px}
-input,select,button,textarea{font-size:15px}
-input,select,textarea{padding:8px;border:1px solid #b9c1cc;border-radius:10px}
-textarea{width:100%;resize:vertical}
+input,select,button{font-size:15px} input,select{padding:8px;border:1px solid #b9c1cc;border-radius:10px}
 .btn{padding:8px 12px;border:0;border-radius:10px;background:#444;color:#fff;cursor:pointer;margin-right:8px}
 .btnp{padding:10px 14px;border:0;border-radius:10px;background:#0d6efd;color:#fff;cursor:pointer;font-weight:700;margin:8px 0;display:inline-block}
 .btnS{padding:4px 8px;border:0;border-radius:8px;background:#444;color:#fff;cursor:pointer;margin-right:6px;font-size:13px}
@@ -91,7 +89,7 @@ textarea{width:100%;resize:vertical}
       </div>
       <div class="patient-field">
         <label for="patientDob">DOB (MM/DD/YYYY)</label>
-        <input id="patientDob" type="text" placeholder="e.g., 01/02/1970">
+        <input id="patientDob" type="text" placeholder="e.g., 01/02/1970" maxlength="10">
       </div>
       <div class="patient-field">
         <label for="patientMrn">MRN</label>
@@ -168,6 +166,49 @@ textarea{width:100%;resize:vertical}
     <div id="sum" class="small" style="margin-top:6px">Scheduled weekly total: 0.0 mg</div>
   </fieldset>
 
+  <!-- Bridging – Enoxaparin Helper -->
+  <h2>Bridging – Enoxaparin Helper (beta)</h2>
+  <fieldset><legend>Weight-based enoxaparin dose</legend>
+    <div class="grid">
+      <div>
+        <label for="enoxWeight">Weight (kg)</label>
+        <input id="enoxWeight"
+               type="number"
+               step="0.1"
+               min="20"
+               inputmode="decimal"
+               placeholder="e.g., 78.5">
+        <div class="small">Use actual body weight unless local protocol says otherwise.</div>
+      </div>
+
+      <div>
+        <label for="enoxType">Regimen</label>
+        <select id="enoxType">
+          <option value="tx_q12" selected>
+            Therapeutic – 1 mg/kg every 12 hours
+          </option>
+          <option value="tx_q24">
+            Therapeutic (renal adjustment) – 1 mg/kg once daily
+          </option>
+          <option value="px_40">
+            Prophylaxis – 40 mg once daily
+          </option>
+          <option value="px_30">
+            Prophylaxis (renal adjustment) – 30 mg once daily
+          </option>
+        </select>
+        <div class="small">Therapeutic regimens are based on common VTE/AF/ACS dosing options.</div>
+      </div>
+    </div>
+
+    <div style="margin-top:10px;">
+      <button class="btnS" type="button" id="calcEnox">Calculate enoxaparin dose</button>
+      <button class="btnS" type="button" id="clearEnox" style="margin-left:8px;">Bridging not required</button>
+    </div>
+
+    <div id="enoxOut" class="small" style="margin-top:8px;"></div>
+  </fieldset>
+
   <div class="legend">
     <span><span class="sw" style="background:var(--blue);box-shadow:inset 0 0 0 2px var(--blue-ring)"></span>Today / Repeat INR</span>
     <span><span class="sw" style="background:var(--man);box-shadow:inset 0 0 0 2px var(--man-b)"></span>Manual entry present</span>
@@ -184,52 +225,12 @@ textarea{width:100%;resize:vertical}
   </div>
   <div id="dbg" class="debug"></div>
 
-  <!-- Bridging Assistant -->
-  <h2>Warfarin + LMWH Bridging Assistant</h2>
-  <fieldset><legend>Periprocedural bridging (for clinicians)</legend>
-    <div class="grid" style="margin-bottom:8px;">
-      <div>
-        <label>Thromboembolic risk</label>
-        <select id="bridgeRisk">
-          <option value="low">Low</option>
-          <option value="moderate">Moderate</option>
-          <option value="high">High</option>
-        </select>
-      </div>
-      <div>
-        <label>Procedure bleeding risk</label>
-        <select id="bridgeBleed">
-          <option value="low">Low</option>
-          <option value="high">High</option>
-        </select>
-      </div>
-      <div>
-        <label>Procedure date</label>
-        <input id="bridgeDate" type="date">
-      </div>
-      <div>
-        <label>Weight (kg)</label>
-        <input id="bridgeWeight" type="number" step="0.1" min="0" inputmode="decimal" placeholder="e.g., 80">
-      </div>
-      <div>
-        <label>Creatinine clearance (mL/min)</label>
-        <input id="bridgeCrCl" type="number" step="1" min="0" inputmode="decimal" placeholder="e.g., 65">
-      </div>
-    </div>
-    <div>
-      <button class="btnS" id="calcBridge" type="button">Generate bridging plan</button>
-      <button class="btnS" id="cancelBridge" type="button">No bridging required</button>
-      <span class="small">This helper does not replace local protocols or guidelines.</span>
-    </div>
-  </fieldset>
-  <div id="bridge" class="card"></div>
-
-  <!-- Verbal Recommendation + Export buttons -->
+  <!-- Verbal Recommendation + Export button -->
   <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:16px;">
     <h2 style="margin:0;">Verbal Recommendation</h2>
     <div>
       <button class="btnS" id="patientHandout" type="button">Patient handout view</button>
-      <button class="btnS" id="exportPDF" type="button">Provider PDF</button>
+      <button class="btnS" id="exportPDF" type="button">Export to PDF</button>
     </div>
   </div>
 
@@ -238,16 +239,6 @@ textarea{width:100%;resize:vertical}
   <h2>7-Day Recommendation (Linear — Today's Week)</h2>
   <div id="lin" class="card mono"></div>
 
-  <h2>Provider Notes & Signature</h2>
-  <div class="card">
-    <label for="providerNotes" class="small" style="font-weight:600;">Provider notes (optional)</label>
-    <textarea id="providerNotes" rows="4" placeholder="Document rationale, patient counseling, follow-up plans..."></textarea>
-    <div style="margin-top:12px;font-size:13px;">
-      Provider signature: ________________________________ &nbsp;&nbsp;&nbsp;&nbsp;
-      Date: __________________
-    </div>
-  </div>
-
 <script>
 function pad(n){return (n<10?'0':'')+n}
 function isoLocal(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
@@ -255,15 +246,23 @@ function startOfWeekLocal(d){const x=new Date(d.getFullYear(),d.getMonth(),d.get
 function addDaysLocal(d,days){const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); x.setDate(x.getDate()+days); return x}
 function daysBetween(a,b){const d1=new Date(a.getFullYear(),a.getMonth(),a.getDate()); const d2=new Date(b.getFullYear(),b.getMonth(),b.getDate()); return Math.round((d2-d1)/86400000)}
 function r01(x){return Math.round(x*10)/10} function r05(x){return Math.round(x*2)/2}
-function niceDate(key){const d=new Date(key);return pad(d.getMonth()+1)+'/'+pad(d.getDate())+'/'+d.getFullYear()}
+
+function niceDate(isoStr){
+  if(!isoStr) return '';
+  const parts = isoStr.split('-');
+  if(parts.length!==3) return isoStr;
+  const y = parseInt(parts[0],10);
+  const m = parseInt(parts[1],10);
+  const d = parseInt(parts[2],10);
+  if(isNaN(m)||isNaN(d)||isNaN(y)) return isoStr;
+  return pad(m)+'/'+pad(d)+'/'+y;
+}
 
 const weeksEl = document.getElementById('weeks'); const calwrap = document.getElementById('calwrap'); const rangeLabel=document.getElementById('rangeLabel');
-const rec = document.getElementById('rec'); const linEl = document.getElementById('lin'); const sum = document.getElementById('sum'); const err = document.getElementById('err'); const dbg = document.getElementById('dbg'); const bridgeDiv = document.getElementById('bridge');
+const rec = document.getElementById('rec'); const linEl = document.getElementById('lin'); const sum = document.getElementById('sum'); const err = document.getElementById('err'); const dbg = document.getElementById('dbg');
 
 const planned=new Map(), actual=new Map(), inrVal=new Map(); let repeatKey=null; let hasReco=false, pendingRecalc=false;
-let lastRecoINR = null;        // last INR value used for recommendation
-let lastRepeatIso = null;      // ISO date string for repeat INR
-const weekdays = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+let lastRecoINR = null; let lastRepeatIso = null;
 
 function base(){return [0,1,2,3,4,5,6].map(i=>{const v=parseFloat(document.getElementById('b'+i).value);return isNaN(v)?0:r01(v)})}
 function baseSum(){return base().reduce((a,b)=>a+b,0)} function updSum(){sum.innerHTML='Scheduled weekly total: <b>'+r01(baseSum()).toFixed(1)+' mg</b>'}
@@ -272,7 +271,7 @@ function effAtIso(key){if(actual.has(key))return actual.get(key); if(planned.has
 
 const today = new Date();
 
-// Calendar range: 26 weeks before + current + 26 weeks after (~1 year)
+// Calendar range: 26 weeks before + current + 26 weeks after (~1 yr)
 const weeksBefore = 26;
 const weeksAfter  = 26;
 let start = addDaysLocal(startOfWeekLocal(today), -7*weeksBefore);
@@ -308,9 +307,6 @@ function renderAll(){
   pushDataToCells();
   lin7();
   dbg.textContent = 'Calendar rows rendered: ' + document.querySelectorAll('.week').length;
-
-  // After render, center on today's week
-  setTimeout(scrollToTodayWeek, 30);
 }
 
 function scrollToTodayWeek() {
@@ -351,7 +347,7 @@ function pushDataToCells(){
       const repEl = cell.querySelector('.repeat-inr');
       if(repEl){
         if(isRepeat){
-          repEl.innerHTML = '<b style="color:#b00020;">Repeat INR</b>';
+          repEl.innerHTML = '<b>Repeat INR</b>';
         }else{
           repEl.innerHTML = '';
         }
@@ -400,12 +396,13 @@ function clearAll(){
 
 function lin7(){
   const weekStart = startOfWeekLocal(today);
+  const names=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   let parts=[];
   for(let i=0;i<7;i++){
     const d=addDaysLocal(weekStart,i); const key=isoLocal(d);
     let dose = (actual.has(key)? actual.get(key) : (planned.has(key)? planned.get(key) : NaN));
     if(isNaN(dose)) dose = undefined;
-    parts.push(weekdays[i]+' '+(dose===undefined? '—' : dose.toFixed(1)+' mg'));
+    parts.push(names[i]+' '+(dose===undefined? '—' : dose.toFixed(1)+' mg'));
   }
   linEl.textContent = parts.join('  |  ');
 }
@@ -442,6 +439,102 @@ function markNeedsRecalc(){
   }
 }
 
+// Enoxaparin rounding: 0–5 → down, 6–9 → up to nearest 10
+function roundEnoxaparinDose(doseMg){
+  if (doseMg == null || isNaN(doseMg)) return null;
+  const raw = Math.round(doseMg);
+  const units = raw % 10;
+  if (units <= 5){
+    return raw - units;       // 63→60, 75→70
+  } else {
+    return raw + (10 - units); // 66→70, 78→80
+  }
+}
+
+function calcEnoxaparinDose(){
+  const wtEl  = document.getElementById('enoxWeight');
+  const typeEl= document.getElementById('enoxType');
+  const out   = document.getElementById('enoxOut');
+  if (!wtEl || !typeEl || !out) return;
+
+  const wt = parseFloat(wtEl.value);
+  const reg = typeEl.value;
+
+  if (isNaN(wt) || wt <= 0){
+    out.innerHTML = '<span style="color:#b00020;">Enter a valid weight in kg.</span>';
+    return;
+  }
+
+  let baseDose = NaN;
+  let freqText = '';
+  let context  = '';
+
+  switch(reg){
+    case 'tx_q12':
+      baseDose = wt * 1.0;
+      freqText = 'every 12 hours';
+      context  = 'Therapeutic dosing (e.g., VTE/AF/AFib/ACS) with normal renal function.';
+      break;
+    case 'tx_q24':
+      baseDose = wt * 1.0;
+      freqText = 'once daily';
+      context  = 'Therapeutic dosing with renal adjustment (e.g., CrCl < 30 mL/min per local protocol).';
+      break;
+    case 'px_40':
+      baseDose = 40;
+      freqText = 'once daily';
+      context  = 'Standard prophylaxis dose with normal renal function.';
+      break;
+    case 'px_30':
+      baseDose = 30;
+      freqText = 'once daily';
+      context  = 'Prophylaxis dose with renal adjustment (e.g., CrCl < 30 mL/min per local protocol).';
+      break;
+  }
+
+  if (isNaN(baseDose)){
+    out.innerHTML = '<span style="color:#b00020;">Select a valid regimen.</span>';
+    return;
+  }
+
+  const rounded = roundEnoxaparinDose(baseDose);
+  const baseStr    = baseDose.toFixed(0);
+  const roundedStr = rounded != null ? rounded.toFixed(0) : '—';
+
+  let html = `
+    <div><b>Calculated dose (weight-based):</b> ${baseStr} mg</div>
+    <div><b>Rounded for prefilled syringe:</b> ${roundedStr} mg ${freqText}</div>
+  `;
+
+  if (rounded !== baseDose){
+    html += `
+      <div class="small" style="margin-top:4px;">
+        Rounded rule: doses ending in 0–5 mg are rounded <b>down</b> to the nearest 10,
+        and doses ending in 6–9 mg are rounded <b>up</b> to the nearest 10
+        for easier measurement in prefilled enoxaparin syringes.
+      </div>
+    `;
+  }
+
+  html += `
+    <div class="small" style="margin-top:6px;">
+      ${context}
+    </div>
+  `;
+
+  out.innerHTML = html;
+}
+
+function clearEnoxaparin(){
+  const wtEl  = document.getElementById('enoxWeight');
+  const typeEl= document.getElementById('enoxType');
+  const out   = document.getElementById('enoxOut');
+  if(wtEl) wtEl.value = '';
+  if(typeEl) typeEl.value = 'tx_q12';
+  if(out) out.innerHTML = '<span class="small">Bridging not required at this time.</span>';
+}
+
+// Concise, lay-language recommendation
 function reco(){
   const goalVal = document.getElementById('goal').value;
   const L = (goalVal==='2-3')?2.0:(goalVal==='2.5-3.5')?2.5:parseFloat(document.getElementById('gL').value);
@@ -476,7 +569,7 @@ function reco(){
   const band = pickPct(bestVal, L, H);
   const age = daysBetween(bestDate, new Date());
 
-  // IN-RANGE: very concise
+  // IN-RANGE: concise
   if(band.pct===0){
     const rep = (age>=2 && age<=3) ? addDaysLocal(bestDate, 7) : addDaysLocal(new Date(), 7);
     repeatKey = isoLocal(rep);
@@ -484,9 +577,9 @@ function reco(){
     lastRepeatIso = repeatKey;
 
     rec.innerHTML =
-      `INR <b>${bestVal.toFixed(1)}</b> is in goal (${L}–${H}). ` +
+      `INR <b>${bestVal.toFixed(1)}</b> is in your goal range (${L}–${H}). ` +
       `<b>No change</b> to today’s warfarin dose. ` +
-      `Repeat INR on <b>${niceDate(repeatKey)}</b>.`;
+      `Repeat your INR on <b>${niceDate(repeatKey)}</b>.`;
     hasReco=true;
     pushDataToCells(); lin7(); return;
   }
@@ -525,30 +618,34 @@ function reco(){
   const dirText = isHigh ? 'above' : 'below';
 
   rec.innerHTML =
-    `INR <b>${bestVal.toFixed(1)}</b> is <b>${dirText}</b> goal (${L}–${H}). ` +
-    `Take <b>${newDose.toFixed(1)} mg warfarin today</b> based on your recent dosing. ` +
-    `Plan to recheck INR on <b>${niceDate(repeatKey)}</b>, or sooner if your clinic advises.`;
+    `INR <b>${bestVal.toFixed(1)}</b> is <b>${dirText}</b> your goal range (${L}–${H}). ` +
+    `Take <b>${newDose.toFixed(1)} mg of warfarin today</b> based on your recent dosing. ` +
+    `Plan to recheck your INR on <b>${niceDate(repeatKey)}</b>, or sooner if your clinic advises.`;
 
   hasReco=true;
   pushDataToCells(); lin7();
 }
 
+/* Build week rows for patient-facing tables */
+const weekdays = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
-/* Helper: build table rows for a given week (for PDFs/handouts) */
-function buildWeekRowsHtml(startDate){
+function buildWeekRows(startDate){
   let rows = '';
   for(let i=0;i<7;i++){
     const d = addDaysLocal(startDate, i);
     const key = isoLocal(d);
     const dayName = weekdays[d.getDay()];
     const dateStr = pad(d.getMonth()+1)+'/'+pad(d.getDate());
+
     const plannedDose = planned.has(key) ? planned.get(key) : NaN;
     const inrValNum   = inrVal.has(key) ? inrVal.get(key) : NaN;
     const actualDose  = actual.has(key) ? actual.get(key) : NaN;
+
     const plannedStr = isNaN(plannedDose) ? '—' : plannedDose.toFixed(1)+' mg';
     const inrStr     = isNaN(inrValNum)   ? '—' : inrValNum.toFixed(1);
     const actualStr  = isNaN(actualDose)  ? '—' : actualDose.toFixed(1)+' mg';
     const notesStr   = (repeatKey === key) ? 'Repeat INR' : '';
+
     rows += `
       <tr>
         <td>${dayName}</td>
@@ -562,23 +659,20 @@ function buildWeekRowsHtml(startDate){
   return rows;
 }
 
-/* ------- Provider PDF export ------- */
+/* Export recommendation + handout to PDF-style print view */
 function exportRecommendationPDF(){
-  const styleTag = document.querySelector('style');
-  const styles = styleTag ? styleTag.innerHTML : '';
   const todayStr = isoLocal(today);
   const now = new Date();
   const timeStr = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
 
+  // Patient info
   const pNameEl = document.getElementById('patientName');
   const pDobEl  = document.getElementById('patientDob');
   const pMrnEl  = document.getElementById('patientMrn');
-  const notesEl = document.getElementById('providerNotes');
 
   const pName = pNameEl ? pNameEl.value.trim() : '';
   const pDob  = pDobEl  ? pDobEl.value.trim()  : '';
   const pMrn  = pMrnEl  ? pMrnEl.value.trim()  : '';
-  const notes = notesEl ? notesEl.value.trim() : '';
 
   const patientInfoLine = [
     pName ? '<strong>Patient Name:</strong> ' + pName : '',
@@ -589,14 +683,11 @@ function exportRecommendationPDF(){
   const thisWeekStart = startOfWeekLocal(today);
   const nextWeekStart = addDaysLocal(thisWeekStart, 7);
 
-  const thisWeekRows = buildWeekRowsHtml(thisWeekStart);
-  const nextWeekRows = buildWeekRowsHtml(nextWeekStart);
+  const thisWeekRows = buildWeekRows(thisWeekStart);
+  const nextWeekRows = buildWeekRows(nextWeekStart);
 
-  const inrDisplay = (lastRecoINR!==null) ? lastRecoINR.toFixed(1) : '—';
-  const repeatDisplay = lastRepeatIso ? niceDate(lastRepeatIso) : '—';
-
-  const recHtml = rec.innerHTML || '<em>No recommendation generated.</em>';
-  const bridgeHtml = bridgeDiv.innerHTML || '';
+  const inrDisplay = lastRecoINR != null ? lastRecoINR.toFixed(1) : '—';
+  const repDisplay = lastRepeatIso ? niceDate(lastRepeatIso) : '—';
 
   const win = window.open('', '_blank');
   if(!win){
@@ -609,40 +700,42 @@ function exportRecommendationPDF(){
     <html>
     <head>
       <meta charset="utf-8">
-      <title>ThromboLogic INR – Provider Summary</title>
+      <title>ThromboLogic INR – Recommendation</title>
       <style>
-      ${styles}
-      body{margin:24px;}
-      table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px;}
-      th,td{border:1px solid #ccc;padding:4px 6px;text-align:left;}
-      th{background:#f3f3f3;font-weight:600;}
-      .card{border:1px solid #ccc;border-radius:10px;padding:12px;margin:8px 0;background:#fafafa;}
+        body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:24px;color:#111;}
+        h1{font-size:20px;margin-bottom:4px;}
+        h2{font-size:16px;margin:18px 0 8px;}
+        .small{font-size:12px;color:#555;}
+        table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px;}
+        th,td{border:1px solid #ccc;padding:4px 6px;text-align:left;}
+        th{background:#f3f3f3;font-weight:600;}
+        .card{border:1px solid #ccc;border-radius:10px;padding:12px;margin:8px 0;background:#fafafa;}
+        .summary-line{margin-top:10px;font-size:16px;}
+        .summary-line b.big{font-size:20px;}
+        .sig-block{margin-top:24px;font-size:12px;}
+        @media print {
+          #printBtn{display:none;}
+        }
       </style>
     </head>
     <body>
-      <div style="display:flex; align-items:center; gap:16px; margin-bottom:8px;">
-        <img src="ThromboLogic INR Logo Design.png" alt="ThromboLogic Logo" style="height:60px; width:auto;">
-        <div>
-          <h1 style="font-size:20px;margin:0;">ThromboLogic INR – Provider Summary</h1>
-          <div class="small">Generated on ${todayStr} at ${timeStr}</div>
-          ${patientInfoLine ? `<div class="small" style="margin-top:4px;">${patientInfoLine}</div>` : ''}
-        </div>
+      <button id="printBtn" onclick="window.print()" style="float:right;margin:4px 0 8px 8px;">Print / Save as PDF</button>
+
+      <h1>ThromboLogic INR – Visit Summary</h1>
+      <div class="small">Generated on ${todayStr} at ${timeStr}</div>
+      ${patientInfoLine ? `<div class="small" style="margin-top:6px;">${patientInfoLine}</div>` : ''}
+
+      <div class="summary-line">
+        Latest INR:&nbsp;
+        <b class="big">${inrDisplay}</b>
+        &nbsp;&nbsp;&nbsp;
+        Repeat INR date:&nbsp;
+        <b class="big">${repDisplay}</b>
       </div>
 
-      <div style="margin-top:12px; padding:10px; border:1px solid #ddd; border-radius:10px; display:flex; gap:24px; align-items:flex-start; flex-wrap:wrap;">
-        <div>
-          <div style="font-size:12px; color:#555;">Current INR used for this plan</div>
-          <div style="font-size:28px; font-weight:800;">${inrDisplay}</div>
-        </div>
-        <div>
-          <div style="font-size:12px; color:#555;">Repeat INR on</div>
-          <div style="font-size:22px; font-weight:700;">${repeatDisplay}</div>
-        </div>
-      </div>
-
-      <h2 style="margin-top:18px;">Verbal Recommendation</h2>
+      <h2>Verbal Recommendation (patient-friendly)</h2>
       <div class="card">
-        ${recHtml}
+        ${rec.innerHTML || '<span class="small">No recommendation generated yet.</span>'}
       </div>
 
       <h2>This Week's Calendar View</h2>
@@ -683,29 +776,23 @@ function exportRecommendationPDF(){
         </table>
       </div>
 
-      ${bridgeHtml ? `
-      <h2>Bridging Plan (Warfarin + LMWH)</h2>
-      <div class="card">
-        ${bridgeHtml}
-      </div>` : ''}
+      <h2>Provider Notes</h2>
+      <div class="card" style="min-height:80px;">
+        <!-- space for free-text notes after printing -->
+      </div>
 
-      <h2>Provider Notes & Signature</h2>
-      <div class="card">
-        ${notes ? `<div style="white-space:pre-wrap;font-size:13px;margin-bottom:12px;">${notes.replace(/</g,'&lt;')}</div>` : '<div class="small" style="margin-bottom:12px;"><em>No provider notes entered.</em></div>'}
-        <div style="margin-top:6px;font-size:13px;">
-          Provider signature: ________________________________ &nbsp;&nbsp;&nbsp;&nbsp;
-          Date: __________________
-        </div>
+      <div class="sig-block">
+        ________________________________<br>
+        Provider Signature &nbsp;&nbsp;&nbsp; Date: ____________
       </div>
     </body>
     </html>
   `);
   win.document.close();
   win.focus();
-  win.print();
 }
 
-/* ------- Patient handout view ------- */
+/* Standalone patient handout window */
 function openPatientHandout(){
   const todayStr = isoLocal(today);
   const now = new Date();
@@ -722,16 +809,17 @@ function openPatientHandout(){
   const patientInfoLine = [
     pName ? '<strong>Patient Name:</strong> ' + pName : '',
     pDob  ? '<strong>DOB:</strong> ' + pDob : '',
+    pMrn  ? '<strong>MRN:</strong> ' + pMrn : ''
   ].filter(Boolean).join('&nbsp;&nbsp;&nbsp;&nbsp;');
 
   const thisWeekStart = startOfWeekLocal(today);
   const nextWeekStart = addDaysLocal(thisWeekStart, 7);
 
-  const thisWeekRows = buildWeekRowsHtml(thisWeekStart);
-  const nextWeekRows = buildWeekRowsHtml(nextWeekStart);
+  const thisWeekRows = buildWeekRows(thisWeekStart);
+  const nextWeekRows = buildWeekRows(nextWeekStart);
 
-  const inrDisplay = (lastRecoINR!==null) ? lastRecoINR.toFixed(1) : '—';
-  const repeatDisplay = lastRepeatIso ? niceDate(lastRepeatIso) : '—';
+  const inrDisplay = lastRecoINR != null ? lastRecoINR.toFixed(1) : '—';
+  const repDisplay = lastRepeatIso ? niceDate(lastRepeatIso) : '—';
 
   const win = window.open('', '_blank');
   if(!win){
@@ -754,37 +842,33 @@ function openPatientHandout(){
         th,td{border:1px solid #ccc;padding:4px 6px;text-align:left;}
         th{background:#f3f3f3;font-weight:600;}
         .card{border:1px solid #ccc;border-radius:10px;padding:12px;margin:8px 0;background:#fafafa;}
+        .summary-line{margin-top:10px;font-size:16px;}
+        .summary-line b.big{font-size:20px;}
       </style>
     </head>
     <body>
-      <h1>ThromboLogic INR – Your Warfarin Plan</h1>
-      <div class="small">Printed on ${todayStr} at ${timeStr}</div>
+      <h1>ThromboLogic INR – Patient Dosing Summary</h1>
+      <div class="small">Generated on ${todayStr} at ${timeStr}</div>
       ${patientInfoLine ? `<div class="small" style="margin-top:6px;">${patientInfoLine}</div>` : ''}
 
-      <div style="margin-top:12px; padding:10px; border:1px solid #ddd; border-radius:10px; display:flex; gap:24px; align-items:flex-start; flex-wrap:wrap;">
-        <div>
-          <div style="font-size:12px; color:#555;">INR used for this plan</div>
-          <div style="font-size:26px; font-weight:800;">${inrDisplay}</div>
-        </div>
-        <div>
-          <div style="font-size:12px; color:#555;">Next INR blood test date</div>
-          <div style="font-size:20px; font-weight:700;">${repeatDisplay}</div>
-        </div>
+      <div class="summary-line">
+        Latest INR:&nbsp;
+        <b class="big">${inrDisplay}</b>
+        &nbsp;&nbsp;&nbsp;
+        Repeat INR date:&nbsp;
+        <b class="big">${repDisplay}</b>
       </div>
 
-      <div class="small" style="margin-top:8px;">
-        This sheet gives you a simple view of your warfarin doses for this week and next week. If your clinic tells you something different, always follow their instructions.
-      </div>
-
-      <h2>This Week</h2>
+      <h2>This Week's Calendar View</h2>
       <div class="card">
         <table>
           <thead>
             <tr>
               <th>Day</th>
               <th>Date</th>
-              <th>Warfarin dose (mg)</th>
+              <th>Planned dose (mg)</th>
               <th>INR</th>
+              <th>Actual dose (mg)</th>
               <th>Notes</th>
             </tr>
           </thead>
@@ -794,15 +878,16 @@ function openPatientHandout(){
         </table>
       </div>
 
-      <h2>Next Week</h2>
+      <h2>Next Week's Calendar View</h2>
       <div class="card">
         <table>
           <thead>
             <tr>
               <th>Day</th>
               <th>Date</th>
-              <th>Warfarin dose (mg)</th>
+              <th>Planned dose (mg)</th>
               <th>INR</th>
+              <th>Actual dose (mg)</th>
               <th>Notes</th>
             </tr>
           </thead>
@@ -811,13 +896,6 @@ function openPatientHandout(){
           </tbody>
         </table>
       </div>
-
-      <h2>Important safety reminders</h2>
-      <ul class="small">
-        <li>If you miss a dose, or take the wrong dose, call your clinic or follow their instructions.</li>
-        <li>Call your clinic or seek urgent care if you have signs of bleeding (nosebleeds that don’t stop, blood in urine or stool, vomiting blood, severe bruising) or signs of a clot (chest pain, shortness of breath, leg swelling or pain).</li>
-        <li>Always tell your clinic about new medicines, antibiotics, or big changes in your diet or alcohol use.</li>
-      </ul>
     </body>
     </html>
   `);
@@ -825,127 +903,17 @@ function openPatientHandout(){
   win.focus();
 }
 
-/* ------- Bridging Assistant (Warfarin + LMWH) ------- */
-function calcBridgingPlan(){
-  const risk = document.getElementById('bridgeRisk').value;
-  const bleed = document.getElementById('bridgeBleed').value;
-  const dateStr = document.getElementById('bridgeDate').value;
-  const wt = parseFloat(document.getElementById('bridgeWeight').value);
-  const crcl = parseFloat(document.getElementById('bridgeCrCl').value);
-
-  if(!dateStr){
-    alert('Enter the planned procedure date.');
-    return;
-  }
-  if(isNaN(wt) || wt<=0){
-    alert('Enter a valid weight in kg.');
-    return;
-  }
-  if(isNaN(crcl) || crcl<0){
-    alert('Enter a valid creatinine clearance (mL/min).');
-    return;
-  }
-
-  const procDate = new Date(dateStr+'T00:00:00');
-  const warfStop = addDaysLocal(procDate, -5);
-  const lmwhStart = addDaysLocal(procDate, -3);
-  const lmwhLastPre = addDaysLocal(procDate, -1);
-
-  const doseFreq = (crcl < 30) ? '1 mg/kg once daily' : '1 mg/kg twice daily';
-  const doseText = `Enoxaparin ${doseFreq} (using actual body weight of ${wt.toFixed(1)} kg).`;
-
-  const postResumeWarfarin = addDaysLocal(procDate, 0);
-  const postResumeLmwhLow = addDaysLocal(procDate, 1);
-  const postResumeLmwhHighMin = addDaysLocal(procDate, 2);
-  const postResumeLmwhHighMax = addDaysLocal(procDate, 3);
-
-  let summary = '';
-
-  if(risk === 'low'){
-    summary += `<p><b>Risk level selected: low.</b> In many patients at low thromboembolic risk, full-dose LMWH bridging is not routinely needed. Follow your local protocol or guideline.</p>`;
-  } else if(risk === 'moderate'){
-    summary += `<p><b>Risk level selected: moderate.</b> LMWH bridging may be considered depending on individual risk and bleeding concerns. Use this plan only if consistent with your local protocol.</p>`;
-  } else {
-    summary += `<p><b>Risk level selected: high.</b> High-risk patients (for example, some mechanical valves or very recent VTE) are more likely to need LMWH bridging when warfarin is held.</p>`;
-  }
-
-  summary += `
-    <h3>Pre-procedure plan</h3>
-    <ul>
-      <li><b>Last warfarin dose:</b> evening of ${niceDate(isoLocal(warfStop))} (5 days before procedure).</li>
-      <li><b>Start LMWH:</b> ${niceDate(isoLocal(lmwhStart))} with ${doseText}</li>
-      <li><b>Last LMWH dose before procedure:</b> ${niceDate(isoLocal(lmwhLastPre))}. Do <b>not</b> give LMWH on the morning of the procedure.</li>
-    </ul>
-    <h3>Post-procedure plan</h3>
-    <ul>
-      <li><b>Restart warfarin:</b> evening of ${niceDate(isoLocal(postResumeWarfarin))} or as soon as hemostasis is secure.</li>`;
-
-  if(bleed === 'low'){
-    summary += `
-      <li><b>Restart LMWH:</b> about 24 hours after the procedure (${niceDate(isoLocal(postResumeLmwhLow))}), if there is good hemostasis.</li>`;
-  } else {
-    summary += `
-      <li><b>Restart LMWH:</b> about 48–72 hours after the procedure (${niceDate(isoLocal(postResumeLmwhHighMin))}–${niceDate(isoLocal(postResumeLmwhHighMax))}), depending on bleeding risk and surgical team input.</li>`;
-  }
-
-  summary += `
-      <li><b>Continue LMWH:</b> until INR is back in the target range on warfarin (often 3–5 days), following your local protocol.</li>
-    </ul>
-    <p class="small"><b>Important:</b> This bridging helper is for clinicians and does not replace detailed institutional guidelines or specialist input. Adjust for individual patient factors, type of surgery, and updated ACC/CHEST/AC Forum recommendations.</p>
-  `;
-
-  bridgeDiv.innerHTML = summary;
-}
-
-/* NEW: Cancel / No bridging required */
-function cancelBridgingPlan(){
-  bridgeDiv.innerHTML =
-    '<p><b>Bridging is not planned.</b> Warfarin interruption and resumption will follow the standard protocol without LMWH bridging for this procedure, according to clinician judgment and local guidelines.</p>';
-}
-
-/* ------- DOB validation + auto-format ------- */
-function validateDobField(){
-  const dobInput = document.getElementById('patientDob');
-  if(!dobInput) return;
-  const v = dobInput.value.trim();
-  if(!v) return;
-  const m = v.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if(!m){
-    alert('Please enter DOB in MM/DD/YYYY format.');
-    dobInput.focus();
-    return;
-  }
-  const mm = parseInt(m[1], 10);
-  const dd = parseInt(m[2], 10);
-  const yy = parseInt(m[3], 10);
-  const dt = new Date(yy, mm-1, dd);
-  if(dt.getFullYear()!==yy || (dt.getMonth()+1)!==mm || dt.getDate()!==dd){
-    alert('Please enter a valid calendar date in MM/DD/YYYY format.');
-    dobInput.focus();
-  }
-}
-
-function formatDobOnInput(e){
-  let v = e.target.value.replace(/\D/g,''); // digits only
-  if(v.length > 8) v = v.slice(0,8);
-  let out = '';
-  if(v.length <= 2){
-    out = v;
-  } else if(v.length <= 4){
-    out = v.slice(0,2) + '/' + v.slice(2);
-  } else {
-    out = v.slice(0,2) + '/' + v.slice(2,4) + '/' + v.slice(4);
-  }
-  e.target.value = out;
-}
-
 document.addEventListener('DOMContentLoaded', ()=>{
   try{ renderAll(); updSum(); }catch(e){ err.textContent = 'Calendar failed to render: '+e; }
+
+  // Center calendar on today's week after render
+  setTimeout(scrollToTodayWeek, 50);
 
   for(let i=0;i<7;i++){
     const el=document.getElementById('b'+i);
     if(el){ el.addEventListener('input', ()=>{ updSum(); }) }
   }
+
   document.getElementById('goal').addEventListener('change', (ev)=>{
     const v = ev.target.value;
     document.getElementById('cust').style.display = (v==='custom')?'block':'none';
@@ -1004,23 +972,59 @@ document.addEventListener('DOMContentLoaded', ()=>{
     handoutBtn.addEventListener('click', openPatientHandout);
   }
 
-  const bridgeBtn = document.getElementById('calcBridge');
-  if (bridgeBtn) {
-    bridgeBtn.addEventListener('click', calcBridgingPlan);
+  const enoxBtn = document.getElementById('calcEnox');
+  if (enoxBtn){
+    enoxBtn.addEventListener('click', calcEnoxaparinDose);
+  }
+  const clearEnoxBtn = document.getElementById('clearEnox');
+  if (clearEnoxBtn){
+    clearEnoxBtn.addEventListener('click', clearEnoxaparin);
   }
 
-  const cancelBridgeBtn = document.getElementById('cancelBridge');
-  if (cancelBridgeBtn) {
-    cancelBridgeBtn.addEventListener('click', cancelBridgingPlan);
-  }
-
+  // DOB auto-format + basic validation
   const dobInput = document.getElementById('patientDob');
   if(dobInput){
-    dobInput.addEventListener('input', formatDobOnInput);
-    dobInput.addEventListener('blur', validateDobField);
+    dobInput.addEventListener('input', e=>{
+      let v = e.target.value.replace(/\D/g,''); // keep digits only
+      if(v.length > 8) v = v.slice(0,8);
+      let out = '';
+      if(v.length <= 2){
+        out = v;
+      } else if(v.length <= 4){
+        out = v.slice(0,2) + '/' + v.slice(2);
+      } else {
+        out = v.slice(0,2) + '/' + v.slice(2,4) + '/' + v.slice(4);
+      }
+      e.target.value = out;
+    });
+
+    dobInput.addEventListener('blur', e=>{
+      const val = e.target.value;
+      if(!val) return;
+      const parts = val.split('/');
+      if(parts.length !== 3){
+        alert('Please enter DOB as MM/DD/YYYY.');
+        e.target.focus();
+        return;
+      }
+      const m = parseInt(parts[0],10);
+      const d = parseInt(parts[1],10);
+      const y = parseInt(parts[2],10);
+      let ok = true;
+      if(isNaN(m)||isNaN(d)||isNaN(y)) ok=false;
+      if(ok){
+        if(m<1||m>12) ok=false;
+        if(d<1||d>31) ok=false;
+        if(y<1900||y>2100) ok=false;
+      }
+      if(!ok){
+        alert('Please enter DOB as a valid date in MM/DD/YYYY format.');
+        e.target.focus();
+      }
+    });
   }
 
-  // Delegated inputs (no re-render while typing)
+  // Delegated inputs for calendar
   weeksEl.addEventListener('input', (e)=>{
     const t = e.target;
     if(!(t instanceof HTMLInputElement)) return;
@@ -1032,7 +1036,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
     if(role==='inr'){    if(isNaN(v)) inrVal.delete(key); else inrVal.set(key, v); }
   });
 
-  // On blur normalize
   weeksEl.addEventListener('blur', (e)=>{
     const t = e.target;
     if(!(t instanceof HTMLInputElement)) return;
