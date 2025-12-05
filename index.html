@@ -166,9 +166,9 @@ input,select,button{font-size:15px} input,select{padding:8px;border:1px solid #b
     <div id="sum" class="small" style="margin-top:6px">Scheduled weekly total: 0.0 mg</div>
   </fieldset>
 
-  <!-- Bridging – Enoxaparin Helper -->
-  <h2>Bridging – Enoxaparin Helper (beta)</h2>
-  <fieldset><legend>Weight-based enoxaparin dose</legend>
+  <!-- Bridging – Parenteral Helper (Enoxaparin / Fondaparinux) -->
+  <h2>Bridging – Parenteral Helper (enoxaparin / fondaparinux) (beta)</h2>
+  <fieldset><legend>Weight-based parenteral dose</legend>
     <div class="grid">
       <div>
         <label for="enoxWeight">Weight (kg)</label>
@@ -185,24 +185,30 @@ input,select,button{font-size:15px} input,select{padding:8px;border:1px solid #b
         <label for="enoxType">Regimen</label>
         <select id="enoxType">
           <option value="tx_q12" selected>
-            Therapeutic – 1 mg/kg every 12 hours
+            Enoxaparin – Therapeutic 1 mg/kg every 12 hours
           </option>
           <option value="tx_q24">
-            Therapeutic (renal adjustment) – 1 mg/kg once daily
+            Enoxaparin – Therapeutic (renal adjustment) – 1 mg/kg once daily
           </option>
           <option value="px_40">
-            Prophylaxis – 40 mg once daily
+            Enoxaparin – Prophylaxis – 40 mg once daily
           </option>
           <option value="px_30">
-            Prophylaxis (renal adjustment) – 30 mg once daily
+            Enoxaparin – Prophylaxis (renal adjustment) – 30 mg once daily
+          </option>
+          <option value="fond_tx">
+            Fondaparinux – Treatment (5 mg if &lt;50 kg, 7.5 mg if 50–100 kg, 10 mg if &gt;100 kg)
+          </option>
+          <option value="fond_px">
+            Fondaparinux – Prophylaxis – 2.5 mg once daily
           </option>
         </select>
-        <div class="small">Therapeutic regimens are based on common VTE/AF/ACS dosing options.</div>
+        <div class="small">Regimens are based on common bridging doses; always confirm with your local protocol, especially in renal impairment or HIT.</div>
       </div>
     </div>
 
     <div style="margin-top:10px;">
-      <button class="btnS" type="button" id="calcEnox">Calculate enoxaparin dose</button>
+      <button class="btnS" type="button" id="calcEnox">Calculate bridging dose</button>
       <button class="btnS" type="button" id="clearEnox" style="margin-left:8px;">Bridging not required</button>
     </div>
 
@@ -473,22 +479,38 @@ function calcEnoxaparinDose(){
     case 'tx_q12':
       baseDose = wt * 1.0;
       freqText = 'every 12 hours';
-      context  = 'Therapeutic dosing (e.g., VTE/AF/AFib/ACS) with normal renal function.';
+      context  = 'Enoxaparin therapeutic dosing (e.g., VTE/AF/ACS) with normal renal function.';
       break;
     case 'tx_q24':
       baseDose = wt * 1.0;
       freqText = 'once daily';
-      context  = 'Therapeutic dosing with renal adjustment (e.g., CrCl < 30 mL/min per local protocol).';
+      context  = 'Enoxaparin therapeutic dosing with renal adjustment (e.g., CrCl < 30 mL/min per local protocol).';
       break;
     case 'px_40':
       baseDose = 40;
       freqText = 'once daily';
-      context  = 'Standard prophylaxis dose with normal renal function.';
+      context  = 'Enoxaparin standard prophylaxis dose with normal renal function.';
       break;
     case 'px_30':
       baseDose = 30;
       freqText = 'once daily';
-      context  = 'Prophylaxis dose with renal adjustment (e.g., CrCl < 30 mL/min per local protocol).';
+      context  = 'Enoxaparin prophylaxis dose with renal adjustment (e.g., CrCl < 30 mL/min per local protocol).';
+      break;
+    case 'fond_tx':
+      if (wt < 50){
+        baseDose = 5;
+      } else if (wt <= 100){
+        baseDose = 7.5;
+      } else {
+        baseDose = 10;
+      }
+      freqText = 'once daily';
+      context  = 'Fondaparinux treatment dosing often used for VTE bridging: 5 mg if <50 kg, 7.5 mg if 50–100 kg, and 10 mg if >100 kg (confirm with local protocol and renal function).';
+      break;
+    case 'fond_px':
+      baseDose = 2.5;
+      freqText = 'once daily';
+      context  = 'Fondaparinux prophylaxis dosing (e.g., selected surgical patients); confirm timing and duration per local protocol.';
       break;
   }
 
@@ -497,17 +519,28 @@ function calcEnoxaparinDose(){
     return;
   }
 
-  const rounded = roundEnoxaparinDose(baseDose);
-  const baseStr    = baseDose.toFixed(0);
-  const roundedStr = rounded != null ? rounded.toFixed(0) : '—';
+  const isFondaparinux = (reg === 'fond_tx' || reg === 'fond_px');
 
-  let html = `
-    <div><b>Calculated dose (weight-based):</b> ${baseStr} mg</div>
-    <div><b>Rounded for prefilled syringe:</b> ${roundedStr} mg ${freqText}</div>
-  `;
+  let rounded;
+  let baseStr;
+  let roundedStr;
+  let roundingNote = '';
 
-  if (rounded !== baseDose){
-    html += `
+  if (isFondaparinux){
+    rounded = baseDose;
+    baseStr = baseDose.toFixed(1);
+    roundedStr = rounded.toFixed(1);
+    roundingNote = `
+      <div class="small" style="margin-top:4px;">
+        Fondaparinux is supplied as fixed prefilled syringe strengths (2.5 mg, 5 mg, 7.5 mg, 10 mg).
+        Use the syringe that matches the recommended mg dose and follow your local protocol.
+      </div>
+    `;
+  } else {
+    rounded = roundEnoxaparinDose(baseDose);
+    baseStr = baseDose.toFixed(0);
+    roundedStr = rounded != null ? rounded.toFixed(0) : '—';
+    roundingNote = `
       <div class="small" style="margin-top:4px;">
         Rounded rule: doses ending in 0–5 mg are rounded <b>down</b> to the nearest 10,
         and doses ending in 6–9 mg are rounded <b>up</b> to the nearest 10
@@ -515,6 +548,13 @@ function calcEnoxaparinDose(){
       </div>
     `;
   }
+
+  let html = `
+    <div><b>Calculated dose:</b> ${baseStr} mg</div>
+    <div><b>Suggested syringe dose:</b> ${roundedStr} mg ${freqText}</div>
+  `;
+
+  html += roundingNote;
 
   html += `
     <div class="small" style="margin-top:6px;">
