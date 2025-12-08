@@ -245,6 +245,23 @@ input,select,button{font-size:15px} input,select{padding:8px;border:1px solid #b
   <h2>7-Day Recommendation (Linear — Today's Week)</h2>
   <div id="lin" class="card mono"></div>
 
+  <!-- Predicted INR (What-if – Beta) -->
+  <h2>Predicted INR (What-if – Beta)</h2>
+  <div class="card small" id="predictCard">
+    <div style="margin-bottom:6px;">
+      This tool uses your recent dose and INR history to estimate how a change
+      in your total weekly warfarin dose might affect INR. It is <b>experimental</b>
+      and must not be used without clinical judgment.
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:4px;">
+      <label>Proposed weekly dose (mg)</label>
+      <input id="predWeeklyDose" type="number" step="0.5" min="0"
+             style="width:120px;padding:6px;">
+      <button class="btnS" type="button" id="runPrediction">Estimate INR</button>
+    </div>
+    <div id="predOut" style="margin-top:6px;"></div>
+  </div>
+
 <script>
 function pad(n){return (n<10?'0':'')+n}
 function isoLocal(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
@@ -457,6 +474,66 @@ function roundEnoxaparinDose(doseMg){
   }
 }
 
+/* === Simple INR prediction model helpers === */
+
+// Build dataset: total effective weekly dose (prior 7 days) -> INR on the day
+function buildInrDoseDataset() {
+  const data = [];
+  const today = new Date();
+  // look back ~120 days
+  for (let offset = -120; offset <= 0; offset++) {
+    const d = addDaysLocal(today, offset);
+    const key = isoLocal(d);
+    if (!inrVal.has(key)) continue;
+
+    const inr = inrVal.get(key);
+    let weeklyDose = 0;
+    // sum effective doses for 7 days prior to the INR date
+    for (let k = 1; k <= 7; k++) {
+      const prevKey = isoLocal(addDaysLocal(d, -k));
+      weeklyDose += effAtIso(prevKey);
+    }
+
+    if (!isNaN(inr) && weeklyDose > 0) {
+      data.push({ weeklyDose, inr });
+    }
+  }
+  return data;
+}
+
+// Ordinary least squares linear fit: INR ≈ a + b * weeklyDose
+function fitLinearDoseInrModel(data) {
+  if (!data || data.length < 3) return null; // need at least 3 points
+
+  let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+  const n = data.length;
+
+  for (const pt of data) {
+    const x = pt.weeklyDose;
+    const y = pt.inr;
+    sumX += x;
+    sumY += y;
+    sumXY += x * y;
+    sumXX += x * x;
+  }
+
+  const denom = (n * sumXX - sumX * sumX);
+  if (denom === 0) return null;
+
+  const b = (n * sumXY - sumX * sumY) / denom;   // slope
+  const a = (sumY - b * sumX) / n;               // intercept
+
+  return { a, b, n };
+}
+
+function predictInrForWeeklyDose(model, weeklyDose) {
+  if (!model) return null;
+  const raw = model.a + model.b * weeklyDose;
+  // clamp to reasonable range, rounded to 0.1
+  return Math.max(0.5, Math.min(8.0, r01(raw)));
+}
+
+/* === Bridging dose calculator === */
 function calcEnoxaparinDose(){
   const wtEl  = document.getElementById('enoxWeight');
   const typeEl= document.getElementById('enoxType');
@@ -672,10 +749,11 @@ const weekdays = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 function buildWeekRows(startDate){
   let rows = '';
   for(let i=0;i<7;i++){
-    const d = addDaysLocal(startDate, i);
-    const key = isoLocal(d);
-    const dayName = weekdays[d.getDay()];
-    const dateStr = pad(d.getMonth()+1)+'/'+pad(d.getDate());
+    const d = addDaysLocal(startOfWeekLocal(startDate), 0); // ensure startDate is week start
+    const day = addDaysLocal(d, i);
+    const key = isoLocal(day);
+    const dayName = weekdays[day.getDay()];
+    const dateStr = pad(day.getMonth()+1)+'/'+pad(day.getDate());
 
     const plannedDose = planned.has(key) ? planned.get(key) : NaN;
     const inrValNum   = inrVal.has(key) ? inrVal.get(key) : NaN;
@@ -1097,6 +1175,40 @@ document.addEventListener('DOMContentLoaded', ()=>{
     }
     pushDataToCells(); lin7();
   }, true);
+
+  // Prediction button wiring
+  const predBtn = document.getElementById('runPrediction');
+  const predInput = document.getElementById('predWeeklyDose');
+  const predOut = document.getElementById('predOut');
+
+  if (predBtn && predInput && predOut) {
+    predBtn.addEventListener('click', () => {
+      const v = parseFloat(predInput.value);
+      if (isNaN(v) || v <= 0) {
+        predOut.innerHTML = '<span style="color:#b00020;">Enter a valid proposed weekly dose.</span>';
+        return;
+      }
+
+      const dataset = buildInrDoseDataset();
+      const model = fitLinearDoseInrModel(dataset);
+      if (!model) {
+        predOut.innerHTML = '<span style="color:#b00020;">Not enough usable historical data to estimate a response yet.</span>';
+        return;
+      }
+
+      const predicted = predictInrForWeeklyDose(model, v);
+      predOut.innerHTML = `
+        <div>
+          Estimated INR for a weekly dose of <b>${v.toFixed(1)} mg</b> is
+          approximately <b>${predicted.toFixed(1)}</b>.
+        </div>
+        <div class="small" style="margin-top:4px;">
+          Model based on ${model.n} past dose/INR pairs (simple linear fit using prior 7-day dose totals).
+          Use for trend insight only – not a substitute for clinic protocol.
+        </div>
+      `;
+    });
+  }
 });
 </script>
 </div>
