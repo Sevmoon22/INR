@@ -452,6 +452,16 @@ function last6SchedBeforeDate(d){ let s=0; for(let k=6;k>=1;k--){ const key=isoL
 function last6EffBeforeDate(d){ let s=0; for(let k=6;k>=1;k--){ const key=isoLocal(addDaysLocal(d,-k)); s+=effAtIso(key) } return r01(s) }
 function sched7EndOnDate(d){ let s=0; for(let k=6;k>=0;k--){ const key=isoLocal(addDaysLocal(d,-k)); s+=schedAtIso(key) } return r01(s) }
 
+// Total effective weekly dose ending on date d (today + previous 6 days)
+function weeklyEffDoseEndingOnDate(d){
+  let s = 0;
+  for(let k=0;k<7;k++){
+    const key = isoLocal(addDaysLocal(d,-k));
+    s += effAtIso(key);
+  }
+  return r01(s);
+}
+
 function markNeedsRecalc(){
   if(hasReco){
     pendingRecalc=true;
@@ -693,10 +703,27 @@ function reco(){
     lastRecoINR = bestVal;
     lastRepeatIso = repeatKey;
 
+    // Personal model annotation
+    let modelNote = '';
+    const dataset = buildInrDoseDataset();
+    const model = fitLinearDoseInrModel(dataset);
+    if(model){
+      const weeklyDose = weeklyEffDoseEndingOnDate(new Date());
+      const estInr = predictInrForWeeklyDose(model, weeklyDose);
+      modelNote =
+        `<div class="small" style="margin-top:4px;">
+           Personal response model (beta) estimates INR ≈ <b>${estInr.toFixed(1)}</b>
+           at your current weekly dose (~${weeklyDose.toFixed(1)} mg), based on
+           ${model.n} past dose/INR pairs. Use for trend insight only; base decisions on
+           clinical judgment and protocol.
+         </div>`;
+    }
+
     rec.innerHTML =
       `INR <b>${bestVal.toFixed(1)}</b> is in your goal range (${L}–${H}). ` +
       `<b>No change</b> to today’s warfarin dose. ` +
-      `Repeat your INR on <b>${niceDate(repeatKey)}</b>.`;
+      `Repeat your INR on <b>${niceDate(repeatKey)}</b>.` +
+      modelNote;
     hasReco=true;
     pushDataToCells(); lin7(); return;
   }
@@ -734,10 +761,27 @@ function reco(){
   const isHigh = bestVal > H;
   const dirText = isHigh ? 'above' : 'below';
 
+  // Personal model annotation after applying today's change
+  let modelNote = '';
+  const dataset = buildInrDoseDataset();
+  const model = fitLinearDoseInrModel(dataset);
+  if(model){
+    const weeklyDoseAfterChange = weeklyEffDoseEndingOnDate(new Date());
+    const estInr = predictInrForWeeklyDose(model, weeklyDoseAfterChange);
+    modelNote =
+      `<div class="small" style="margin-top:4px;">
+         Personal response model (beta) estimates INR ≈ <b>${estInr.toFixed(1)}</b>
+         at a weekly dose of ~${weeklyDoseAfterChange.toFixed(1)} mg, based on
+         ${model.n} past dose/INR pairs. Use for trend insight only; base decisions on
+         clinical judgment and protocol.
+       </div>`;
+  }
+
   rec.innerHTML =
     `INR <b>${bestVal.toFixed(1)}</b> is <b>${dirText}</b> your goal range (${L}–${H}). ` +
     `Take <b>${newDose.toFixed(1)} mg of warfarin today</b> based on your recent dosing. ` +
-    `Plan to recheck your INR on <b>${niceDate(repeatKey)}</b>, or sooner if your clinic advises.`;
+    `Plan to recheck your INR on <b>${niceDate(repeatKey)}</b>, or sooner if your clinic advises.` +
+    modelNote;
 
   hasReco=true;
   pushDataToCells(); lin7();
@@ -749,7 +793,7 @@ const weekdays = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 function buildWeekRows(startDate){
   let rows = '';
   for(let i=0;i<7;i++){
-    const d = addDaysLocal(startOfWeekLocal(startDate), 0); // ensure startDate is week start
+    const d = addDaysLocal(startOfWeekLocal(startDate), 0); // make sure it's week start
     const day = addDaysLocal(d, i);
     const key = isoLocal(day);
     const dayName = weekdays[day.getDay()];
@@ -831,6 +875,7 @@ function exportRecommendationPDF(){
         .summary-line{margin-top:10px;font-size:16px;}
         .summary-line b.big{font-size:20px;}
         .sig-block{margin-top:24px;font-size:12px;}
+        .notes-box{min-height:80px;outline:none;white-space:pre-wrap;}
         @media print {
           #printBtn{display:none;}
         }
@@ -895,8 +940,8 @@ function exportRecommendationPDF(){
       </div>
 
       <h2>Provider Notes</h2>
-      <div class="card" style="min-height:80px;">
-        <!-- space for free-text notes after printing -->
+      <div class="card notes-box" contenteditable="true">
+        Click here to type provider notes before printing.
       </div>
 
       <div class="sig-block">
