@@ -203,7 +203,7 @@ input,select,button{font-size:15px} input,select{padding:8px;border:1px solid #b
             Fondaparinux – Prophylaxis – 2.5 mg once daily
           </option>
         </select>
-        <div class="small">Regimens are based on common bridging doses; always confirm with your local protocol, especially in renal impairment or HIT.</div>
+        <div class="small">Always confirm with local protocol, especially in renal impairment or HIT.</div>
       </div>
     </div>
 
@@ -249,14 +249,14 @@ input,select,button{font-size:15px} input,select{padding:8px;border:1px solid #b
   <h2>Predicted INR (What-if – Beta)</h2>
   <div class="card small" id="predictCard">
     <div style="margin-bottom:6px;">
-      This tool uses your recent dose and INR history to estimate how a change
-      in your total weekly warfarin dose might affect INR. It is <b>experimental</b>
+      This tool uses your recent 7-day dose and INR history to estimate how a change
+      in your total 7-day warfarin dose might affect INR. It is <b>experimental</b>
       and must not be used without clinical judgment.
     </div>
     <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:4px;">
-      <label>Proposed weekly dose (mg)</label>
+      <label>Proposed 7-day total dose (mg)</label>
       <input id="predWeeklyDose" type="number" step="0.5" min="0"
-             style="width:120px;padding:6px;">
+             style="width:140px;padding:6px;">
       <button class="btnS" type="button" id="runPrediction">Estimate INR</button>
     </div>
     <div id="predOut" style="margin-top:6px;"></div>
@@ -452,11 +452,21 @@ function last6SchedBeforeDate(d){ let s=0; for(let k=6;k>=1;k--){ const key=isoL
 function last6EffBeforeDate(d){ let s=0; for(let k=6;k>=1;k--){ const key=isoLocal(addDaysLocal(d,-k)); s+=effAtIso(key) } return r01(s) }
 function sched7EndOnDate(d){ let s=0; for(let k=6;k>=0;k--){ const key=isoLocal(addDaysLocal(d,-k)); s+=schedAtIso(key) } return r01(s) }
 
-// Total effective weekly dose ending on date d (today + previous 6 days)
-function weeklyEffDoseEndingOnDate(d){
+// 7-day effective dose helpers
+function dose7BeforeToday(){
+  const baseDate = addDaysLocal(new Date(), -1); // yesterday
   let s = 0;
   for(let k=0;k<7;k++){
-    const key = isoLocal(addDaysLocal(d,-k));
+    const key = isoLocal(addDaysLocal(baseDate, -k));
+    s += effAtIso(key);
+  }
+  return r01(s);
+}
+function dose7IncludingToday(){
+  const baseDate = new Date(); // today
+  let s = 0;
+  for(let k=0;k<7;k++){
+    const key = isoLocal(addDaysLocal(baseDate, -k));
     s += effAtIso(key);
   }
   return r01(s);
@@ -486,7 +496,7 @@ function roundEnoxaparinDose(doseMg){
 
 /* === Simple INR prediction model helpers === */
 
-// Build dataset: total effective weekly dose (prior 7 days) -> INR on the day
+// Build dataset: total effective 7-day dose (prior to INR day) -> INR on the day
 function buildInrDoseDataset() {
   const data = [];
   const today = new Date();
@@ -497,21 +507,21 @@ function buildInrDoseDataset() {
     if (!inrVal.has(key)) continue;
 
     const inr = inrVal.get(key);
-    let weeklyDose = 0;
-    // sum effective doses for 7 days prior to the INR date
+    let dose7 = 0;
+    // sum effective doses for 7 days prior to the INR date (excluding that day)
     for (let k = 1; k <= 7; k++) {
       const prevKey = isoLocal(addDaysLocal(d, -k));
-      weeklyDose += effAtIso(prevKey);
+      dose7 += effAtIso(prevKey);
     }
 
-    if (!isNaN(inr) && weeklyDose > 0) {
-      data.push({ weeklyDose, inr });
+    if (!isNaN(inr) && dose7 > 0) {
+      data.push({ dose7, inr });
     }
   }
   return data;
 }
 
-// Ordinary least squares linear fit: INR ≈ a + b * weeklyDose
+// Ordinary least squares linear fit: INR ≈ a + b * dose7
 function fitLinearDoseInrModel(data) {
   if (!data || data.length < 3) return null; // need at least 3 points
 
@@ -519,7 +529,7 @@ function fitLinearDoseInrModel(data) {
   const n = data.length;
 
   for (const pt of data) {
-    const x = pt.weeklyDose;
+    const x = pt.dose7;
     const y = pt.inr;
     sumX += x;
     sumY += y;
@@ -536,9 +546,9 @@ function fitLinearDoseInrModel(data) {
   return { a, b, n };
 }
 
-function predictInrForWeeklyDose(model, weeklyDose) {
+function predictInrForDose7(model, dose7) {
   if (!model) return null;
-  const raw = model.a + model.b * weeklyDose;
+  const raw = model.a + model.b * dose7;
   // clamp to reasonable range, rounded to 0.1
   return Math.max(0.5, Math.min(8.0, r01(raw)));
 }
@@ -703,19 +713,20 @@ function reco(){
     lastRecoINR = bestVal;
     lastRepeatIso = repeatKey;
 
-    // Personal model annotation
+    // Personal model annotation – 7-day dose before today
     let modelNote = '';
     const dataset = buildInrDoseDataset();
     const model = fitLinearDoseInrModel(dataset);
     if(model){
-      const weeklyDose = weeklyEffDoseEndingOnDate(new Date());
-      const estInr = predictInrForWeeklyDose(model, weeklyDose);
+      const dose7 = dose7BeforeToday();
+      const estInr = predictInrForDose7(model, dose7);
       modelNote =
-        `<div class="small" style="margin-top:4px;">
-           Personal response model (beta) estimates INR ≈ <b>${estInr.toFixed(1)}</b>
-           at your current weekly dose (~${weeklyDose.toFixed(1)} mg), based on
-           ${model.n} past dose/INR pairs. Use for trend insight only; base decisions on
-           clinical judgment and protocol.
+        `<div style="margin-top:8px;padding:6px 8px;border-radius:8px;background:#fff3cd;border:1px solid #ffe08a;font-size:13px;">
+           <b>Personal response model (beta):</b>
+           over the last 7 days (prior to today), your total effective dose is ~<b>${dose7.toFixed(1)} mg</b>.
+           This simple 7-day model estimates INR ≈ <b>${estInr.toFixed(1)}</b>,
+           based on <b>${model.n}</b> past 7-day dose/INR pairs. Use for trend insight only—dosing
+           should still follow clinic protocol and clinical judgment.
          </div>`;
     }
 
@@ -761,19 +772,20 @@ function reco(){
   const isHigh = bestVal > H;
   const dirText = isHigh ? 'above' : 'below';
 
-  // Personal model annotation after applying today's change
+  // Personal model annotation after applying today's change – 7-day window including today
   let modelNote = '';
   const dataset = buildInrDoseDataset();
   const model = fitLinearDoseInrModel(dataset);
   if(model){
-    const weeklyDoseAfterChange = weeklyEffDoseEndingOnDate(new Date());
-    const estInr = predictInrForWeeklyDose(model, weeklyDoseAfterChange);
+    const dose7 = dose7IncludingToday();
+    const estInr = predictInrForDose7(model, dose7);
     modelNote =
-      `<div class="small" style="margin-top:4px;">
-         Personal response model (beta) estimates INR ≈ <b>${estInr.toFixed(1)}</b>
-         at a weekly dose of ~${weeklyDoseAfterChange.toFixed(1)} mg, based on
-         ${model.n} past dose/INR pairs. Use for trend insight only; base decisions on
-         clinical judgment and protocol.
+      `<div style="margin-top:8px;padding:6px 8px;border-radius:8px;background:#fff3cd;border:1px solid #ffe08a;font-size:13px;">
+         <b>Personal response model (beta):</b>
+         with today’s plan, total effective 7-day dose (today plus prior 6 days) is ~<b>${dose7.toFixed(1)} mg</b>.
+         This model estimates INR ≈ <b>${estInr.toFixed(1)}</b> at that 7-day dose,
+         based on <b>${model.n}</b> past 7-day dose/INR pairs. Use for trend insight only—final decisions
+         must follow protocol and clinical judgment.
        </div>`;
   }
 
@@ -793,11 +805,10 @@ const weekdays = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 function buildWeekRows(startDate){
   let rows = '';
   for(let i=0;i<7;i++){
-    const d = addDaysLocal(startOfWeekLocal(startDate), 0); // make sure it's week start
-    const day = addDaysLocal(d, i);
-    const key = isoLocal(day);
-    const dayName = weekdays[day.getDay()];
-    const dateStr = pad(day.getMonth()+1)+'/'+pad(day.getDate());
+    const d = addDaysLocal(startDate, i);
+    const key = isoLocal(d);
+    const dayName = weekdays[d.getDay()];
+    const dateStr = pad(d.getMonth()+1)+'/'+pad(d.getDate());
 
     const plannedDose = planned.has(key) ? planned.get(key) : NaN;
     const inrValNum   = inrVal.has(key) ? inrVal.get(key) : NaN;
@@ -864,29 +875,30 @@ function exportRecommendationPDF(){
       <meta charset="utf-8">
       <title>ThromboLogic INR – Recommendation</title>
       <style>
-        body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:24px;color:#111;}
-        h1{font-size:20px;margin-bottom:4px;}
-        h2{font-size:16px;margin:18px 0 8px;}
-        .small{font-size:12px;color:#555;}
-        table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px;}
-        th,td{border:1px solid #ccc;padding:4px 6px;text-align:left;}
+        body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:16px;color:#111;}
+        h1{font-size:18px;margin-bottom:2px;}
+        h2{font-size:14px;margin:12px 0 4px;}
+        .small{font-size:11px;color:#555;}
+        table{border-collapse:collapse;width:100%;font-size:11px;margin-top:4px;}
+        th,td{border:1px solid #ccc;padding:3px 4px;text-align:left;}
         th{background:#f3f3f3;font-weight:600;}
-        .card{border:1px solid #ccc;border-radius:10px;padding:12px;margin:8px 0;background:#fafafa;}
-        .summary-line{margin-top:10px;font-size:16px;}
-        .summary-line b.big{font-size:20px;}
-        .sig-block{margin-top:24px;font-size:12px;}
-        .notes-box{min-height:80px;outline:none;white-space:pre-wrap;}
+        .card{border:1px solid #ccc;border-radius:8px;padding:8px;margin:6px 0;background:#fafafa;}
+        .summary-line{margin-top:8px;font-size:14px;}
+        .summary-line b.big{font-size:18px;}
+        .sig-block{margin-top:16px;font-size:11px;}
+        .notes-box{min-height:60px;outline:none;white-space:pre-wrap;font-size:12px;}
+        #printBtn{margin:4px 0 8px 8px;}
         @media print {
           #printBtn{display:none;}
         }
       </style>
     </head>
     <body>
-      <button id="printBtn" onclick="window.print()" style="float:right;margin:4px 0 8px 8px;">Print / Save as PDF</button>
+      <button id="printBtn" onclick="window.print()" style="float:right;">Print / Save as PDF</button>
 
       <h1>ThromboLogic INR – Visit Summary</h1>
       <div class="small">Generated on ${todayStr} at ${timeStr}</div>
-      ${patientInfoLine ? `<div class="small" style="margin-top:6px;">${patientInfoLine}</div>` : ''}
+      ${patientInfoLine ? `<div class="small" style="margin-top:4px;">${patientInfoLine}</div>` : ''}
 
       <div class="summary-line">
         Latest INR:&nbsp;
@@ -940,7 +952,8 @@ function exportRecommendationPDF(){
       </div>
 
       <h2>Provider Notes</h2>
-      <div class="card notes-box" contenteditable="true">
+      <div class="card notes-box" contenteditable="true"
+           onfocus="if(this.getAttribute('data-edited')!=='1'){this.innerHTML='';this.setAttribute('data-edited','1');}">
         Click here to type provider notes before printing.
       </div>
 
@@ -997,22 +1010,22 @@ function openPatientHandout(){
       <meta charset="utf-8">
       <title>ThromboLogic INR – Patient Handout</title>
       <style>
-        body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:24px;color:#111;}
-        h1{font-size:20px;margin-bottom:4px;}
-        h2{font-size:16px;margin:18px 0 8px;}
-        .small{font-size:12px;color:#555;}
-        table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px;}
-        th,td{border:1px solid #ccc;padding:4px 6px;text-align:left;}
+        body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:18px;color:#111;}
+        h1{font-size:18px;margin-bottom:2px;}
+        h2{font-size:14px;margin:12px 0 4px;}
+        .small{font-size:11px;color:#555;}
+        table{border-collapse:collapse;width:100%;font-size:11px;margin-top:4px;}
+        th,td{border:1px solid #ccc;padding:3px 4px;text-align:left;}
         th{background:#f3f3f3;font-weight:600;}
-        .card{border:1px solid #ccc;border-radius:10px;padding:12px;margin:8px 0;background:#fafafa;}
-        .summary-line{margin-top:10px;font-size:16px;}
-        .summary-line b.big{font-size:20px;}
+        .card{border:1px solid #ccc;border-radius:8px;padding:8px;margin:6px 0;background:#fafafa;}
+        .summary-line{margin-top:8px;font-size:14px;}
+        .summary-line b.big{font-size:18px;}
       </style>
     </head>
     <body>
       <h1>ThromboLogic INR – Patient Dosing Summary</h1>
       <div class="small">Generated on ${todayStr} at ${timeStr}</div>
-      ${patientInfoLine ? `<div class="small" style="margin-top:6px;">${patientInfoLine}</div>` : ''}
+      ${patientInfoLine ? `<div class="small" style="margin-top:4px;">${patientInfoLine}</div>` : ''}
 
       <div class="summary-line">
         Latest INR:&nbsp;
@@ -1221,7 +1234,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     pushDataToCells(); lin7();
   }, true);
 
-  // Prediction button wiring
+  // Prediction button wiring (7-day total)
   const predBtn = document.getElementById('runPrediction');
   const predInput = document.getElementById('predWeeklyDose');
   const predOut = document.getElementById('predOut');
@@ -1230,7 +1243,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     predBtn.addEventListener('click', () => {
       const v = parseFloat(predInput.value);
       if (isNaN(v) || v <= 0) {
-        predOut.innerHTML = '<span style="color:#b00020;">Enter a valid proposed weekly dose.</span>';
+        predOut.innerHTML = '<span style="color:#b00020;">Enter a valid proposed 7-day total dose.</span>';
         return;
       }
 
@@ -1241,14 +1254,14 @@ document.addEventListener('DOMContentLoaded', ()=>{
         return;
       }
 
-      const predicted = predictInrForWeeklyDose(model, v);
+      const predicted = predictInrForDose7(model, v);
       predOut.innerHTML = `
         <div>
-          Estimated INR for a weekly dose of <b>${v.toFixed(1)} mg</b> is
+          Estimated INR for a 7-day total dose of <b>${v.toFixed(1)} mg</b> is
           approximately <b>${predicted.toFixed(1)}</b>.
         </div>
         <div class="small" style="margin-top:4px;">
-          Model based on ${model.n} past dose/INR pairs (simple linear fit using prior 7-day dose totals).
+          Model based on ${model.n} past 7-day dose/INR pairs (simple linear fit using prior 7-day totals).
           Use for trend insight only – not a substitute for clinic protocol.
         </div>
       `;
