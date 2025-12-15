@@ -10,9 +10,7 @@ body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-se
 h1{font-size:19px;margin:0 0 8px} h2{font-size:15px;margin:16px 0 6px}
 .small{font-size:12px;color:#555} .mono{font-family:ui-monospace,Menlo,Consolas,monospace}
 fieldset{border:1px solid #ddd;border-radius:10px;padding:10px;margin:10px 0} legend{padding:0 6px}
-input,select,button,textarea{font-size:15px}
-input,select,textarea{padding:8px;border:1px solid #b9c1cc;border-radius:10px}
-textarea{min-height:86px;resize:vertical}
+input,select,button{font-size:15px} input,select{padding:8px;border:1px solid #b9c1cc;border-radius:10px}
 .btn{padding:8px 12px;border:0;border-radius:10px;background:#444;color:#fff;cursor:pointer;margin-right:8px}
 .btnp{padding:10px 14px;border:0;border-radius:10px;background:#0d6efd;color:#fff;cursor:pointer;font-weight:700;margin:8px 0;display:inline-block}
 .btnS{padding:4px 8px;border:0;border-radius:8px;background:#444;color:#fff;cursor:pointer;margin-right:6px;font-size:13px}
@@ -45,12 +43,7 @@ textarea{min-height:86px;resize:vertical}
 .legend{display:flex;gap:12px;align-items:center;font-size:12px;margin:6px 0 10px}
 .sw{display:inline-block;width:14px;height:14px;border-radius:3px;border:1px solid #fff;box-shadow:inset 0 0 0 1px rgba(0,0,0,.05);margin-right:4px}
 .err{color:#b00020;font-size:12px;margin:6px 0} .debug{font-size:11px;color:#666;margin-top:6px}
-@media(max-width:700px){
-  .container{max-width:96vw}
-  .week{grid-template-columns:repeat(7, minmax(76px,1fr));gap:6px}
-  .cell-input,.grid7 input{width:78px;max-width:78px;font-size:13px;padding:5px}
-  .day{min-height:138px}
-}
+@media(max-width:700px){.container{max-width:96vw}.week{grid-template-columns:repeat(7, minmax(76px,1fr));gap:6px}.cell-input,.grid7 input{width:78px;max-width:78px;font-size:13px;padding:5px}.day{min-height:138px}}
 .orangeCell{background:#ffe0b3!important;box-shadow:inset 0 0 0 2px #ff9800}
 .redCell{background:#ffc2c2!important;box-shadow:inset 0 0 0 2px #e53935}
 .repeat-inr{font-size:11px;color:#b00020;margin-top:3px;text-align:center}
@@ -60,29 +53,24 @@ textarea{min-height:86px;resize:vertical}
 .patient-field{display:flex;flex-direction:column;min-width:180px}
 .patient-field label{font-weight:600;margin-bottom:4px}
 
-/* Interaction badges */
-.badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;border:1px solid #ddd;background:#fff;font-size:12px}
-.badge b{font-size:12px}
-.badge.major{border-color:#e53935}
-.badge.mod{border-color:#ff9800}
-.badge.minor{border-color:#78909c}
-.badge.bleed{border-color:#7b1fa2}
-
 /* Hide export button when printing */
-@media print { #exportPDF{display:none !important;} }
+@media print {
+  #exportPDF{display:none !important;}
+}
 </style>
 </head>
 <body>
 <div class="container">
 
-  <!-- ThromboLogic Header Branding -->
+  <!-- ✅ EXACT LOGO SECTION FROM INR 7.0 (verbatim) -->
   <div style="display:flex; align-items:center; gap:14px; margin:0 0 6px 0;">
-    <img src="ThromboLogic INR Logo Design.png" alt="ThromboLogic INR Logo" style="height:80px; width:auto;">
+    <img src="ThromboLogic INR Logo Design.png"
+         alt="ThromboLogic INR Logo"
+         style="height:80px; width:auto;">
     <div style="display:flex; flex-direction:column; line-height:1.1;">
       <span style="font-size:26px; font-weight:800;">ThromboLogic</span>
       <span style="font-size:16px; font-weight:600;">INR</span>
-      <span class="small" style="margin-top:4px;">INR 7.1 (weighted 7-day + direction-constrained model + demo loader) + Interaction Check (beta)</span>
+      <span class="small" style="margin-top:4px;">INR 7.1 (weighted 7-day + direction-constrained model + demo loader)</span>
     </div>
   </div>
 
@@ -124,11 +112,15 @@ textarea{min-height:86px;resize:vertical}
         <div id="cust" style="display:none; margin-top:6px;">
           <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
             <label>Low</label>
-            <input id="gL" type="number" step="0.1" min="0" inputmode="decimal" placeholder="e.g., 2.3" style="width:80px; padding:6px;">
+            <input id="gL" type="number" step="0.1" min="0" inputmode="decimal"
+                   placeholder="e.g., 2.3"
+                   style="width:80px; padding:6px;">
           </div>
           <div style="display:flex; align-items:center; gap:6px;">
             <label>High</label>
-            <input id="gH" type="number" step="0.1" min="0" inputmode="decimal" placeholder="e.g., 3.3" style="width:80px; padding:6px;">
+            <input id="gH" type="number" step="0.1" min="0" inputmode="decimal"
+                   placeholder="e.g., 3.3"
+                   style="width:80px; padding:6px;">
           </div>
         </div>
       </div>
@@ -136,11 +128,18 @@ textarea{min-height:86px;resize:vertical}
       <div>
         <div style="display:flex; flex-direction:column; justify-content:flex-start; padding-top:2px;">
           <label style="margin-bottom:4px;">Current INR</label>
-          <input id="inr" class="cell-input inrbox" type="number" step="0.1" min="0" inputmode="decimal"
-                 placeholder="e.g., 2.6" style="margin:0; max-width:105px;">
+          <input id="inr"
+                 class="cell-input inrbox"
+                 type="number"
+                 step="0.1"
+                 min="0"
+                 inputmode="decimal"
+                 placeholder="e.g., 2.6"
+                 style="margin:0; max-width:105px;">
           <div class="small" style="margin-top:4px;">Typing here auto-fills today’s INR cell.</div>
         </div>
       </div>
+
     </div>
   </fieldset>
 
@@ -174,7 +173,7 @@ textarea{min-height:86px;resize:vertical}
     <span><span class="sw" style="background:var(--ylw)"></span>Default</span>
   </div>
 
-  <!-- ✅ MOVED UP: Scrollable Live Calendar (now BEFORE Bridging) -->
+  <!-- ✅ MOVED UP: Scrollable Live Calendar BEFORE Bridging -->
   <h2>Scrollable Live Calendar</h2>
   <div class="calwrap" id="calwrap">
     <div class="weekHeader">
@@ -191,19 +190,36 @@ textarea{min-height:86px;resize:vertical}
     <div class="grid">
       <div>
         <label for="enoxWeight">Weight (kg)</label>
-        <input id="enoxWeight" type="number" step="0.1" min="20" inputmode="decimal" placeholder="e.g., 78.5">
+        <input id="enoxWeight"
+               type="number"
+               step="0.1"
+               min="20"
+               inputmode="decimal"
+               placeholder="e.g., 78.5">
         <div class="small">Use actual body weight unless local protocol says otherwise.</div>
       </div>
 
       <div>
         <label for="enoxType">Regimen</label>
         <select id="enoxType">
-          <option value="tx_q12" selected>Enoxaparin – Therapeutic 1 mg/kg every 12 hours</option>
-          <option value="tx_q24">Enoxaparin – Therapeutic (renal adjustment) – 1 mg/kg once daily</option>
-          <option value="px_40">Enoxaparin – Prophylaxis – 40 mg once daily</option>
-          <option value="px_30">Enoxaparin – Prophylaxis (renal adjustment) – 30 mg once daily</option>
-          <option value="fond_tx">Fondaparinux – Treatment (5 mg if &lt;50 kg, 7.5 mg if 50–100 kg, 10 mg if &gt;100 kg)</option>
-          <option value="fond_px">Fondaparinux – Prophylaxis – 2.5 mg once daily</option>
+          <option value="tx_q12" selected>
+            Enoxaparin – Therapeutic 1 mg/kg every 12 hours
+          </option>
+          <option value="tx_q24">
+            Enoxaparin – Therapeutic (renal adjustment) – 1 mg/kg once daily
+          </option>
+          <option value="px_40">
+            Enoxaparin – Prophylaxis – 40 mg once daily
+          </option>
+          <option value="px_30">
+            Enoxaparin – Prophylaxis (renal adjustment) – 30 mg once daily
+          </option>
+          <option value="fond_tx">
+            Fondaparinux – Treatment (5 mg if &lt;50 kg, 7.5 mg if 50–100 kg, 10 mg if &gt;100 kg)
+          </option>
+          <option value="fond_px">
+            Fondaparinux – Prophylaxis – 2.5 mg once daily
+          </option>
         </select>
         <div class="small">Always confirm with local protocol, especially in renal impairment or HIT.</div>
       </div>
@@ -215,28 +231,6 @@ textarea{min-height:86px;resize:vertical}
     </div>
 
     <div id="enoxOut" class="small" style="margin-top:8px;"></div>
-  </fieldset>
-
-  <!-- ✅ NEW: Warfarin Interaction Check -->
-  <h2>Warfarin Interaction Check (beta)</h2>
-  <fieldset><legend>Enter active meds (comma or new line separated)</legend>
-    <div class="grid">
-      <div>
-        <label for="medsInput">Medication list</label>
-        <textarea id="medsInput" placeholder="Example: Bactrim&#10;Metronidazole&#10;Ibuprofen&#10;Amiodarone"></textarea>
-        <div class="small" style="margin-top:6px;">
-          Offline “high-yield” checker. Not exhaustive. Always verify with your drug information source / local protocol.
-        </div>
-      </div>
-      <div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:22px;">
-          <button class="btnS" type="button" id="runInteraction">Check interactions</button>
-          <button class="btnS" type="button" id="clearInteraction">Clear</button>
-          <button class="btnS" type="button" id="appendToRec" title="Adds the interaction summary to the Verbal Recommendation card">Append to recommendation</button>
-        </div>
-        <div id="interactionOut" class="small" style="margin-top:10px;"></div>
-      </div>
-    </div>
   </fieldset>
 
   <!-- Verbal Recommendation + Export button -->
@@ -269,7 +263,8 @@ textarea{min-height:86px;resize:vertical}
 
     <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;">
       <label>Proposed 7-day total dose (mg)</label>
-      <input id="predWeeklyDose" type="number" step="0.5" min="0" style="width:140px;padding:6px;">
+      <input id="predWeeklyDose" type="number" step="0.5" min="0"
+             style="width:140px;padding:6px;">
       <button class="btnS" type="button" id="runPrediction">Estimate INR</button>
     </div>
     <div id="predOut" style="margin-top:6px;"></div>
@@ -279,14 +274,7 @@ textarea{min-height:86px;resize:vertical}
 function pad(n){return (n<10?'0':'')+n}
 function isoLocal(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
 function startOfWeekLocal(d){const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); const dow=x.getDay(); x.setHours(0,0,0,0); x.setDate(x.getDate()-dow); return x}
-
-/* ✅ FIX: correct addDaysLocal (prevents calendar/date rendering breakage) */
-function addDaysLocal(d,days){
-  const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());
-  x.setDate(x.getDate()+days);
-  return x;
-}
-
+function addDaysLocal(d,days){const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); x.setDate(x.getDate()+days); return x}
 function daysBetween(a,b){const d1=new Date(a.getFullYear(),a.getMonth(),a.getDate()); const d2=new Date(b.getFullYear(),b.getMonth(),b.getDate()); return Math.round((d2-d1)/86400000)}
 function r01(x){return Math.round(x*10)/10} function r05(x){return Math.round(x*2)/2}
 
@@ -301,184 +289,12 @@ function niceDate(isoStr){
   return pad(m)+'/'+pad(d)+'/'+y;
 }
 
-const weeksEl = document.getElementById('weeks');
-const calwrap = document.getElementById('calwrap');
-const rangeLabel=document.getElementById('rangeLabel');
-const rec = document.getElementById('rec');
-const linEl = document.getElementById('lin');
-const sum = document.getElementById('sum');
-const err = document.getElementById('err');
-const dbg = document.getElementById('dbg');
+const weeksEl = document.getElementById('weeks'); const calwrap = document.getElementById('calwrap'); const rangeLabel=document.getElementById('rangeLabel');
+const rec = document.getElementById('rec'); const linEl = document.getElementById('lin'); const sum = document.getElementById('sum'); const err = document.getElementById('err'); const dbg = document.getElementById('dbg');
 
-const planned=new Map(), actual=new Map(), inrVal=new Map();
-let repeatKey=null; let hasReco=false, pendingRecalc=false;
+const planned=new Map(), actual=new Map(), inrVal=new Map(); let repeatKey=null; let hasReco=false, pendingRecalc=false;
 let lastRecoINR = null; let lastRepeatIso = null;
 
-/* ===========================
-   Interaction checker (offline high-yield list)
-   =========================== */
-let lastInteractionHTML = '';
-let lastInteractionPatientLine = '';
-
-function normMed(s){
-  return (s||'')
-    .toLowerCase()
-    .replace(/[®™]/g,'')
-    .replace(/[\(\)\[\]\{\}]/g,' ')
-    .replace(/[\/,;:]/g,' ')
-    .replace(/\s+/g,' ')
-    .trim();
-}
-const warfarinInteractionDB = [
-  { key:'tmp_smx', names:['trimethoprim sulfamethoxazole','tmp smx','bactrim','septra'], severity:'Major', type:'INR', direction:'↑ INR', note:'Often increases INR. Consider closer INR follow-up; avoid when feasible per protocol.' },
-  { key:'metronidazole', names:['metronidazole','flagyl'], severity:'Major', type:'INR', direction:'↑ INR', note:'Often increases INR. Consider closer INR follow-up and dose adjustment per protocol.' },
-  { key:'fluconazole', names:['fluconazole','diflucan'], severity:'Major', type:'INR', direction:'↑ INR', note:'Azoles can raise INR. Consider closer INR follow-up and dose adjustment per protocol.' },
-  { key:'voriconazole', names:['voriconazole','vfend'], severity:'Major', type:'INR', direction:'↑ INR', note:'Azoles can raise INR. Consider close INR follow-up.' },
-  { key:'ketoconazole', names:['ketoconazole'], severity:'Major', type:'INR', direction:'↑ INR', note:'Azoles can raise INR. Consider close INR follow-up.' },
-  { key:'itraconazole', names:['itraconazole','sporanox'], severity:'Major', type:'INR', direction:'↑ INR', note:'Azoles can raise INR. Consider close INR follow-up.' },
-  { key:'amiodarone', names:['amiodarone','pacerone','cordarone'], severity:'Major', type:'INR', direction:'↑ INR', note:'Can raise INR (often delayed). Consider closer INR follow-up and dose adjustment per protocol.' },
-  { key:'rifampin', names:['rifampin','rifampicin','rifadin'], severity:'Major', type:'INR', direction:'↓ INR', note:'Strong inducer can lower INR. Consider close INR follow-up and higher warfarin requirements while on therapy.' },
-  { key:'carbamazepine', names:['carbamazepine','tegretol'], severity:'Major', type:'INR', direction:'↓ INR', note:'Enzyme induction may lower INR. Consider closer INR follow-up.' },
-  { key:'phenytoin', names:['phenytoin','dilantin'], severity:'Moderate', type:'INR', direction:'Variable', note:'Bidirectional/variable effect possible; consider closer INR follow-up.' },
-  { key:'clarithro', names:['clarithromycin','biaxin'], severity:'Major', type:'INR', direction:'↑ INR', note:'May raise INR. Consider closer INR follow-up.' },
-  { key:'erythro', names:['erythromycin'], severity:'Major', type:'INR', direction:'↑ INR', note:'May raise INR. Consider closer INR follow-up.' },
-  { key:'azithro', names:['azithromycin','zithromax','z pak','z-pak'], severity:'Moderate', type:'INR', direction:'↑ INR', note:'May raise INR in some patients. Consider INR follow-up if starting/stopping.' },
-  { key:'cipro', names:['ciprofloxacin','cipro'], severity:'Moderate', type:'INR', direction:'↑ INR', note:'May raise INR. Consider INR follow-up if starting/stopping.' },
-  { key:'levo', names:['levofloxacin','levaquin'], severity:'Moderate', type:'INR', direction:'↑ INR', note:'May raise INR. Consider INR follow-up if starting/stopping.' },
-  { key:'apap', names:['acetaminophen','tylenol','apap','paracetamol'], severity:'Moderate', type:'INR', direction:'↑ INR', note:'Higher scheduled doses for multiple days may raise INR. Consider INR follow-up if frequent/high use.' },
-  { key:'nsaids', names:['ibuprofen','naproxen','diclofenac','meloxicam','indomethacin','celecoxib','ketorolac'], severity:'Moderate', type:'BLEED', direction:'Bleeding risk', note:'Additive bleeding risk. Prefer alternatives when feasible; counsel on bleeding signs.' },
-  { key:'aspirin', names:['aspirin','asa'], severity:'Moderate', type:'BLEED', direction:'Bleeding risk', note:'Additive bleeding risk (even if INR unchanged). Confirm indication and monitor/counsel.' },
-  { key:'clopidogrel', names:['clopidogrel','plavix'], severity:'Major', type:'BLEED', direction:'Bleeding risk', note:'Dual therapy increases bleeding risk. Ensure indication and monitor/counsel.' },
-  { key:'ticagrelor', names:['ticagrelor','brilinta'], severity:'Major', type:'BLEED', direction:'Bleeding risk', note:'Additive bleeding risk. Ensure indication and monitor/counsel.' },
-  { key:'prasugrel', names:['prasugrel','effient'], severity:'Major', type:'BLEED', direction:'Bleeding risk', note:'Additive bleeding risk. Ensure indication and monitor/counsel.' },
-  { key:'ssri_snri', names:['sertraline','zoloft','fluoxetine','prozac','paroxetine','paxil','citalopram','celexa','escitalopram','lexapro','venlafaxine','effexor','duloxetine','cymbalta'], severity:'Moderate', type:'BLEED', direction:'Bleeding risk', note:'May increase bleeding risk via platelet effects. Counsel/monitor if combined.' },
-  { key:'stjohn', names:["st john's wort","st johns wort","hypericum"], severity:'Major', type:'INR', direction:'↓ INR', note:'Induction may lower INR. Avoid when feasible; close INR follow-up if used.' },
-  { key:'ginkgo', names:['ginkgo'], severity:'Moderate', type:'BLEED', direction:'Bleeding risk', note:'Potential additive bleeding risk. Counsel/monitor.' }
-];
-
-function parseMeds(raw){
-  const text = (raw||'').replace(/\r/g,'\n');
-  const parts = text.split(/[\n,]+/).map(s=>s.trim()).filter(Boolean);
-  const seen = new Set();
-  const out = [];
-  for(const p of parts){
-    const n = normMed(p);
-    if(!n) continue;
-    if(seen.has(n)) continue;
-    seen.add(n);
-    out.push(p);
-  }
-  return out;
-}
-function findMatchesForMed(med){
-  const nm = normMed(med);
-  const hits = [];
-  for(const item of warfarinInteractionDB){
-    for(const alias of item.names){
-      const a = normMed(alias);
-      if(!a) continue;
-      if(nm === a || nm.includes(a)){
-        hits.push(item);
-        break;
-      }
-    }
-  }
-  return hits;
-}
-function sevClass(sev, type){
-  if(type === 'BLEED') return 'bleed';
-  if(sev === 'Major') return 'major';
-  if(sev === 'Moderate') return 'mod';
-  return 'minor';
-}
-function buildInteractionOutput(meds){
-  const allHits = [];
-  const unmatched = [];
-  const dedupe = new Set();
-
-  for(const m of meds){
-    const hits = findMatchesForMed(m);
-    if(!hits.length){ unmatched.push(m); continue; }
-    for(const h of hits){
-      const u = h.key + '::' + normMed(m);
-      if(dedupe.has(u)) continue;
-      dedupe.add(u);
-      allHits.push({ med:m, ...h });
-    }
-  }
-
-  if(!meds.length){
-    lastInteractionHTML = '';
-    lastInteractionPatientLine = '';
-    return '<span class="small">Enter one or more medications to screen for common interactions.</span>';
-  }
-
-  if(!allHits.length){
-    lastInteractionHTML = `
-      <div><b>Result:</b> No high-yield interactions detected from the built-in list.</div>
-      <div class="small" style="margin-top:6px;">This module is not exhaustive. Always verify with a drug information source / protocol.</div>
-    `;
-    lastInteractionPatientLine = 'No common warfarin interactions were flagged from the built-in list (this checker is not exhaustive).';
-    return lastInteractionHTML;
-  }
-
-  const sevRank = (x)=> x.severity==='Major'?0 : x.severity==='Moderate'?1 : 2;
-  allHits.sort((a,b)=> sevRank(a)-sevRank(b));
-
-  const badges = allHits.map(h=>{
-    const cls = sevClass(h.severity, h.type);
-    const dir = h.direction || (h.type==='BLEED'?'Bleeding risk':'');
-    return `<span class="badge ${cls}"><b>${h.severity}</b> · ${dir} · ${h.med}</span>`;
-  }).join('');
-
-  const rows = allHits.map(h=>{
-    const dir = h.direction || (h.type==='BLEED'?'Bleeding risk':'');
-    return `
-      <div style="padding:8px 10px;border:1px solid #e9e9e9;border-radius:10px;background:#fff;margin-top:8px;">
-        <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-          <div><b>${h.med}</b></div>
-          <div class="small"><b>${h.severity}</b> · ${dir}</div>
-        </div>
-        <div class="small" style="margin-top:6px;">${h.note}</div>
-      </div>`;
-  }).join('');
-
-  lastInteractionPatientLine = `Some medicines can change your bleeding risk or affect INR. If any were started or stopped, your clinic may check INR sooner.`;
-
-  lastInteractionHTML = `
-    <div><b>Flagged interactions (high-yield list):</b></div>
-    <div class="badges">${badges}</div>
-    ${rows}
-    <div class="small" style="margin-top:10px;color:#555;">
-      Not exhaustive. Use clinical judgment and verify with your drug information source / local protocol.
-    </div>
-  `;
-  if(unmatched.length){
-    lastInteractionHTML += `
-      <div class="small" style="margin-top:8px;">
-        <b>Not recognized by the built-in list:</b> ${unmatched.join(', ')}.
-      </div>
-    `;
-  }
-  return lastInteractionHTML;
-}
-function appendInteractionToRec(){
-  if(!lastInteractionHTML) { alert('Run interaction check first.'); return; }
-  const marker = 'data-int-block="1"';
-  if(rec.innerHTML.includes(marker)) return;
-
-  rec.innerHTML += `
-    <div ${marker} style="margin-top:10px;padding:10px;border-radius:10px;background:#f6f7fb;border:1px solid #e7e9f3;">
-      <div style="font-weight:800;margin-bottom:6px;">Warfarin interaction considerations (beta)</div>
-      <div class="small">High-yield offline screening only (not exhaustive).</div>
-      <div style="margin-top:8px;">${lastInteractionHTML}</div>
-    </div>
-  `;
-}
-
-/* ===========================
-   Core calendar & dosing engine
-   =========================== */
 function base(){return [0,1,2,3,4,5,6].map(i=>{const v=parseFloat(document.getElementById('b'+i).value);return isNaN(v)?0:r01(v)})}
 function baseSum(){return base().reduce((a,b)=>a+b,0)} function updSum(){sum.innerHTML='Scheduled weekly total: <b>'+r01(baseSum()).toFixed(1)+' mg</b>'}
 function schedAtIso(key){const d=new Date(key); const dow=d.getDay(); return base()[dow]||0}
@@ -653,6 +469,7 @@ function markNeedsRecalc(){
 /* ===========================
    Bridging (Enox / Fonda)
    =========================== */
+
 function roundEnoxaparinDose(doseMg){
   if (doseMg == null || isNaN(doseMg)) return null;
   const raw = Math.round(doseMg);
@@ -741,6 +558,7 @@ function clearEnoxaparin(){
 /* ===========================
    Personal Response Model
    =========================== */
+
 function weightedDose7BeforeDate(date){
   const weights = [0.4,0.4,1.0,1.0,0.7,0.7,0.3]; // days 1..7
   let sum = 0;
@@ -805,6 +623,7 @@ function predictInrForDose7(model, dose7){
 /* ===========================
    Recommendation engine
    =========================== */
+
 function reco(){
   const goalVal = document.getElementById('goal').value;
   const L = (goalVal==='2-3')?2.0:(goalVal==='2.5-3.5')?2.5:parseFloat(document.getElementById('gL').value);
@@ -917,14 +736,12 @@ function reco(){
 
   hasReco=true;
   pushDataToCells(); lin7();
-
-  /* If an interaction check was run, optionally keep it aligned by not auto-appending.
-     User can click "Append to recommendation" to include it. */
 }
 
 /* ===========================
    Week rows for PDF
    =========================== */
+
 const weekdays = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
 function buildWeekRows(startDate){
@@ -960,6 +777,7 @@ function buildWeekRows(startDate){
 /* ===========================
    PDF Export (tighter + editable provider notes)
    =========================== */
+
 function exportRecommendationPDF(){
   const todayStr = isoLocal(today);
   const now = new Date();
@@ -983,11 +801,6 @@ function exportRecommendationPDF(){
 
   const inrDisplay = lastRecoINR != null ? lastRecoINR.toFixed(1) : '—';
   const repDisplay = lastRepeatIso ? niceDate(lastRepeatIso) : '—';
-
-  const interactionSummary = lastInteractionHTML
-    ? `<h2>Warfarin Interaction Screen (beta)</h2>
-       <div class="card">${lastInteractionHTML}</div>`
-    : '';
 
   const win = window.open('', '_blank');
   if(!win){ alert('Please allow pop-ups to export the recommendation.'); return; }
@@ -1013,13 +826,6 @@ function exportRecommendationPDF(){
         .notes-box{min-height:60px;outline:none;white-space:pre-wrap;font-size:12px;}
         #printBtn{margin:4px 0 8px 8px;}
         @media print { #printBtn{display:none;} }
-        .badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-        .badge{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:999px;border:1px solid #ddd;background:#fff;font-size:11px}
-        .badge b{font-size:11px}
-        .badge.major{border-color:#e53935}
-        .badge.mod{border-color:#ff9800}
-        .badge.minor{border-color:#78909c}
-        .badge.bleed{border-color:#7b1fa2}
       </style>
     </head>
     <body>
@@ -1039,8 +845,6 @@ function exportRecommendationPDF(){
       <div class="card">
         ${rec.innerHTML || '<span class="small">No recommendation generated yet.</span>'}
       </div>
-
-      ${interactionSummary}
 
       <h2>This Week's Calendar View</h2>
       <div class="card">
@@ -1173,6 +977,7 @@ function openPatientHandout(){
 /* ===========================
    What-if prediction panel
    =========================== */
+
 function runWhatIfPrediction(){
   const predInput = document.getElementById('predWeeklyDose');
   const predOut = document.getElementById('predOut');
@@ -1213,13 +1018,14 @@ function runWhatIfPrediction(){
 /* ===========================
    DEMO HISTORY (one-click)
    =========================== */
+
 function setBaselineRegimen(values7){
   for(let i=0;i<7;i++){
     const el = document.getElementById('b'+i);
     if(el) el.value = (values7[i] ?? 0).toFixed(1);
   }
   updSum();
-  applyVisible();
+  applyVisible(); // puts baseline into the visible weeks so you see it immediately
 }
 
 function setDemoMessage(text, isError=false){
@@ -1231,6 +1037,7 @@ function setDemoMessage(text, isError=false){
 }
 
 function clearDemoHistoryOnly(){
+  // Clear the data maps only (keeps baseline inputs)
   planned.clear();
   actual.clear();
   inrVal.clear();
@@ -1247,11 +1054,13 @@ function clearDemoHistoryOnly(){
   document.getElementById('predOut').innerHTML = '';
   setDemoMessage('Demo history cleared.', false);
 
+  // Re-apply baseline regimen to visible weeks for a clean state
   applyVisible();
   pushDataToCells(); lin7();
 }
 
 function loadDemoHistory(){
+  // Clear first (history only)
   planned.clear(); actual.clear(); inrVal.clear();
   repeatKey = null;
   hasReco = false;
@@ -1261,11 +1070,19 @@ function loadDemoHistory(){
   rec.innerHTML = '';
   document.getElementById('predOut').innerHTML = '';
 
+  // Baseline regimen: 5 mg daily (simple + stable)
   setBaselineRegimen([5,5,5,5,5,5,5]);
+
+  // Create 35 days of dosing history + 8 INR points that follow dose direction.
+  // Segment A (days -35 to -22): 5 mg daily -> INR ~2.0–2.2
+  // Segment B (days -21 to -8): 6 mg daily -> INR ~2.6–2.9
+  // Segment C (days -7 to -1): 4 mg daily -> INR ~1.7–1.9
+  // INR points are placed AFTER each steady segment so the lag-aware window learns correctly.
 
   const t = new Date();
   const mk = (daysAgo)=> isoLocal(addDaysLocal(t, -daysAgo));
 
+  // Helper to set planned+actual for a range (inclusive)
   function fillDose(daysAgoStart, daysAgoEnd, dose){
     for(let d=daysAgoStart; d>=daysAgoEnd; d--){
       const key = mk(d);
@@ -1274,32 +1091,40 @@ function loadDemoHistory(){
     }
   }
 
+  // Segment A: 35..22 days ago
   fillDose(35,22,5.0);
+
+  // Segment B: 21..8 days ago
   fillDose(21,8,6.0);
+
+  // Segment C: 7..1 days ago
   fillDose(7,1,4.0);
 
+  // INR points (spaced out; placed at ends of stable-ish stretches)
   const inrPoints = [
     {daysAgo:28, inr:2.1},
     {daysAgo:24, inr:2.0},
-    {daysAgo:20, inr:2.4},
+    {daysAgo:20, inr:2.4},  // rising after starting 6 mg phase
     {daysAgo:16, inr:2.7},
     {daysAgo:12, inr:2.9},
     {daysAgo:9,  inr:2.8},
-    {daysAgo:5,  inr:2.0},
+    {daysAgo:5,  inr:2.0},  // falling after switching to 4 mg
     {daysAgo:2,  inr:1.8},
   ];
   for(const p of inrPoints){
     inrVal.set(mk(p.daysAgo), r01(p.inr));
   }
 
+  // Set today's INR input to the most recent historical INR (2 days ago) as a convenience
   const inrTop = document.getElementById('inr');
   if(inrTop){
     inrTop.value = '1.8';
     inrVal.set(isoLocal(new Date()), 1.8);
   }
 
+  // Suggest a default proposed 7-day dose for what-if (just as a starting point)
   const predInput = document.getElementById('predWeeklyDose');
-  if(predInput) predInput.value = (6.0*7).toFixed(1);
+  if(predInput) predInput.value = (6.0*7).toFixed(1); // 42.0 mg
 
   pushDataToCells(); lin7();
   scrollToTodayWeek();
@@ -1309,6 +1134,7 @@ function loadDemoHistory(){
 /* ===========================
    DOM init + listeners
    =========================== */
+
 document.addEventListener('DOMContentLoaded', ()=>{
   try{ renderAll(); updSum(); }catch(e){ err.textContent = 'Calendar failed to render: '+e; }
 
@@ -1413,28 +1239,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
     });
   }
 
-  // Interaction checker listeners
-  const runIntBtn = document.getElementById('runInteraction');
-  const clearIntBtn = document.getElementById('clearInteraction');
-  const appendBtn = document.getElementById('appendToRec');
-  if(runIntBtn){
-    runIntBtn.addEventListener('click', ()=>{
-      const meds = parseMeds(document.getElementById('medsInput').value);
-      document.getElementById('interactionOut').innerHTML = buildInteractionOutput(meds);
-    });
-  }
-  if(clearIntBtn){
-    clearIntBtn.addEventListener('click', ()=>{
-      document.getElementById('medsInput').value = '';
-      document.getElementById('interactionOut').innerHTML = '';
-      lastInteractionHTML = '';
-      lastInteractionPatientLine = '';
-    });
-  }
-  if(appendBtn){
-    appendBtn.addEventListener('click', appendInteractionToRec);
-  }
-
   // Delegated inputs for calendar
   weeksEl.addEventListener('input', (e)=>{
     const t = e.target;
@@ -1471,4 +1275,3 @@ document.addEventListener('DOMContentLoaded', ()=>{
 </div>
 </body>
 </html>
-
