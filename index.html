@@ -80,7 +80,7 @@ textarea{min-height:84px;resize:vertical}
     <div style="display:flex; flex-direction:column; line-height:1.1;">
       <span style="font-size:26px; font-weight:800;">ThromboLogic</span>
       <span style="font-size:16px; font-weight:600;">INR</span>
-      <span class="small" style="margin-top:4px;">INR 7.1 (weighted 7-day + direction-constrained model + demo loader)</span>
+      <span class="small" style="margin-top:4px;">INR 7.1 + Interaction Check (beta)</span>
     </div>
   </div>
 
@@ -149,7 +149,6 @@ textarea{min-height:84px;resize:vertical}
           <div class="small" style="margin-top:4px;">Typing here auto-fills today’s INR cell.</div>
         </div>
       </div>
-
     </div>
   </fieldset>
 
@@ -253,6 +252,7 @@ textarea{min-height:84px;resize:vertical}
     <span><span class="sw" style="background:var(--ylw)"></span>Default</span>
   </div>
 
+  <!-- ✅ Scrollable Live Calendar (restored and guaranteed present) -->
   <h2>Scrollable Live Calendar</h2>
   <div class="calwrap" id="calwrap">
     <div class="weekHeader">
@@ -282,4 +282,67 @@ textarea{min-height:84px;resize:vertical}
   <div class="card small" id="predictCard">
     <div style="margin-bottom:6px;">
       Uses prior INR + dosing history to estimate a trend response. This is <b>experimental</b>,
-      lag-
+      lag-aware (weighted), and direction-constrained (will refuse inverse models). Use clinical judgment.
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:6px;">
+      <button class="btnS" type="button" id="loadDemo">Load demo history</button>
+      <button class="btnS" type="button" id="clearDemo" title="Clears planned/actual/INR history only (keeps baseline inputs)">Clear demo history</button>
+      <span class="small" id="demoMsg" style="display:none;"></span>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;">
+      <label>Proposed 7-day total dose (mg)</label>
+      <input id="predWeeklyDose" type="number" step="0.5" min="0"
+             style="width:140px;padding:6px;">
+      <button class="btnS" type="button" id="runPrediction">Estimate INR</button>
+    </div>
+    <div id="predOut" style="margin-top:6px;"></div>
+  </div>
+
+<script>
+function pad(n){return (n<10?'0':'')+n}
+function isoLocal(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function startOfWeekLocal(d){const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); const dow=x.getDay(); x.setHours(0,0,0,0); x.setDate(x.getDate()-dow); return x}
+function addDaysLocal(d,days){const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); x.setDate(x.getDate()+days); return x}
+function daysBetween(a,b){const d1=new Date(a.getFullYear(),a.getMonth(),a.getDate()); const d2=new Date(b.getFullYear(),b.getMonth(),b.getDate()); return Math.round((d2-d1)/86400000)}
+function r01(x){return Math.round(x*10)/10} function r05(x){return Math.round(x*2)/2}
+
+function niceDate(isoStr){
+  if(!isoStr) return '';
+  const parts = isoStr.split('-');
+  if(parts.length!==3) return isoStr;
+  const y = parseInt(parts[0],10);
+  const m = parseInt(parts[1],10);
+  const d = parseInt(parts[2],10);
+  if(isNaN(m)||isNaN(d)||isNaN(y)) return isoStr;
+  return pad(m)+'/'+pad(d)+'/'+y;
+}
+
+const weeksEl = document.getElementById('weeks');
+const calwrap = document.getElementById('calwrap');
+const rangeLabel=document.getElementById('rangeLabel');
+const rec = document.getElementById('rec');
+const linEl = document.getElementById('lin');
+const sum = document.getElementById('sum');
+const err = document.getElementById('err');
+const dbg = document.getElementById('dbg');
+
+const planned=new Map(), actual=new Map(), inrVal=new Map();
+let repeatKey=null; let hasReco=false, pendingRecalc=false;
+let lastRecoINR = null; let lastRepeatIso = null;
+
+/* ===========================
+   Warfarin interaction engine (high-yield, offline)
+   =========================== */
+
+let lastInteractionHTML = '';
+let lastInteractionPatientLine = '';
+
+function normMed(s){
+  return (s||'')
+    .toLowerCase()
+    .replace(/[®™]/g,'')
+    .replace(/[\(\)\[\]\{\}]/g,' ')
+    .replace(/[\/,;:]/g,' ')
+    .replace(/\s+/
