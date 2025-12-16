@@ -10,7 +10,8 @@ body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-se
 h1{font-size:19px;margin:0 0 8px} h2{font-size:15px;margin:16px 0 6px}
 .small{font-size:12px;color:#555} .mono{font-family:ui-monospace,Menlo,Consolas,monospace}
 fieldset{border:1px solid #ddd;border-radius:10px;padding:10px;margin:10px 0} legend{padding:0 6px}
-input,select,button{font-size:15px} input,select{padding:8px;border:1px solid #b9c1cc;border-radius:10px}
+input,select,button,textarea{font-size:15px} input,select,textarea{padding:8px;border:1px solid #b9c1cc;border-radius:10px}
+textarea{resize:vertical}
 .btn{padding:8px 12px;border:0;border-radius:10px;background:#444;color:#fff;cursor:pointer;margin-right:8px}
 .btnp{padding:10px 14px;border:0;border-radius:10px;background:#0d6efd;color:#fff;cursor:pointer;font-weight:700;margin:8px 0;display:inline-block}
 .btnS{padding:4px 8px;border:0;border-radius:8px;background:#444;color:#fff;cursor:pointer;margin-right:6px;font-size:13px}
@@ -53,6 +54,20 @@ input,select,button{font-size:15px} input,select{padding:8px;border:1px solid #b
 .patient-field{display:flex;flex-direction:column;min-width:180px}
 .patient-field label{font-weight:600;margin-bottom:4px}
 
+/* DOB inline error */
+.invalidField{border-color:#b00020 !important; box-shadow:0 0 0 3px rgba(176,0,32,.12)}
+.inlineErr{color:#b00020;font-size:12px;margin-top:6px;display:none}
+
+/* Interaction UI */
+.badges{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.badge{display:inline-flex;align-items:center;gap:6px;border:1px solid #ddd;border-radius:999px;padding:3px 10px;font-size:12px;background:#fff}
+.badge.major{border-color:#e53935}
+.badge.moderate{border-color:#ff9800}
+.badge.bleeding{border-color:#7b1fa2}
+.kv{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.kv > div{border:1px dashed #ddd;border-radius:10px;padding:8px 10px;background:#fff}
+.kv b{font-size:13px}
+
 /* Hide export button when printing */
 @media print {
   #exportPDF{display:none !important;}
@@ -62,7 +77,7 @@ input,select,button{font-size:15px} input,select{padding:8px;border:1px solid #b
 <body>
 <div class="container">
 
-  <!-- ✅ EXACT LOGO SECTION FROM INR 7.0 (verbatim) -->
+  <!-- ThromboLogic Header Branding (as in your working version) -->
   <div style="display:flex; align-items:center; gap:14px; margin:0 0 6px 0;">
     <img src="ThromboLogic INR Logo Design.png"
          alt="ThromboLogic INR Logo"
@@ -70,7 +85,7 @@ input,select,button{font-size:15px} input,select{padding:8px;border:1px solid #b
     <div style="display:flex; flex-direction:column; line-height:1.1;">
       <span style="font-size:26px; font-weight:800;">ThromboLogic</span>
       <span style="font-size:16px; font-weight:600;">INR</span>
-      <span class="small" style="margin-top:4px;">INR 7.1 (weighted 7-day + direction-constrained model + demo loader)</span>
+      <span class="small" style="margin-top:4px;">INR 7.2 (DOB fix + Interaction-aware recommendations)</span>
     </div>
   </div>
 
@@ -91,6 +106,7 @@ input,select,button{font-size:15px} input,select{padding:8px;border:1px solid #b
       <div class="patient-field">
         <label for="patientDob">DOB (MM/DD/YYYY)</label>
         <input id="patientDob" type="text" placeholder="e.g., 01/02/1970" maxlength="10">
+        <div id="dobInlineErr" class="inlineErr">Please enter DOB as a valid date in MM/DD/YYYY format.</div>
       </div>
       <div class="patient-field">
         <label for="patientMrn">MRN</label>
@@ -167,13 +183,13 @@ input,select,button{font-size:15px} input,select{padding:8px;border:1px solid #b
     <div id="sum" class="small" style="margin-top:6px">Scheduled weekly total: 0.0 mg</div>
   </fieldset>
 
+  <!-- ✅ MOVED UP: Legend + Live Calendar BEFORE Bridging -->
   <div class="legend">
     <span><span class="sw" style="background:var(--blue);box-shadow:inset 0 0 0 2px var(--blue-ring)"></span>Today / Repeat INR</span>
     <span><span class="sw" style="background:var(--man);box-shadow:inset 0 0 0 2px var(--man-b)"></span>Manual entry present</span>
     <span><span class="sw" style="background:var(--ylw)"></span>Default</span>
   </div>
 
-  <!-- ✅ MOVED UP: Scrollable Live Calendar BEFORE Bridging -->
   <h2>Scrollable Live Calendar</h2>
   <div class="calwrap" id="calwrap">
     <div class="weekHeader">
@@ -231,6 +247,38 @@ input,select,button{font-size:15px} input,select{padding:8px;border:1px solid #b
     </div>
 
     <div id="enoxOut" class="small" style="margin-top:8px;"></div>
+  </fieldset>
+
+  <!-- ✅ NEW: Interaction checker AFTER Bridging -->
+  <h2>Warfarin Drug Interaction Check (beta)</h2>
+  <fieldset><legend>Medication review</legend>
+    <div class="small" style="margin-bottom:8px;">
+      Type or paste meds (comma-separated). This is a high-yield screen, not a comprehensive database. Confirm clinically.
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start;">
+      <div style="flex:1;min-width:260px;">
+        <label for="medList"><b>Current medications</b></label>
+        <textarea id="medList" rows="3" placeholder="e.g., Bactrim, Metronidazole, Ibuprofen"></textarea>
+      </div>
+      <div style="min-width:240px;">
+        <div style="margin-top:22px;">
+          <button class="btnS" type="button" id="checkInteractions">Check interactions</button>
+          <button class="btnS" type="button" id="clearInteractions" style="margin-left:6px;">Clear</button>
+        </div>
+        <div style="margin-top:10px;">
+          <label style="display:flex;gap:8px;align-items:center;">
+            <input id="autoAdjustRepeat" type="checkbox">
+            <span class="small">Auto-move repeat INR earlier (optional)</span>
+          </label>
+          <div class="small" style="margin-top:4px;color:#666;">
+            OFF by default. If enabled, major interactions may set repeat INR to 2–3 days.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="interactionResults" class="card small" style="margin-top:10px;display:none;"></div>
   </fieldset>
 
   <!-- Verbal Recommendation + Export button -->
@@ -294,6 +342,108 @@ const rec = document.getElementById('rec'); const linEl = document.getElementByI
 
 const planned=new Map(), actual=new Map(), inrVal=new Map(); let repeatKey=null; let hasReco=false, pendingRecalc=false;
 let lastRecoINR = null; let lastRepeatIso = null;
+
+/* ===========================
+   INTERACTION DATABASE (EDITABLE JSON)
+   =========================== */
+/*
+  level: "major" | "moderate" | "bleeding"
+  effect: "↑ INR" | "↓ INR" | "Bleeding risk" | "↑/↓ INR"
+  suggestDays: suggested INR recheck window (days from today) when interaction present
+*/
+const WARFARIN_INTERACTIONS = [
+  { drug:"trimethoprim-sulfamethoxazole", aka:["bactrim","septra","tmp-smx"], level:"major", effect:"↑ INR", suggestDays:3 },
+  { drug:"metronidazole", aka:["flagyl"], level:"major", effect:"↑ INR", suggestDays:3 },
+  { drug:"fluconazole", aka:["diflucan"], level:"major", effect:"↑ INR", suggestDays:3 },
+  { drug:"amiodarone", aka:[], level:"major", effect:"↑ INR", suggestDays:3 },
+  { drug:"rifampin", aka:[], level:"major", effect:"↓ INR", suggestDays:3 },
+  { drug:"phenytoin", aka:["dilantin"], level:"moderate", effect:"↑/↓ INR", suggestDays:7 },
+  { drug:"carbamazepine", aka:["tegretol"], level:"moderate", effect:"↓ INR", suggestDays:7 },
+  { drug:"sertraline", aka:["zoloft","ssri"], level:"bleeding", effect:"Bleeding risk", suggestDays:null },
+  { drug:"citalopram", aka:["celexa","ssri"], level:"bleeding", effect:"Bleeding risk", suggestDays:null },
+  { drug:"fluoxetine", aka:["prozac","ssri"], level:"bleeding", effect:"Bleeding risk", suggestDays:null },
+  { drug:"ibuprofen", aka:["nsaid","motrin","advil"], level:"bleeding", effect:"Bleeding risk", suggestDays:null },
+  { drug:"naproxen", aka:["aleve","nsaid"], level:"bleeding", effect:"Bleeding risk", suggestDays:null },
+  { drug:"aspirin", aka:["asa"], level:"bleeding", effect:"Bleeding risk", suggestDays:null }
+];
+
+let currentInteractionHits = []; // last computed hits
+
+function normalizeMedText(s){
+  return (s||"").toLowerCase().replace(/[\n\r]/g,' ').replace(/\s+/g,' ').trim();
+}
+function matchInteractions(medText){
+  const t = normalizeMedText(medText);
+  if(!t) return [];
+  const hits=[];
+  for(const item of WARFARIN_INTERACTIONS){
+    const names=[item.drug, ...(item.aka||[])].filter(Boolean);
+    const found = names.some(n=> t.includes(n.toLowerCase()));
+    if(found) hits.push(item);
+  }
+  // de-dup by drug
+  const seen=new Set();
+  return hits.filter(h=>{ const k=h.drug.toLowerCase(); if(seen.has(k)) return false; seen.add(k); return true; });
+}
+function interactionSummary(hits){
+  if(!hits || hits.length===0) return null;
+
+  const major = hits.filter(h=>h.level==="major");
+  const mod   = hits.filter(h=>h.level==="moderate");
+  const bleed = hits.filter(h=>h.level==="bleeding");
+
+  // suggest timing
+  const suggestedDays = [];
+  for(const h of hits){
+    if(typeof h.suggestDays === "number" && !isNaN(h.suggestDays)) suggestedDays.push(h.suggestDays);
+  }
+  const minDays = suggestedDays.length ? Math.min(...suggestedDays) : null;
+
+  return {
+    majorCount: major.length,
+    moderateCount: mod.length,
+    bleedCount: bleed.length,
+    minSuggestedDays: minDays,
+    major, mod, bleed
+  };
+}
+function buildInteractionHTML(hits){
+  const sum = interactionSummary(hits);
+  if(!sum) return '';
+
+  const badges=[];
+  if(sum.majorCount) badges.push(`<span class="badge major">MAJOR × ${sum.majorCount}</span>`);
+  if(sum.moderateCount) badges.push(`<span class="badge moderate">MODERATE × ${sum.moderateCount}</span>`);
+  if(sum.bleedCount) badges.push(`<span class="badge bleeding">BLEED RISK × ${sum.bleedCount}</span>`);
+
+  let timingLine='';
+  if(sum.minSuggestedDays!=null){
+    timingLine = `<div class="kv"><div><b>Suggested INR recheck:</b> ${sum.minSuggestedDays} day(s) (interaction-aware)</div></div>`;
+  }else{
+    timingLine = `<div class="kv"><div><b>Suggested INR recheck:</b> per clinic discretion</div></div>`;
+  }
+
+  const list = hits.map(h=>{
+    const level = h.level.toUpperCase();
+    return `<li><b>${h.drug}</b> — <span>${h.effect}</span> <span class="small">(${level})</span></li>`;
+  }).join('');
+
+  const bleedCounsel = sum.bleedCount ? `
+    <div style="margin-top:8px;">
+      <b>Bleeding risk counseling:</b> avoid additional NSAIDs/aspirin unless directed; watch for unusual bruising, bleeding gums, dark stools, or severe headache—seek care if concerning.
+    </div>` : '';
+
+  return `
+    <div style="margin-top:10px;padding:10px;border-radius:10px;border:1px solid #e6e6e6;background:#fff;">
+      <div><b>Warfarin interaction screen (beta):</b></div>
+      <div class="badges">${badges.join(' ')}</div>
+      ${timingLine}
+      <div style="margin-top:8px;"><ul style="margin:6px 0 0 18px;padding:0;">${list}</ul></div>
+      <div class="small" style="margin-top:6px;color:#666;">Not comprehensive; confirm with clinical judgment and local protocol.</div>
+      ${bleedCounsel}
+    </div>
+  `;
+}
 
 function base(){return [0,1,2,3,4,5,6].map(i=>{const v=parseFloat(document.getElementById('b'+i).value);return isNaN(v)?0:r01(v)})}
 function baseSum(){return base().reduce((a,b)=>a+b,0)} function updSum(){sum.innerHTML='Scheduled weekly total: <b>'+r01(baseSum()).toFixed(1)+' mg</b>'}
@@ -624,6 +774,18 @@ function predictInrForDose7(model, dose7){
    Recommendation engine
    =========================== */
 
+function maybeAdjustRepeatForInteractions(currentRepeatIso){
+  const auto = document.getElementById('autoAdjustRepeat');
+  if(!auto || !auto.checked) return currentRepeatIso;
+  const sum = interactionSummary(currentInteractionHits);
+  if(!sum || sum.minSuggestedDays == null) return currentRepeatIso;
+
+  const proposed = isoLocal(addDaysLocal(new Date(), sum.minSuggestedDays));
+  // If proposed is earlier than currentRepeatIso, use proposed
+  if(!currentRepeatIso) return proposed;
+  return (proposed < currentRepeatIso) ? proposed : currentRepeatIso;
+}
+
 function reco(){
   const goalVal = document.getElementById('goal').value;
   const L = (goalVal==='2-3')?2.0:(goalVal==='2.5-3.5')?2.5:parseFloat(document.getElementById('gL').value);
@@ -680,9 +842,16 @@ function reco(){
     </div>`;
   }
 
+  // Interaction block to append
+  const interHTML = buildInteractionHTML(currentInteractionHits);
+
   if(band.pct===0){
     const rep = (age>=2 && age<=3) ? addDaysLocal(bestDate, 7) : addDaysLocal(new Date(), 7);
     repeatKey = isoLocal(rep);
+
+    // Optional earlier repeat based on interactions
+    repeatKey = maybeAdjustRepeatForInteractions(repeatKey);
+
     lastRecoINR = bestVal;
     lastRepeatIso = repeatKey;
 
@@ -691,7 +860,8 @@ function reco(){
       `INR <b>${bestVal.toFixed(1)}</b> is in your goal range (${L}–${H}). ` +
       `<b>No change</b> to today’s warfarin dose. ` +
       `Repeat your INR on <b>${niceDate(repeatKey)}</b>.` +
-      modelBlockHTML('Prior to today, your', dose7);
+      modelBlockHTML('Prior to today, your', dose7) +
+      (interHTML || '');
 
     hasReco=true;
     pushDataToCells(); lin7(); return;
@@ -720,6 +890,10 @@ function reco(){
   else repDate = addDaysLocal(new Date(), 7);
 
   repeatKey = isoLocal(repDate);
+
+  // Optional earlier repeat based on interactions
+  repeatKey = maybeAdjustRepeatForInteractions(repeatKey);
+
   lastRecoINR = bestVal;
   lastRepeatIso = repeatKey;
 
@@ -732,7 +906,8 @@ function reco(){
     `INR <b>${bestVal.toFixed(1)}</b> is <b>${dirText}</b> your goal range (${L}–${H}). ` +
     `Take <b>${newDose.toFixed(1)} mg of warfarin today</b> based on your recent dosing. ` +
     `Plan to recheck your INR on <b>${niceDate(repeatKey)}</b>, or sooner if your clinic advises.` +
-    modelBlockHTML('With today’s plan, your', dose7Incl);
+    modelBlockHTML('With today’s plan, your', dose7Incl) +
+    (interHTML || '');
 
   hasReco=true;
   pushDataToCells(); lin7();
@@ -1073,16 +1248,9 @@ function loadDemoHistory(){
   // Baseline regimen: 5 mg daily (simple + stable)
   setBaselineRegimen([5,5,5,5,5,5,5]);
 
-  // Create 35 days of dosing history + 8 INR points that follow dose direction.
-  // Segment A (days -35 to -22): 5 mg daily -> INR ~2.0–2.2
-  // Segment B (days -21 to -8): 6 mg daily -> INR ~2.6–2.9
-  // Segment C (days -7 to -1): 4 mg daily -> INR ~1.7–1.9
-  // INR points are placed AFTER each steady segment so the lag-aware window learns correctly.
-
   const t = new Date();
   const mk = (daysAgo)=> isoLocal(addDaysLocal(t, -daysAgo));
 
-  // Helper to set planned+actual for a range (inclusive)
   function fillDose(daysAgoStart, daysAgoEnd, dose){
     for(let d=daysAgoStart; d>=daysAgoEnd; d--){
       const key = mk(d);
@@ -1091,40 +1259,32 @@ function loadDemoHistory(){
     }
   }
 
-  // Segment A: 35..22 days ago
   fillDose(35,22,5.0);
-
-  // Segment B: 21..8 days ago
   fillDose(21,8,6.0);
-
-  // Segment C: 7..1 days ago
   fillDose(7,1,4.0);
 
-  // INR points (spaced out; placed at ends of stable-ish stretches)
   const inrPoints = [
     {daysAgo:28, inr:2.1},
     {daysAgo:24, inr:2.0},
-    {daysAgo:20, inr:2.4},  // rising after starting 6 mg phase
+    {daysAgo:20, inr:2.4},
     {daysAgo:16, inr:2.7},
     {daysAgo:12, inr:2.9},
     {daysAgo:9,  inr:2.8},
-    {daysAgo:5,  inr:2.0},  // falling after switching to 4 mg
+    {daysAgo:5,  inr:2.0},
     {daysAgo:2,  inr:1.8},
   ];
   for(const p of inrPoints){
     inrVal.set(mk(p.daysAgo), r01(p.inr));
   }
 
-  // Set today's INR input to the most recent historical INR (2 days ago) as a convenience
   const inrTop = document.getElementById('inr');
   if(inrTop){
     inrTop.value = '1.8';
     inrVal.set(isoLocal(new Date()), 1.8);
   }
 
-  // Suggest a default proposed 7-day dose for what-if (just as a starting point)
   const predInput = document.getElementById('predWeeklyDose');
-  if(predInput) predInput.value = (6.0*7).toFixed(1); // 42.0 mg
+  if(predInput) predInput.value = (6.0*7).toFixed(1);
 
   pushDataToCells(); lin7();
   scrollToTodayWeek();
@@ -1149,6 +1309,29 @@ document.addEventListener('DOMContentLoaded', ()=>{
     const v = ev.target.value;
     document.getElementById('cust').style.display = (v==='custom')?'block':'none';
   });
+
+  // Interaction listeners
+  const medList = document.getElementById('medList');
+  const results = document.getElementById('interactionResults');
+  function renderInteractions(){
+    const hits = matchInteractions(medList.value || '');
+    currentInteractionHits = hits;
+    if(!hits.length){
+      results.style.display='none';
+      results.innerHTML='';
+      return;
+    }
+    results.style.display='block';
+    results.innerHTML = buildInteractionHTML(hits);
+  }
+  document.getElementById('checkInteractions').addEventListener('click', renderInteractions);
+  document.getElementById('clearInteractions').addEventListener('click', ()=>{
+    medList.value='';
+    currentInteractionHits=[];
+    results.style.display='none';
+    results.innerHTML='';
+  });
+  medList.addEventListener('blur', ()=>{ if(medList.value.trim()) renderInteractions(); });
 
   const inrTop = document.getElementById('inr');
   const tIso = isoLocal(new Date());
@@ -1210,8 +1393,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
   const clearDemoBtn = document.getElementById('clearDemo');
   if(clearDemoBtn) clearDemoBtn.addEventListener('click', clearDemoHistoryOnly);
 
-  // DOB auto-format + basic validation
+  // DOB auto-format + FIXED validation (no alert loop)
   const dobInput = document.getElementById('patientDob');
+  const dobInlineErr = document.getElementById('dobInlineErr');
   if(dobInput){
     dobInput.addEventListener('input', e=>{
       let v = e.target.value.replace(/\D/g,'');
@@ -1221,21 +1405,42 @@ document.addEventListener('DOMContentLoaded', ()=>{
       else if(v.length <= 4) out = v.slice(0,2) + '/' + v.slice(2);
       else out = v.slice(0,2) + '/' + v.slice(2,4) + '/' + v.slice(4);
       e.target.value = out;
+
+      // live clear once it becomes valid
+      if(isValidDob(out) || !out){
+        dobInput.classList.remove('invalidField');
+        dobInlineErr.style.display='none';
+      }
     });
+
+    function isValidDob(val){
+      if(!val) return true;
+      const parts = val.split('/');
+      if(parts.length !== 3) return false;
+      const m = parseInt(parts[0],10), d = parseInt(parts[1],10), y = parseInt(parts[2],10);
+      if([m,d,y].some(n=>isNaN(n))) return false;
+      if(m<1||m>12) return false;
+      if(d<1||d>31) return false;
+      if(y<1900||y>2100) return false;
+      // basic real-date check
+      const dt = new Date(y, m-1, d);
+      return dt.getFullYear()===y && dt.getMonth()===(m-1) && dt.getDate()===d;
+    }
 
     dobInput.addEventListener('blur', e=>{
       const val = e.target.value;
-      if(!val) return;
-      const parts = val.split('/');
-      if(parts.length !== 3){ alert('Please enter DOB as MM/DD/YYYY.'); e.target.focus(); return; }
-      const m = parseInt(parts[0],10), d = parseInt(parts[1],10), y = parseInt(parts[2],10);
-      let ok = !(isNaN(m)||isNaN(d)||isNaN(y));
-      if(ok){
-        if(m<1||m>12) ok=false;
-        if(d<1||d>31) ok=false;
-        if(y<1900||y>2100) ok=false;
+      if(!val){
+        dobInput.classList.remove('invalidField');
+        dobInlineErr.style.display='none';
+        return;
       }
-      if(!ok){ alert('Please enter DOB as a valid date in MM/DD/YYYY format.'); e.target.focus(); }
+      if(!isValidDob(val)){
+        dobInput.classList.add('invalidField');
+        dobInlineErr.style.display='block';
+      }else{
+        dobInput.classList.remove('invalidField');
+        dobInlineErr.style.display='none';
+      }
     });
   }
 
