@@ -69,19 +69,13 @@ textarea{resize:vertical}
 .kv b{font-size:13px}
 
 /* Hide export button when printing */
-@media print {
-  #exportPDF{display:none !important;}
-}
-
-/* Target INR panel */
-.panel{border:1px solid #e6e6e6;border-radius:12px;padding:10px;background:#fff;margin-top:10px;display:none}
-.panel .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+@media print { #exportPDF{display:none !important;} }
 </style>
 </head>
 <body>
 <div class="container">
 
-  <!-- ThromboLogic Header Branding (as in your working version) -->
+  <!-- ThromboLogic Header Branding -->
   <div style="display:flex; align-items:center; gap:14px; margin:0 0 6px 0;">
     <img src="ThromboLogic INR Logo Design.png"
          alt="ThromboLogic INR Logo"
@@ -89,7 +83,7 @@ textarea{resize:vertical}
     <div style="display:flex; flex-direction:column; line-height:1.1;">
       <span style="font-size:26px; font-weight:800;">ThromboLogic</span>
       <span style="font-size:16px; font-weight:600;">INR</span>
-      <span class="small" style="margin-top:4px;">INR 7.3 (weighted-dose clarity + Target INR)</span>
+      <span class="small" style="margin-top:4px;">INR 7.3 (Target INR + weighted-dose-aware recommendation)</span>
     </div>
   </div>
 
@@ -124,11 +118,20 @@ textarea{resize:vertical}
     <div class="grid">
       <div>
         <label>Therapeutic Goal INR</label>
-        <select id="goal">
-          <option value="2-3" selected>Preset: 2.0–3.0</option>
-          <option value="2.5-3.5">Preset: 2.5–3.5</option>
-          <option value="custom">Custom…</option>
-        </select>
+
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <select id="goal" style="min-width:230px;">
+            <option value="2-3" selected>Preset: 2.0–3.0</option>
+            <option value="2.5-3.5">Preset: 2.5–3.5</option>
+            <option value="custom">Custom…</option>
+          </select>
+
+          <!-- NEW: Target INR button -->
+          <button class="btnS" id="toggleTarget" type="button" title="Optional: aim for a specific INR within the goal range (e.g., low end for a procedure).">
+            Target INR
+          </button>
+        </div>
+
         <div id="cust" style="display:none; margin-top:6px;">
           <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
             <label>Low</label>
@@ -142,6 +145,25 @@ textarea{resize:vertical}
                    placeholder="e.g., 3.3"
                    style="width:80px; padding:6px;">
           </div>
+        </div>
+
+        <!-- NEW: Target INR panel (hidden until button pressed) -->
+        <div id="targetPanel" style="display:none;margin-top:10px;padding:10px;border:1px solid #e6e6e6;border-radius:10px;background:#fff;">
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <div style="display:flex;flex-direction:column;">
+              <label for="targetInr"><b>Target INR</b> (optional)</label>
+              <input id="targetInr" type="number" step="0.1" min="0" inputmode="decimal" placeholder="e.g., 2.1"
+                     style="width:120px;">
+            </div>
+            <div class="small" style="max-width:420px;">
+              Use this when you want the INR toward a specific point <b>within</b> the therapeutic range (e.g., many procedures prefer the lower end).
+              ThromboLogic will make only a <b>small, cautious</b> adjustment when your INR is already “in range.”
+            </div>
+          </div>
+          <label style="display:flex;gap:8px;align-items:center;margin-top:8px;">
+            <input id="useSameDoseWindow" type="checkbox">
+            <span class="small">Use the same 7-day “weighted dose window” for all personal-model displays (reduces confusion)</span>
+          </label>
         </div>
       </div>
 
@@ -174,62 +196,20 @@ textarea{resize:vertical}
       <div>Fri<input id="b5" type="number" step="0.1" min="0" inputmode="decimal"></div>
       <div>Sat<input id="b6" type="number" step="0.1" min="0" inputmode="decimal"></div>
     </div>
-
-    <div style="margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-      <label class="small"><b>Weighted dose window:</b></label>
-      <select id="doseWindow" class="small" style="padding:6px 8px;border-radius:10px;">
-        <option value="prior7" selected>Use prior 7 days only (best for explaining today’s INR)</option>
-        <option value="inclToday">Include today (best for “with today’s plan” projections)</option>
-      </select>
-      <span class="small" style="color:#666;">This controls the “lag-weighted dose” shown in the yellow box and used by Target INR.</span>
-    </div>
-
     <div style="margin-top:8px">
       <button class="btn" id="applyCur">Apply to visible weeks</button>
       <button class="btn" id="clearVisible">Clear visible only</button>
       <button class="btn" id="clearAll">Clear ALL</button>
     </div>
-
     <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
       <button class="btnp" id="getRec">Get Recommendation</button>
-      <button class="btnS" id="targetBtn" type="button">Target INR</button>
       <button class="btnS" id="recalcNow" type="button" disabled style="opacity:0.5;">Recalculate with updated INR</button>
       <span id="recalcHint" class="small" style="display:none;">INR changed since the last recommendation.</span>
     </div>
-
-    <!-- Target INR panel -->
-    <div id="targetPanel" class="panel">
-      <div class="row">
-        <div style="min-width:220px;">
-          <label class="small"><b>Target INR (optional)</b></label><br>
-          <input id="targetInr" type="number" step="0.1" min="0.5" max="8" placeholder="e.g., 2.2" style="width:140px;">
-        </div>
-        <div style="min-width:220px;">
-          <label class="small"><b>Repeat INR timing</b></label><br>
-          <select id="targetRepeat" style="padding:6px 8px;border-radius:10px;">
-            <option value="3" selected>Recheck in 3 days (procedural / tighter follow-up)</option>
-            <option value="5">Recheck in 5 days</option>
-            <option value="7">Recheck in 7 days</option>
-          </select>
-        </div>
-        <div style="flex:1;min-width:220px;">
-          <label style="display:flex;gap:8px;align-items:center;margin-top:18px;">
-            <input id="capTargetPct" type="checkbox" checked>
-            <span class="small">Cap change to ±15% (recommended)</span>
-          </label>
-        </div>
-      </div>
-      <div class="row" style="margin-top:10px;">
-        <button class="btnS" id="runTarget" type="button">Generate Target INR Plan</button>
-        <button class="btnS" id="closeTarget" type="button">Close</button>
-        <span class="small" style="color:#666;">Uses the personal model if valid; otherwise it will not run (to avoid “wrong-direction” math).</span>
-      </div>
-    </div>
-
     <div id="sum" class="small" style="margin-top:6px">Scheduled weekly total: 0.0 mg</div>
   </fieldset>
 
-  <!-- ✅ MOVED UP: Legend + Live Calendar BEFORE Bridging -->
+  <!-- Legend + Live Calendar BEFORE Bridging -->
   <div class="legend">
     <span><span class="sw" style="background:var(--blue);box-shadow:inset 0 0 0 2px var(--blue-ring)"></span>Today / Repeat INR</span>
     <span><span class="sw" style="background:var(--man);box-shadow:inset 0 0 0 2px var(--man-b)"></span>Manual entry present</span>
@@ -295,7 +275,7 @@ textarea{resize:vertical}
     <div id="enoxOut" class="small" style="margin-top:8px;"></div>
   </fieldset>
 
-  <!-- ✅ NEW: Interaction checker AFTER Bridging -->
+  <!-- Interaction checker AFTER Bridging -->
   <h2>Warfarin Drug Interaction Check (beta)</h2>
   <fieldset><legend>Medication review</legend>
     <div class="small" style="margin-bottom:8px;">
@@ -371,7 +351,6 @@ function startOfWeekLocal(d){const x=new Date(d.getFullYear(),d.getMonth(),d.get
 function addDaysLocal(d,days){const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); x.setDate(x.getDate()+days); return x}
 function daysBetween(a,b){const d1=new Date(a.getFullYear(),a.getMonth(),a.getDate()); const d2=new Date(b.getFullYear(),b.getMonth(),b.getDate()); return Math.round((d2-d1)/86400000)}
 function r01(x){return Math.round(x*10)/10} function r05(x){return Math.round(x*2)/2}
-function clamp(x,min,max){return Math.max(min, Math.min(max, x))}
 
 function niceDate(isoStr){
   if(!isoStr) return '';
@@ -428,39 +407,53 @@ function matchInteractions(medText){
 }
 function interactionSummary(hits){
   if(!hits || hits.length===0) return null;
+
   const major = hits.filter(h=>h.level==="major");
   const mod   = hits.filter(h=>h.level==="moderate");
   const bleed = hits.filter(h=>h.level==="bleeding");
+
   const suggestedDays = [];
   for(const h of hits){
     if(typeof h.suggestDays === "number" && !isNaN(h.suggestDays)) suggestedDays.push(h.suggestDays);
   }
   const minDays = suggestedDays.length ? Math.min(...suggestedDays) : null;
-  return { majorCount: major.length, moderateCount: mod.length, bleedCount: bleed.length, minSuggestedDays: minDays, major, mod, bleed };
+
+  return {
+    majorCount: major.length,
+    moderateCount: mod.length,
+    bleedCount: bleed.length,
+    minSuggestedDays: minDays,
+    major, mod, bleed
+  };
 }
 function buildInteractionHTML(hits){
   const sum = interactionSummary(hits);
   if(!sum) return '';
+
   const badges=[];
   if(sum.majorCount) badges.push(`<span class="badge major">MAJOR × ${sum.majorCount}</span>`);
   if(sum.moderateCount) badges.push(`<span class="badge moderate">MODERATE × ${sum.moderateCount}</span>`);
   if(sum.bleedCount) badges.push(`<span class="badge bleeding">BLEED RISK × ${sum.bleedCount}</span>`);
+
   let timingLine='';
   if(sum.minSuggestedDays!=null){
     timingLine = `<div class="kv"><div><b>Suggested INR recheck:</b> ${sum.minSuggestedDays} day(s) (interaction-aware)</div></div>`;
   }else{
     timingLine = `<div class="kv"><div><b>Suggested INR recheck:</b> per clinic discretion</div></div>`;
   }
+
   const list = hits.map(h=>{
     const level = h.level.toUpperCase();
     return `<li><b>${h.drug}</b> — <span>${h.effect}</span> <span class="small">(${level})</span></li>`;
   }).join('');
+
   const bleedCounsel = sum.bleedCount ? `
     <div style="margin-top:8px;">
       <b>Bleeding risk counseling:</b> avoid additional NSAIDs/aspirin unless directed; watch for unusual bruising, bleeding gums, dark stools, or severe headache—seek care if concerning.
     </div>` : '';
+
   return `
-    <div style="margin-top:10px;padding:10px;border-radius:10px;border:1px solid #e6e6e6;background:#fff;">
+    <div class="interactionBlock betaBlock" style="margin-top:10px;padding:10px;border-radius:10px;border:1px solid #e6e6e6;background:#fff;">
       <div><b>Warfarin interaction screen (beta):</b></div>
       <div class="badges">${badges.join(' ')}</div>
       ${timingLine}
@@ -471,15 +464,10 @@ function buildInteractionHTML(hits){
   `;
 }
 
-/* ===========================
-   Baseline + effective dose helpers
-   =========================== */
-
 function base(){return [0,1,2,3,4,5,6].map(i=>{const v=parseFloat(document.getElementById('b'+i).value);return isNaN(v)?0:r01(v)})}
 function baseSum(){return base().reduce((a,b)=>a+b,0)} function updSum(){sum.innerHTML='Scheduled weekly total: <b>'+r01(baseSum()).toFixed(1)+' mg</b>'}
 function schedAtIso(key){const d=new Date(key); const dow=d.getDay(); return base()[dow]||0}
 function effAtIso(key){if(actual.has(key))return actual.get(key); if(planned.has(key))return planned.get(key); return schedAtIso(key)}
-function plannedOrSchedAtIso(key){ if(planned.has(key)) return planned.get(key); return schedAtIso(key); }
 
 const today = new Date();
 
@@ -515,6 +503,7 @@ function renderAll(){
     }
     weeksEl.appendChild(wk);
   }
+
   pushDataToCells();
   lin7();
   dbg.textContent = 'Calendar rows rendered: ' + document.querySelectorAll('.week').length;
@@ -546,15 +535,22 @@ function pushDataToCells(){
       const hasManual = (i!=='') || (a!=='');
       const inrNum = parseFloat(i);
       if(!isNaN(inrNum)){
-        if(inrNum >= 5.0){ cell.classList.add('redCell'); }
-        else if(inrNum >= 4.0){ cell.classList.add('orangeCell'); }
+        if(inrNum >= 5.0){
+          cell.classList.add('redCell');
+        }else if(inrNum >= 4.0){
+          cell.classList.add('orangeCell');
+        }
       }
       if(hasManual && !cell.classList.contains('redCell') && !cell.classList.contains('orangeCell')){
         cell.classList.add('manual');
       }
       const repEl = cell.querySelector('.repeat-inr');
-      if(repEl){ repEl.innerHTML = isRepeat ? '<b>Repeat INR</b>' : ''; }
-      if(isToday||isRepeat){ cell.classList.add('blue'); }
+      if(repEl){
+        repEl.innerHTML = isRepeat ? '<b>Repeat INR</b>' : '';
+      }
+      if(isToday||isRepeat){
+        cell.classList.add('blue');
+      }
     }
   }
 }
@@ -573,6 +569,7 @@ function applyVisible(){
   });
   pushDataToCells(); lin7(); updSum();
 }
+
 function clearVisible(){
   const rect = calwrap.getBoundingClientRect();
   const weekNodes = Array.from(weeksEl.querySelectorAll('.week'));
@@ -586,6 +583,7 @@ function clearVisible(){
   });
   pushDataToCells(); lin7(); rec.innerHTML='';
 }
+
 function clearAll(){
   planned.clear(); actual.clear(); inrVal.clear(); repeatKey=null;
   for(let i=0;i<7;i++) document.getElementById('b'+i).value='';
@@ -605,10 +603,6 @@ function lin7(){
   linEl.textContent = parts.join('  |  ');
 }
 
-/* ===========================
-   Protocol percent picker
-   =========================== */
-
 function pickPct(inr, L, H){
   const withinRange = (inr>=L && inr<=H);
   if(withinRange) return {pct:0, label:'in range', repeat:7};
@@ -625,6 +619,26 @@ function pickPct(inr, L, H){
   }
   if(gap <= 3.5)      return {pct:-0.07, label:'-5–10%', repeat:7};
   else                return {pct:-0.10, label:'-10–15%', repeat:7};
+}
+
+/* NEW: cautious “in-range but target-specific” adjustment */
+function pickPctWithTarget(inr, L, H, target){
+  // If target missing or invalid, fall back
+  if(target==null || isNaN(target)) return pickPct(inr, L, H);
+
+  // If outside therapeutic band, use standard protocol adjustments
+  if(inr < L || inr > H) return pickPct(inr, L, H);
+
+  // If target is outside band, don't do target steering
+  if(target < L || target > H) return {pct:0, label:'in range (target outside goal)', repeat:7};
+
+  // Steering inside range: small nudges only
+  const diff = inr - target; // positive means INR higher than target
+  if(Math.abs(diff) <= 0.1) return {pct:0, label:'at/near target', repeat:7};
+
+  // cap to +/-3% when in-range; repeat a bit sooner to verify trajectory
+  if(diff > 0.1) return {pct:-0.03, label:'small decrease toward target', repeat:5};
+  return {pct:+0.03, label:'small increase toward target', repeat:5};
 }
 
 function last6SchedBeforeDate(d){ let s=0; for(let k=6;k>=1;k--){ const key=isoLocal(addDaysLocal(d,-k)); s+=schedAtIso(key) } return r01(s) }
@@ -652,6 +666,7 @@ function roundEnoxaparinDose(doseMg){
   if (units <= 5) return raw - units;
   return raw + (10 - units);
 }
+
 function calcEnoxaparinDose(){
   const wtEl  = document.getElementById('enoxWeight');
   const typeEl= document.getElementById('enoxType');
@@ -667,11 +682,20 @@ function calcEnoxaparinDose(){
   }
 
   let baseDose = NaN, freqText = '', context  = '';
+
   switch(reg){
-    case 'tx_q12': baseDose = wt * 1.0; freqText = 'every 12 hours'; context  = 'Enoxaparin therapeutic dosing (e.g., VTE/AF/ACS) with normal renal function.'; break;
-    case 'tx_q24': baseDose = wt * 1.0; freqText = 'once daily'; context  = 'Enoxaparin therapeutic dosing with renal adjustment (e.g., CrCl < 30 mL/min per local protocol).'; break;
-    case 'px_40':  baseDose = 40;      freqText = 'once daily'; context  = 'Enoxaparin standard prophylaxis dose with normal renal function.'; break;
-    case 'px_30':  baseDose = 30;      freqText = 'once daily'; context  = 'Enoxaparin prophylaxis dose with renal adjustment (e.g., CrCl < 30 mL/min per local protocol).'; break;
+    case 'tx_q12':
+      baseDose = wt * 1.0; freqText = 'every 12 hours';
+      context  = 'Enoxaparin therapeutic dosing (e.g., VTE/AF/ACS) with normal renal function.'; break;
+    case 'tx_q24':
+      baseDose = wt * 1.0; freqText = 'once daily';
+      context  = 'Enoxaparin therapeutic dosing with renal adjustment (e.g., CrCl < 30 mL/min per local protocol).'; break;
+    case 'px_40':
+      baseDose = 40; freqText = 'once daily';
+      context  = 'Enoxaparin standard prophylaxis dose with normal renal function.'; break;
+    case 'px_30':
+      baseDose = 30; freqText = 'once daily';
+      context  = 'Enoxaparin prophylaxis dose with renal adjustment (e.g., CrCl < 30 mL/min per local protocol).'; break;
     case 'fond_tx':
       baseDose = (wt < 50) ? 5 : (wt <= 100 ? 7.5 : 10);
       freqText = 'once daily';
@@ -710,6 +734,7 @@ function calcEnoxaparinDose(){
     <div class="small" style="margin-top:6px;">${context}</div>
   `;
 }
+
 function clearEnoxaparin(){
   const wtEl  = document.getElementById('enoxWeight');
   const typeEl= document.getElementById('enoxType');
@@ -720,19 +745,11 @@ function clearEnoxaparin(){
 }
 
 /* ===========================
-   Personal Response Model (lag-weighted dose)
+   Weighted-dose helpers (lag-aware)
    =========================== */
 
-/*
-  Lay idea:
-  - Warfarin effect is delayed. Recent doses matter more than older ones.
-  - A "lag-weighted 7-day dose" is just the last 7 days of doses added up,
-    but with bigger weights on the days most likely to influence the INR.
-*/
-
-function weightedDose7PriorToDate(date){
-  // for INR measured on "date": use doses from days -1..-7 (yesterday back 7 days)
-  // heavier weight on days -3 and -4 (typical warfarin lag peak-ish)
+function weightedDose7BeforeDate(date){
+  // “Before today” = prior 7 days; heavier weight for more recent doses
   const weights = [0.4,0.4,1.0,1.0,0.7,0.7,0.3]; // days 1..7
   let sum = 0;
   for(let i=1;i<=7;i++){
@@ -741,8 +758,9 @@ function weightedDose7PriorToDate(date){
   }
   return r01(sum);
 }
+
 function weightedDose7EndingOnDate(date){
-  // for projecting "with today's plan": include day 0..-6
+  // “Ending today” = includes today (day 0) plus prior 6 days
   const weights = [0.3,0.7,0.7,1.0,1.0,0.4,0.4]; // days 0..6
   let sum = 0;
   for(let i=0;i<7;i++){
@@ -750,20 +768,6 @@ function weightedDose7EndingOnDate(date){
     sum += effAtIso(key) * weights[i];
   }
   return r01(sum);
-}
-function getDoseWindowMode(){
-  const sel = document.getElementById('doseWindow');
-  return sel ? sel.value : 'prior7';
-}
-function weightedDose7ForContext(date){
-  const mode = getDoseWindowMode();
-  return (mode === 'inclToday') ? weightedDose7EndingOnDate(date) : weightedDose7PriorToDate(date);
-}
-function weightedDose7ForINRLink(date){
-  // when building the model, the *most correct* linkage is "prior7" (INR reflects prior doses)
-  // but user asked to refactor so both models can use same window when desired:
-  // We'll respect the selector, while still defaulting to prior7.
-  return weightedDose7ForContext(date);
 }
 
 function buildInrDoseDataset(){
@@ -774,30 +778,33 @@ function buildInrDoseDataset(){
     const key = isoLocal(d);
     if(!inrVal.has(key)) continue;
     const inr = inrVal.get(key);
-    const dose7 = weightedDose7ForINRLink(d);
+    const dose7 = weightedDose7BeforeDate(d);
     if(!isNaN(inr) && dose7 > 0) data.push({dose7, inr});
   }
   return data;
 }
+
 function fitLinearDoseInrModel(data){
   if(!data || data.length < 5) return null;
   let sumX=0,sumY=0,sumXY=0,sumXX=0;
   const n = data.length;
+
   for(const pt of data){
     const x = pt.dose7, y = pt.inr;
     sumX += x; sumY += y; sumXY += x*y; sumXX += x*x;
   }
   const denom = (n*sumXX - sumX*sumX);
   if(denom === 0) return null;
+
   const b = (n*sumXY - sumX*sumY) / denom;
   const a = (sumY - b*sumX) / n;
 
-  // safeguard: if the model says higher dose -> lower INR (non-physiologic), refuse
   if(b <= 0.01){
     return { invalid:true, reason:'Dose–response direction unclear or inverse (reactive dosing / limited stable history).', n };
   }
   return { a, b, n };
 }
+
 function predictInrForDose7(model, dose7){
   if(!model || model.invalid) return null;
   const raw = model.a + model.b * dose7;
@@ -813,12 +820,69 @@ function maybeAdjustRepeatForInteractions(currentRepeatIso){
   if(!auto || !auto.checked) return currentRepeatIso;
   const sum = interactionSummary(currentInteractionHits);
   if(!sum || sum.minSuggestedDays == null) return currentRepeatIso;
+
   const proposed = isoLocal(addDaysLocal(new Date(), sum.minSuggestedDays));
   if(!currentRepeatIso) return proposed;
   return (proposed < currentRepeatIso) ? proposed : currentRepeatIso;
 }
 
-function getBestRecentINR(){
+function getGoalBounds(){
+  const goalVal = document.getElementById('goal').value;
+  const L = (goalVal==='2-3')?2.0:(goalVal==='2.5-3.5')?2.5:parseFloat(document.getElementById('gL').value);
+  const H = (goalVal==='2-3')?3.0:(goalVal==='2.5-3.5')?3.5:parseFloat(document.getElementById('gH').value);
+  return {L,H};
+}
+
+function getTargetInrIfEnabled(L,H){
+  const panel = document.getElementById('targetPanel');
+  if(!panel || panel.style.display==='none') return null;
+  const t = parseFloat(document.getElementById('targetInr').value);
+  if(isNaN(t)) return null;
+  // only accept inside the therapeutic range
+  if(t < L || t > H) return null;
+  return r01(t);
+}
+
+function modelBlockHTML(contextLabel, dose7, model){
+  // exact yellow box copy rewrite (more plain-language + “what it means”)
+  if(!model){
+    return `<div class="betaBlock" style="margin-top:8px;padding:8px 10px;border-radius:10px;background:#fff3cd;border:1px solid #ffe08a;font-size:13px;">
+      <b>Personal trend insight (beta):</b> Not enough usable history yet. Add more INR values over time (with doses recorded) to activate this section.
+    </div>`;
+  }
+  if(model.invalid){
+    return `<div class="betaBlock" style="margin-top:8px;padding:8px 10px;border-radius:10px;background:#fff3cd;border:1px solid #ffe08a;font-size:13px;">
+      <b>Personal trend insight (beta):</b> Not shown because the dose→INR direction looks unreliable in the available history.
+      <div class="small" style="margin-top:4px;color:#8a0000;"><b>${model.reason}</b></div>
+    </div>`;
+  }
+  const est = predictInrForDose7(model, dose7);
+  return `<div class="betaBlock" style="margin-top:8px;padding:8px 10px;border-radius:10px;background:#fff3cd;border:1px solid #ffe08a;font-size:13px;">
+    <b>Personal trend insight (beta):</b> ${contextLabel} lag-weighted 7-day dose is <b>${dose7.toFixed(1)} mg</b>.
+    Based on <b>${model.n}</b> past INR points, this dose usually lines up with an INR around <b>${(est!=null?est.toFixed(1):'—')}</b>.
+    <div class="small" style="margin-top:4px;">This is a <b>trend estimate</b> only (helps explain direction), and does not override clinic protocol.</div>
+  </div>`;
+}
+
+function getRecHTMLForPDF(){
+  // remove beta blocks (personal model + interaction) so PDFs stay cleaner
+  const tmp = document.createElement('div');
+  tmp.innerHTML = rec.innerHTML || '';
+  tmp.querySelectorAll('.betaBlock').forEach(n=>n.remove());
+  return tmp.innerHTML || '<span class="small">No recommendation generated yet.</span>';
+}
+
+function reco(){
+  const {L,H} = getGoalBounds();
+  if(isNaN(L)||isNaN(H)||L>=H){ alert('Set a valid INR goal.'); return }
+  if(baseSum()<=0){ alert('Enter baseline regimen first.'); return }
+
+  pendingRecalc=false;
+  const hint=document.getElementById('recalcHint');
+  if(hint) hint.style.display='none';
+  const btn=document.getElementById('recalcNow');
+  if(btn){ btn.disabled=true; btn.style.opacity='0.5'; }
+
   const todayIso = isoLocal(new Date());
   let bestDate = new Date();
   let bestVal = parseFloat(document.getElementById('inr').value);
@@ -830,74 +894,6 @@ function getBestRecentINR(){
       if(inrVal.has(key)){ bestVal=inrVal.get(key); bestDate=addDaysLocal(new Date(), -d); break; }
     }
   }
-  return { bestVal, bestDate, age: daysBetween(bestDate, new Date()) };
-}
-
-function computeTodayDoseFromPct(pct){
-  const todayIso = isoLocal(new Date());
-  const baseToday = plannedOrSchedAtIso(todayIso); // "plan baseline" for today (does not auto-use actual)
-  const s7 = sched7EndOnDate(new Date());
-  const p6 = last6SchedBeforeDate(new Date());
-  const e6 = last6EffBeforeDate(new Date());
-
-  const targetDelta = r01(s7 * pct);
-  const priorDelta  = r01(e6 - p6);
-  const remaining   = r01(targetDelta - priorDelta);
-
-  // naive uses effective 7-day to date
-  const naive = r01((e6 + baseToday) * pct);
-  const sign  = remaining>0?1:-1;
-  const capped= Math.min(Math.abs(naive), Math.abs(remaining)) * sign;
-  const target= Math.max(0, r01(baseToday + capped));
-  const newDose = r05(target);
-
-  return { newDose, baseToday, s7, p6, e6, targetDelta, priorDelta, remaining };
-}
-
-function modelBlockHTML(contextLabel, dose7, model){
-  const mode = getDoseWindowMode();
-  const modeLabel = (mode === 'inclToday') ? 'includes today' : 'prior 7 days';
-  if(!model){
-    return `<div style="margin-top:8px;padding:8px 10px;border-radius:10px;background:#fff3cd;border:1px solid #ffe08a;font-size:13px;">
-      <b>Personal response model (beta):</b> Not enough usable history yet (need ≥5 INR-linked points with dosing history).
-      <div class="small" style="margin-top:4px;color:#666;">Lag-weighted dose (${modeLabel}) is still shown for transparency, but no prediction is made.</div>
-      <div class="small" style="margin-top:4px;"><b>Lag-weighted dose:</b> ${dose7.toFixed(1)} mg</div>
-    </div>`;
-  }
-  if(model.invalid){
-    return `<div style="margin-top:8px;padding:8px 10px;border-radius:10px;background:#fff3cd;border:1px solid #ffe08a;font-size:13px;">
-      <b>Personal response model (beta):</b> Not used. <span style="color:#8a0000;"><b>${model.reason}</b></span>
-      <div class="small" style="margin-top:4px;"><b>Lag-weighted dose (${modeLabel}):</b> ${dose7.toFixed(1)} mg</div>
-      <div class="small" style="margin-top:4px;color:#666;">This guardrail prevents “wrong-direction” math.</div>
-    </div>`;
-  }
-  const est = predictInrForDose7(model, dose7);
-  return `<div style="margin-top:8px;padding:8px 10px;border-radius:10px;background:#fff3cd;border:1px solid #ffe08a;font-size:13px;">
-    <b>Personal response model (beta):</b> ${contextLabel} lag-weighted 7-day dose (${modeLabel}) ≈ <b>${dose7.toFixed(1)} mg</b>.
-    Estimated INR ≈ <b>${(est!=null?est.toFixed(1):'—')}</b>, based on <b>${model.n}</b> historical points.
-    <div class="small" style="margin-top:4px;">
-      What “lag-weighted dose” means: it’s your recent doses added up, but it gives more weight to the days that most influence today’s INR.
-      Use it as a trend signal, not as a replacement for protocol.
-    </div>
-  </div>`;
-}
-
-function reco(){
-  const goalVal = document.getElementById('goal').value;
-  const L = (goalVal==='2-3')?2.0:(goalVal==='2.5-3.5')?2.5:parseFloat(document.getElementById('gL').value);
-  const H = (goalVal==='2-3')?3.0:(goalVal==='2.5-3.5')?3.5:parseFloat(document.getElementById('gH').value);
-  if(isNaN(L)||isNaN(H)||L>=H){ alert('Set a valid INR goal.'); return }
-  if(baseSum()<=0){ alert('Enter baseline regimen first.'); return }
-
-  pendingRecalc=false;
-  const hint=document.getElementById('recalcHint');
-  if(hint) hint.style.display='none';
-  const btn=document.getElementById('recalcNow');
-  if(btn){ btn.disabled=true; btn.style.opacity='0.5'; }
-
-  const todayIso = isoLocal(new Date());
-  const { bestVal, bestDate, age } = getBestRecentINR();
-
   if(isNaN(bestVal)){
     rec.innerHTML = 'No recent INR in the last 3 days. <b>Get a new INR as soon as possible.</b> Do not change warfarin until a new result is available.';
     repeatKey = todayIso; hasReco=true;
@@ -905,57 +901,85 @@ function reco(){
     pushDataToCells(); return;
   }
 
-  const band = pickPct(bestVal, L, H);
+  const age = daysBetween(bestDate, new Date());
+
+  // Target INR (optional, within range)
+  const target = getTargetInrIfEnabled(L,H);
+  const usingTarget = (target!=null);
+
+  // Primary protocol band decision (or target steering if enabled)
+  const band = usingTarget ? pickPctWithTarget(bestVal, L, H, target) : pickPct(bestVal, L, H);
+
+  // Personal-response model fit
   const dataset = buildInrDoseDataset();
   const model = fitLinearDoseInrModel(dataset);
+
+  // Optional: unify model windows to reduce confusion
+  const useSameWin = !!document.getElementById('useSameDoseWindow')?.checked;
 
   // Interaction block to append
   const interHTML = buildInteractionHTML(currentInteractionHits);
 
-  // Dose-window (weighted) transparency, used in BOTH in-range and out-of-range text
-  const dose7_context = weightedDose7ForContext(new Date());
+  // Weighted-dose numbers (layman-friendly: “recent doses count more”)
+  const wBefore = weightedDose7BeforeDate(new Date());
+  const wEnding = weightedDose7EndingOnDate(new Date());
 
-  // If user already recorded an ACTUAL dose for today, do not silently overwrite it with a new "planned".
-  const actualToday = actual.has(todayIso) ? actual.get(todayIso) : null;
+  // Build a short “math transparency” line
+  const weightExplain = `<div class="small" style="margin-top:6px;color:#666;">
+    <b>Lag-weighted dose (7-day):</b> recent doses count more than older doses (because INR responds with delay).
+    Prior-7-days ≈ <b>${wBefore.toFixed(1)} mg</b>.
+  </div>`;
 
+  // If fully in-range and no target steering
   if(band.pct===0){
     const rep = (age>=2 && age<=3) ? addDaysLocal(bestDate, 7) : addDaysLocal(new Date(), 7);
     repeatKey = isoLocal(rep);
+
+    // Optional earlier repeat based on interactions
     repeatKey = maybeAdjustRepeatForInteractions(repeatKey);
 
     lastRecoINR = bestVal;
     lastRepeatIso = repeatKey;
 
-    const noteActual = (actualToday!=null)
-      ? `<div class="small" style="margin-top:6px;color:#666;">Note: you logged <b>${actualToday.toFixed(1)} mg</b> as today’s actual dose; this was included in your “effective dosing” history.</div>`
-      : '';
+    const doseForModel = useSameWin ? wBefore : wBefore;
 
     rec.innerHTML =
       `INR <b>${bestVal.toFixed(1)}</b> is in your goal range (${L}–${H}). ` +
-      `<b>No change</b> to your warfarin plan today. ` +
+      `<b>No change</b> to today’s warfarin dose. ` +
       `Repeat your INR on <b>${niceDate(repeatKey)}</b>.` +
-      noteActual +
-      modelBlockHTML('Based on your recent dosing, your', dose7_context, model) +
+      weightExplain +
+      modelBlockHTML('Your', doseForModel, model) +
       (interHTML || '');
 
     hasReco=true;
     pushDataToCells(); lin7(); return;
   }
 
-  // Out of range: compute today dose from protocol pct math
-  const calc = computeTodayDoseFromPct(band.pct);
-  const newDose = calc.newDose;
+  // --- Adjustment path (includes target steering when in-range) ---
+  const baseToday = schedAtIso(todayIso);
 
-  // Only write planned today if no actual dose was logged
-  if(actualToday==null){
-    planned.set(todayIso, newDose);
-  }
+  // Original “recent adherence aware” math (uses actual/planned deltas for last 6 days)
+  const s7 = sched7EndOnDate(new Date());
+  const p6 = last6SchedBeforeDate(new Date());
+  const e6 = last6EffBeforeDate(new Date());
 
-  // Repeat timing
+  const targetDelta = r01(s7 * band.pct);
+  const priorDelta  = r01(e6 - p6);
+  const remaining   = r01(targetDelta - priorDelta);
+
+  const naive = r01((e6 + baseToday) * band.pct);
+  const sign  = remaining>0?1:-1;
+  const capped= Math.min(Math.abs(naive), Math.abs(remaining)) * sign;
+  const targetDose = Math.max(0, r01(baseToday + capped));
+  const newDose = r05(targetDose);
+
+  planned.set(todayIso, newDose);
+
+  // Repeat date logic: target steering repeats sooner (5 days) to confirm trajectory
   let repDate;
   if(bestVal>4.5) repDate = addDaysLocal(new Date(), 2);
   else if(age>=2 && age<=3) repDate = addDaysLocal(bestDate, 7);
-  else repDate = addDaysLocal(new Date(), 7);
+  else repDate = addDaysLocal(new Date(), band.repeat || 7);
 
   repeatKey = isoLocal(repDate);
   repeatKey = maybeAdjustRepeatForInteractions(repeatKey);
@@ -964,128 +988,46 @@ function reco(){
   lastRepeatIso = repeatKey;
 
   const isHigh = bestVal > H;
-  const dirText = isHigh ? 'above' : 'below';
+  const isLow  = bestVal < L;
 
-  const mismatchNote = (actualToday!=null && Math.abs(actualToday-newDose) > 0.05) ? `
-    <div class="small" style="margin-top:6px;color:#666;">
-      You recorded <b>${actualToday.toFixed(1)} mg</b> as today’s <b>actual</b> dose.
-      The calculated “today dose” would be <b>${newDose.toFixed(1)} mg</b>.
-      If today’s dose is already taken, apply the new plan starting with the <b>next scheduled dose</b> per clinic discretion.
-    </div>` : (actualToday!=null ? `
-    <div class="small" style="margin-top:6px;color:#666;">
-      You recorded <b>${actualToday.toFixed(1)} mg</b> as today’s actual dose; this was included in the dosing history used to compute the recommendation.
-    </div>` : '');
+  let context = '';
+  if(usingTarget && !isHigh && !isLow){
+    context = `Target INR is <b>${target.toFixed(1)}</b> (within ${L}–${H}). `;
+  }
+
+  const dirText = isHigh ? 'above' : isLow ? 'below' : 'within';
+  const withinButTarget = usingTarget && !isHigh && !isLow;
+
+  // Personal-model dose window choice
+  const doseForModel = useSameWin ? wBefore : (withinButTarget ? wBefore : wEnding);
+
+  // Include today’s planned dose in the “ending today” weighted number for explanation
+  const wEndingAfterPlan = weightedDose7EndingOnDate(new Date());
+
+  const mainSentence = withinButTarget
+    ? `INR <b>${bestVal.toFixed(1)}</b> is <b>within</b> your goal range (${L}–${H}). ${context}`
+      + `To gently move toward the target, take <b>${newDose.toFixed(1)} mg of warfarin today</b>.`
+    : `INR <b>${bestVal.toFixed(1)}</b> is <b>${dirText}</b> your goal range (${L}–${H}). `
+      + `Take <b>${newDose.toFixed(1)} mg of warfarin today</b> based on your recent dosing.`;
+
+  const steerExplain = withinButTarget
+    ? `<div class="small" style="margin-top:6px;color:#666;">
+         <b>Why a small change even though you’re “in range”?</b> Some situations (often procedures) prefer the INR toward the lower end.
+         ThromboLogic uses only a <b>~3%</b> nudge and asks for a sooner recheck to confirm safety.
+       </div>`
+    : '';
 
   rec.innerHTML =
-    `INR <b>${bestVal.toFixed(1)}</b> is <b>${dirText}</b> your goal range (${L}–${H}). ` +
-    `Calculated plan: <b>${newDose.toFixed(1)} mg</b> for today, based on your recent dosing history. ` +
-    `Plan to recheck your INR on <b>${niceDate(repeatKey)}</b>, or sooner if your clinic advises.` +
-    mismatchNote +
-    modelBlockHTML('Based on your recent dosing, your', dose7_context, model) +
+    mainSentence +
+    ` Plan to recheck your INR on <b>${niceDate(repeatKey)}</b>, or sooner if your clinic advises.` +
+    `<div class="small" style="margin-top:6px;color:#666;">
+      <b>Lag-weighted dose (7-day):</b> prior-7-days ≈ <b>${wBefore.toFixed(1)} mg</b>. With today’s plan, “ending-today” ≈ <b>${wEndingAfterPlan.toFixed(1)} mg</b>.
+    </div>` +
+    steerExplain +
+    modelBlockHTML(withinButTarget ? 'Your' : 'With today’s plan, your', doseForModel, model) +
     (interHTML || '');
 
   hasReco=true;
-  pushDataToCells(); lin7();
-}
-
-/* ===========================
-   Target INR plan (uses personal model)
-   =========================== */
-
-function runTargetINRPlan(){
-  const { bestVal, bestDate, age } = getBestRecentINR();
-  if(isNaN(bestVal)){
-    alert('Enter a recent INR (today or within the last 3 days) before using Target INR.');
-    return;
-  }
-  if(baseSum()<=0){
-    alert('Enter baseline regimen first.');
-    return;
-  }
-
-  const target = parseFloat(document.getElementById('targetInr').value);
-  if(isNaN(target) || target < 0.5 || target > 8){
-    alert('Enter a valid Target INR (0.5–8.0).');
-    return;
-  }
-
-  const dataset = buildInrDoseDataset();
-  const model = fitLinearDoseInrModel(dataset);
-  if(!model || model.invalid){
-    alert('Target INR requires a valid personal model (≥5 usable points, correct dose→INR direction).');
-    return;
-  }
-
-  // current weighted dose (based on your selected window)
-  const currentDose7 = weightedDose7ForContext(new Date());
-
-  // dose needed (solve a + b*dose7 = target)
-  let neededDose7 = (target - model.a) / model.b;
-  if(!isFinite(neededDose7)) neededDose7 = currentDose7;
-
-  // percent change suggestion
-  let pct = (currentDose7 > 0) ? (neededDose7 - currentDose7) / currentDose7 : 0;
-
-  const capOn = document.getElementById('capTargetPct')?.checked;
-  if(capOn){
-    pct = clamp(pct, -0.15, 0.15); // safer cap
-  }
-
-  const calc = computeTodayDoseFromPct(pct);
-  const todayIso = isoLocal(new Date());
-  const actualToday = actual.has(todayIso) ? actual.get(todayIso) : null;
-
-  // Only write planned today if no actual logged
-  if(actualToday==null){
-    planned.set(todayIso, calc.newDose);
-  }
-
-  // repeat timing from UI
-  const repDays = parseInt(document.getElementById('targetRepeat').value,10) || 3;
-  let repDate = addDaysLocal(new Date(), repDays);
-  repeatKey = isoLocal(repDate);
-  repeatKey = maybeAdjustRepeatForInteractions(repeatKey);
-
-  lastRecoINR = bestVal;
-  lastRepeatIso = repeatKey;
-  hasReco = true;
-
-  const estNow = predictInrForDose7(model, currentDose7);
-  const estTgt = predictInrForDose7(model, neededDose7);
-
-  const pctTxt = (pct>=0?'+':'') + Math.round(pct*100) + '%';
-
-  const mismatchNote = (actualToday!=null && Math.abs(actualToday-calc.newDose) > 0.05) ? `
-    <div class="small" style="margin-top:6px;color:#666;">
-      You recorded <b>${actualToday.toFixed(1)} mg</b> as today’s <b>actual</b> dose.
-      The calculated “today dose” for targeting would be <b>${calc.newDose.toFixed(1)} mg</b>.
-      If today’s dose is already taken, apply the new plan starting with the <b>next scheduled dose</b> per clinic discretion.
-    </div>` : '';
-
-  const interHTML = buildInteractionHTML(currentInteractionHits);
-
-  rec.innerHTML = `
-    <div>
-      <b>Target INR plan:</b> aiming for <b>${target.toFixed(1)}</b> (useful when a specific INR is desired for a procedure).
-      Current INR is <b>${bestVal.toFixed(1)}</b>.
-    </div>
-    <div style="margin-top:6px;">
-      Personal model estimates: current lag-weighted dose ≈ <b>${currentDose7.toFixed(1)} mg</b> → predicted INR ≈ <b>${(estNow!=null?estNow.toFixed(1):'—')}</b>.
-      To target <b>${target.toFixed(1)}</b>, estimated dose would be ≈ <b>${neededDose7.toFixed(1)} mg</b> (predicted INR ≈ <b>${(estTgt!=null?estTgt.toFixed(1):'—')}</b>).
-    </div>
-    <div style="margin-top:6px;">
-      Applied adjustment: <b>${pctTxt}</b> (with safety cap ${document.getElementById('capTargetPct')?.checked ? 'ON' : 'OFF'}).
-      Calculated “today dose”: <b>${calc.newDose.toFixed(1)} mg</b>.
-      Repeat INR on <b>${niceDate(repeatKey)}</b>.
-    </div>
-    ${mismatchNote}
-    ${modelBlockHTML('For targeting, your', currentDose7, model)}
-    ${(interHTML || '')}
-    <div class="small" style="margin-top:8px;color:#666;">
-      Caution: this is a trend-guided targeting tool. Final decisions should follow clinic protocol and clinical context (bleeding/thrombosis risk, procedure type, timing).
-    </div>
-  `;
-
   pushDataToCells(); lin7();
 }
 
@@ -1126,7 +1068,7 @@ function buildWeekRows(startDate){
 }
 
 /* ===========================
-   PDF Export (tighter + cleaner wording)
+   PDF Export (tighter + editable provider notes)
    =========================== */
 
 function exportRecommendationPDF(){
@@ -1152,6 +1094,8 @@ function exportRecommendationPDF(){
 
   const inrDisplay = lastRecoINR != null ? lastRecoINR.toFixed(1) : '—';
   const repDisplay = lastRepeatIso ? niceDate(lastRepeatIso) : '—';
+
+  const cleanRecHTML = getRecHTMLForPDF();
 
   const win = window.open('', '_blank');
   if(!win){ alert('Please allow pop-ups to export the recommendation.'); return; }
@@ -1182,7 +1126,7 @@ function exportRecommendationPDF(){
     <body>
       <button id="printBtn" onclick="window.print()" style="float:right;">Print / Save as PDF</button>
 
-      <h1>ThromboLogic INR – Dosing Summary</h1>
+      <h1>ThromboLogic INR – Visit Summary</h1>
       <div class="small">Generated on ${todayStr} at ${timeStr}</div>
       ${patientInfoLine ? `<div class="small" style="margin-top:4px;">${patientInfoLine}</div>` : ''}
 
@@ -1192,29 +1136,29 @@ function exportRecommendationPDF(){
         Repeat INR date:&nbsp;<b class="big">${repDisplay}</b>
       </div>
 
-      <h2>Dosing Recommendation</h2>
+      <h2>Verbal Recommendation</h2>
       <div class="card">
-        ${rec.innerHTML || '<span class="small">No recommendation generated yet.</span>'}
+        ${cleanRecHTML}
       </div>
 
-      <h2>This Week</h2>
+      <h2>This Week's Calendar View</h2>
       <div class="card">
         <table>
           <thead>
             <tr>
-              <th>Day</th><th>Date</th><th>Planned dose</th><th>INR</th><th>Actual dose</th><th>Notes</th>
+              <th>Day</th><th>Date</th><th>Planned dose (mg)</th><th>INR</th><th>Actual dose (mg)</th><th>Notes</th>
             </tr>
           </thead>
           <tbody>${thisWeekRows}</tbody>
         </table>
       </div>
 
-      <h2>Next Week</h2>
+      <h2>Next Week's Calendar View</h2>
       <div class="card">
         <table>
           <thead>
             <tr>
-              <th>Day</th><th>Date</th><th>Planned dose</th><th>INR</th><th>Actual dose</th><th>Notes</th>
+              <th>Day</th><th>Date</th><th>Planned dose (mg)</th><th>INR</th><th>Actual dose (mg)</th><th>Notes</th>
             </tr>
           </thead>
           <tbody>${nextWeekRows}</tbody>
@@ -1262,6 +1206,8 @@ function openPatientHandout(){
   const inrDisplay = lastRecoINR != null ? lastRecoINR.toFixed(1) : '—';
   const repDisplay = lastRepeatIso ? niceDate(lastRepeatIso) : '—';
 
+  const cleanRecHTML = getRecHTMLForPDF();
+
   const win = window.open('', '_blank');
   if(!win){ alert('Please allow pop-ups to open the patient handout view.'); return; }
 
@@ -1295,24 +1241,29 @@ function openPatientHandout(){
         Repeat INR date:&nbsp;<b class="big">${repDisplay}</b>
       </div>
 
-      <h2>This Week</h2>
+      <h2>Dosing Recommendation</h2>
+      <div class="card">
+        ${cleanRecHTML}
+      </div>
+
+      <h2>This Week's Calendar View</h2>
       <div class="card">
         <table>
           <thead>
             <tr>
-              <th>Day</th><th>Date</th><th>Planned dose</th><th>INR</th><th>Actual dose</th><th>Notes</th>
+              <th>Day</th><th>Date</th><th>Planned dose (mg)</th><th>INR</th><th>Actual dose (mg)</th><th>Notes</th>
             </tr>
           </thead>
           <tbody>${thisWeekRows}</tbody>
         </table>
       </div>
 
-      <h2>Next Week</h2>
+      <h2>Next Week's Calendar View</h2>
       <div class="card">
         <table>
           <thead>
             <tr>
-              <th>Day</th><th>Date</th><th>Planned dose</th><th>INR</th><th>Actual dose</th><th>Notes</th>
+              <th>Day</th><th>Date</th><th>Planned dose (mg)</th><th>INR</th><th>Actual dose (mg)</th><th>Notes</th>
             </tr>
           </thead>
           <tbody>${nextWeekRows}</tbody>
@@ -1378,6 +1329,7 @@ function setBaselineRegimen(values7){
   updSum();
   applyVisible();
 }
+
 function setDemoMessage(text, isError=false){
   const el = document.getElementById('demoMsg');
   if(!el) return;
@@ -1385,6 +1337,7 @@ function setDemoMessage(text, isError=false){
   el.style.color = isError ? '#b00020' : '#2e7d32';
   el.textContent = text;
 }
+
 function clearDemoHistoryOnly(){
   planned.clear();
   actual.clear();
@@ -1405,6 +1358,7 @@ function clearDemoHistoryOnly(){
   applyVisible();
   pushDataToCells(); lin7();
 }
+
 function loadDemoHistory(){
   planned.clear(); actual.clear(); inrVal.clear();
   repeatKey = null;
@@ -1466,6 +1420,7 @@ function loadDemoHistory(){
 
 document.addEventListener('DOMContentLoaded', ()=>{
   try{ renderAll(); updSum(); }catch(e){ err.textContent = 'Calendar failed to render: '+e; }
+
   setTimeout(scrollToTodayWeek, 50);
 
   for(let i=0;i<7;i++){
@@ -1476,16 +1431,33 @@ document.addEventListener('DOMContentLoaded', ()=>{
   document.getElementById('goal').addEventListener('change', (ev)=>{
     const v = ev.target.value;
     document.getElementById('cust').style.display = (v==='custom')?'block':'none';
+
+    // If target panel is open and target empty, auto-set to low end of new range
+    const panel = document.getElementById('targetPanel');
+    const tEl = document.getElementById('targetInr');
+    if(panel && panel.style.display!=='none' && tEl && (tEl.value==='' || isNaN(parseFloat(tEl.value)))){
+      const {L} = getGoalBounds();
+      tEl.value = L.toFixed(1);
+    }
   });
 
-  // Target panel toggles
-  const targetBtn = document.getElementById('targetBtn');
+  // Target INR toggle
+  const toggleBtn = document.getElementById('toggleTarget');
   const targetPanel = document.getElementById('targetPanel');
-  if(targetBtn && targetPanel){
-    targetBtn.addEventListener('click', ()=>{ targetPanel.style.display = (targetPanel.style.display==='none' || !targetPanel.style.display) ? 'block' : 'none'; });
+  const targetInr = document.getElementById('targetInr');
+  if(toggleBtn && targetPanel){
+    toggleBtn.addEventListener('click', ()=>{
+      const show = (targetPanel.style.display === 'none');
+      targetPanel.style.display = show ? 'block' : 'none';
+      if(show){
+        const {L} = getGoalBounds();
+        if(targetInr && (targetInr.value==='' || isNaN(parseFloat(targetInr.value)))){
+          // default to low end since most procedures prefer lower end
+          targetInr.value = L.toFixed(1);
+        }
+      }
+    });
   }
-  document.getElementById('closeTarget').addEventListener('click', ()=>{ targetPanel.style.display='none'; });
-  document.getElementById('runTarget').addEventListener('click', runTargetINRPlan);
 
   // Interaction listeners
   const medList = document.getElementById('medList');
@@ -1570,7 +1542,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   const clearDemoBtn = document.getElementById('clearDemo');
   if(clearDemoBtn) clearDemoBtn.addEventListener('click', clearDemoHistoryOnly);
 
-  // DOB auto-format + FIXED validation (no alert loop)
+  // DOB auto-format + validation (no alert loop)
   const dobInput = document.getElementById('patientDob');
   const dobInlineErr = document.getElementById('dobInlineErr');
   if(dobInput){
