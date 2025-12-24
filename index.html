@@ -77,7 +77,7 @@ textarea{resize:vertical}
 <body>
 <div class="container">
 
-  <!-- ThromboLogic Header Branding (as in your working version) -->
+  <!-- ThromboLogic Header Branding -->
   <div style="display:flex; align-items:center; gap:14px; margin:0 0 6px 0;">
     <img src="ThromboLogic INR Logo Design.png"
          alt="ThromboLogic INR Logo"
@@ -85,7 +85,7 @@ textarea{resize:vertical}
     <div style="display:flex; flex-direction:column; line-height:1.1;">
       <span style="font-size:26px; font-weight:800;">ThromboLogic</span>
       <span style="font-size:16px; font-weight:600;">INR</span>
-      <span class="small" style="margin-top:4px;">INR 7.2 (DOB fix + Interaction-aware recommendations)</span>
+      <span class="small" style="margin-top:4px;">INR 7.2 (window-aligned model + clarity fixes)</span>
     </div>
   </div>
 
@@ -183,7 +183,7 @@ textarea{resize:vertical}
     <div id="sum" class="small" style="margin-top:6px">Scheduled weekly total: 0.0 mg</div>
   </fieldset>
 
-  <!-- ✅ MOVED UP: Legend + Live Calendar BEFORE Bridging -->
+  <!-- Legend + Live Calendar BEFORE Bridging -->
   <div class="legend">
     <span><span class="sw" style="background:var(--blue);box-shadow:inset 0 0 0 2px var(--blue-ring)"></span>Today / Repeat INR</span>
     <span><span class="sw" style="background:var(--man);box-shadow:inset 0 0 0 2px var(--man-b)"></span>Manual entry present</span>
@@ -200,7 +200,7 @@ textarea{resize:vertical}
   </div>
   <div id="dbg" class="debug"></div>
 
-  <!-- Bridging – Parenteral Helper (Enoxaparin / Fondaparinux) -->
+  <!-- Bridging -->
   <h2>Bridging – Parenteral Helper (enoxaparin / fondaparinux) (beta)</h2>
   <fieldset><legend>Weight-based parenteral dose</legend>
     <div class="grid">
@@ -218,24 +218,12 @@ textarea{resize:vertical}
       <div>
         <label for="enoxType">Regimen</label>
         <select id="enoxType">
-          <option value="tx_q12" selected>
-            Enoxaparin – Therapeutic 1 mg/kg every 12 hours
-          </option>
-          <option value="tx_q24">
-            Enoxaparin – Therapeutic (renal adjustment) – 1 mg/kg once daily
-          </option>
-          <option value="px_40">
-            Enoxaparin – Prophylaxis – 40 mg once daily
-          </option>
-          <option value="px_30">
-            Enoxaparin – Prophylaxis (renal adjustment) – 30 mg once daily
-          </option>
-          <option value="fond_tx">
-            Fondaparinux – Treatment (5 mg if &lt;50 kg, 7.5 mg if 50–100 kg, 10 mg if &gt;100 kg)
-          </option>
-          <option value="fond_px">
-            Fondaparinux – Prophylaxis – 2.5 mg once daily
-          </option>
+          <option value="tx_q12" selected>Enoxaparin – Therapeutic 1 mg/kg every 12 hours</option>
+          <option value="tx_q24">Enoxaparin – Therapeutic (renal adjustment) – 1 mg/kg once daily</option>
+          <option value="px_40">Enoxaparin – Prophylaxis – 40 mg once daily</option>
+          <option value="px_30">Enoxaparin – Prophylaxis (renal adjustment) – 30 mg once daily</option>
+          <option value="fond_tx">Fondaparinux – Treatment (5 mg if &lt;50 kg, 7.5 mg if 50–100 kg, 10 mg if &gt;100 kg)</option>
+          <option value="fond_px">Fondaparinux – Prophylaxis – 2.5 mg once daily</option>
         </select>
         <div class="small">Always confirm with local protocol, especially in renal impairment or HIT.</div>
       </div>
@@ -249,7 +237,7 @@ textarea{resize:vertical}
     <div id="enoxOut" class="small" style="margin-top:8px;"></div>
   </fieldset>
 
-  <!-- ✅ NEW: Interaction checker AFTER Bridging -->
+  <!-- Interaction checker AFTER Bridging -->
   <h2>Warfarin Drug Interaction Check (beta)</h2>
   <fieldset><legend>Medication review</legend>
     <div class="small" style="margin-bottom:8px;">
@@ -299,16 +287,16 @@ textarea{resize:vertical}
   <h2>Predicted INR (What-if – Beta)</h2>
   <div class="card small" id="predictCard">
     <div style="margin-bottom:6px;">
-      Uses your INR + dosing history to estimate a <b>trend response</b>. This is <b>experimental</b>,
+      Uses your INR + dosing history to estimate a trend response. This is <b>experimental</b>,
       lag-aware (weighted), and direction-constrained (will refuse inverse models). Use clinical judgment.
     </div>
 
-    <!-- ✅ NEW: One setting controls BOTH the yellow box model + this what-if model -->
+    <!-- Window selector (aligns yellow box + what-if when desired) -->
     <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:8px;">
       <label><b>Dose window used by both models</b></label>
-      <select id="doseWindowMode" style="padding:6px 10px;">
-        <option value="prior">Prior 7 days (excludes today)</option>
-        <option value="ending" selected>Ending today (includes today’s plan)</option>
+      <select id="doseWindowMode" style="min-width:280px;">
+        <option value="prior7" selected>Prior 7 days (excludes today)</option>
+        <option value="end7">7-day window ending today (includes today)</option>
       </select>
       <span class="small" style="color:#666;">Keeps the yellow box + what-if on the same window when desired.</span>
     </div>
@@ -325,8 +313,8 @@ textarea{resize:vertical}
              style="width:140px;padding:6px;">
       <button class="btnS" type="button" id="runPrediction">Estimate INR</button>
     </div>
-    <div class="small" style="margin-top:4px;color:#666;">
-      Tip: this is the <b>lag-weighted</b> 7-day dose used by the model (not a simple sum).
+    <div class="small" style="margin-top:6px;color:#666;">
+      Tip: this is the <b>lag-weighted</b> 7-day dose used by the model (not a simple 7-day total).
     </div>
     <div id="predOut" style="margin-top:6px;"></div>
   </div>
@@ -357,13 +345,8 @@ const planned=new Map(), actual=new Map(), inrVal=new Map(); let repeatKey=null;
 let lastRecoINR = null; let lastRepeatIso = null;
 
 /* ===========================
-   INTERACTION DATABASE (EDITABLE JSON)
+   INTERACTION DATABASE
    =========================== */
-/*
-  level: "major" | "moderate" | "bleeding"
-  effect: "↑ INR" | "↓ INR" | "Bleeding risk" | "↑/↓ INR"
-  suggestDays: suggested INR recheck window (days from today) when interaction present
-*/
 const WARFARIN_INTERACTIONS = [
   { drug:"trimethoprim-sulfamethoxazole", aka:["bactrim","septra","tmp-smx"], level:"major", effect:"↑ INR", suggestDays:3 },
   { drug:"metronidazole", aka:["flagyl"], level:"major", effect:"↑ INR", suggestDays:3 },
@@ -380,7 +363,7 @@ const WARFARIN_INTERACTIONS = [
   { drug:"aspirin", aka:["asa"], level:"bleeding", effect:"Bleeding risk", suggestDays:null }
 ];
 
-let currentInteractionHits = []; // last computed hits
+let currentInteractionHits = [];
 
 function normalizeMedText(s){
   return (s||"").toLowerCase().replace(/[\n\r]/g,' ').replace(/\s+/g,' ').trim();
@@ -394,7 +377,6 @@ function matchInteractions(medText){
     const found = names.some(n=> t.includes(n.toLowerCase()));
     if(found) hits.push(item);
   }
-  // de-dup by drug
   const seen=new Set();
   return hits.filter(h=>{ const k=h.drug.toLowerCase(); if(seen.has(k)) return false; seen.add(k); return true; });
 }
@@ -405,20 +387,13 @@ function interactionSummary(hits){
   const mod   = hits.filter(h=>h.level==="moderate");
   const bleed = hits.filter(h=>h.level==="bleeding");
 
-  // suggest timing
   const suggestedDays = [];
   for(const h of hits){
     if(typeof h.suggestDays === "number" && !isNaN(h.suggestDays)) suggestedDays.push(h.suggestDays);
   }
   const minDays = suggestedDays.length ? Math.min(...suggestedDays) : null;
 
-  return {
-    majorCount: major.length,
-    moderateCount: mod.length,
-    bleedCount: bleed.length,
-    minSuggestedDays: minDays,
-    major, mod, bleed
-  };
+  return { majorCount: major.length, moderateCount: mod.length, bleedCount: bleed.length, minSuggestedDays: minDays, major, mod, bleed };
 }
 function buildInteractionHTML(hits){
   const sum = interactionSummary(hits);
@@ -463,14 +438,9 @@ function baseSum(){return base().reduce((a,b)=>a+b,0)} function updSum(){sum.inn
 function schedAtIso(key){const d=new Date(key); const dow=d.getDay(); return base()[dow]||0}
 function effAtIso(key){if(actual.has(key))return actual.get(key); if(planned.has(key))return planned.get(key); return schedAtIso(key)}
 
-function getDoseWindowMode(){
-  const sel = document.getElementById('doseWindowMode');
-  return (sel && (sel.value === 'prior' || sel.value === 'ending')) ? sel.value : 'ending';
-}
-
 const today = new Date();
 
-// Calendar range: 26 weeks before + current + 26 weeks after (~1 yr)
+// Calendar range
 const weeksBefore = 26;
 const weeksAfter  = 26;
 let start = addDaysLocal(startOfWeekLocal(today), -7*weeksBefore);
@@ -534,11 +504,8 @@ function pushDataToCells(){
       const hasManual = (i!=='') || (a!=='');
       const inrNum = parseFloat(i);
       if(!isNaN(inrNum)){
-        if(inrNum >= 5.0){
-          cell.classList.add('redCell');
-        }else if(inrNum >= 4.0){
-          cell.classList.add('orangeCell');
-        }
+        if(inrNum >= 5.0) cell.classList.add('redCell');
+        else if(inrNum >= 4.0) cell.classList.add('orangeCell');
       }
       if(hasManual && !cell.classList.contains('redCell') && !cell.classList.contains('orangeCell')){
         cell.classList.add('manual');
@@ -635,9 +602,8 @@ function markNeedsRecalc(){
 }
 
 /* ===========================
-   Bridging (Enox / Fonda)
+   Bridging
    =========================== */
-
 function roundEnoxaparinDose(doseMg){
   if (doseMg == null || isNaN(doseMg)) return null;
   const raw = Math.round(doseMg);
@@ -645,7 +611,6 @@ function roundEnoxaparinDose(doseMg){
   if (units <= 5) return raw - units;
   return raw + (10 - units);
 }
-
 function calcEnoxaparinDose(){
   const wtEl  = document.getElementById('enoxWeight');
   const typeEl= document.getElementById('enoxType');
@@ -713,7 +678,6 @@ function calcEnoxaparinDose(){
     <div class="small" style="margin-top:6px;">${context}</div>
   `;
 }
-
 function clearEnoxaparin(){
   const wtEl  = document.getElementById('enoxWeight');
   const typeEl= document.getElementById('enoxType');
@@ -724,11 +688,21 @@ function clearEnoxaparin(){
 }
 
 /* ===========================
-   Personal Response Model
+   Window mode helpers
    =========================== */
+function getDoseWindowMode(){
+  const sel = document.getElementById('doseWindowMode');
+  return (sel && sel.value) ? sel.value : 'prior7';
+}
+function windowLabel(mode){
+  return (mode==='end7') ? '7-day window ending today (includes today)' : 'Prior 7 days (excludes today)';
+}
 
-function weightedDose7BeforeDate(date){
-  const weights = [0.4,0.4,1.0,1.0,0.7,0.7,0.3]; // days 1..7
+/* ===========================
+   Lag-weighted dose calculators
+   =========================== */
+function weightedDosePrior7ExclToday(date){
+  const weights = [0.4,0.4,1.0,1.0,0.7,0.7,0.3]; // days -1..-7
   let sum = 0;
   for(let i=1;i<=7;i++){
     const key = isoLocal(addDaysLocal(date, -i));
@@ -736,35 +710,39 @@ function weightedDose7BeforeDate(date){
   }
   return r01(sum);
 }
-
-function weightedDose7EndingOnDate(date){
-  const weights = [0.3,0.7,0.7,1.0,1.0,0.4,0.4]; // days 0..6
+function weightedDoseEnd7InclToday(date, todayOverride=null){
+  const weights = [0.3,0.7,0.7,1.0,1.0,0.4,0.4]; // days 0..-6
   let sum = 0;
   for(let i=0;i<7;i++){
-    const key = isoLocal(addDaysLocal(date, -i));
-    sum += effAtIso(key) * weights[i];
+    const d = addDaysLocal(date, -i);
+    const key = isoLocal(d);
+    const dose = (i===0 && todayOverride!=null) ? todayOverride : effAtIso(key);
+    sum += dose * weights[i];
   }
   return r01(sum);
 }
-
-function weightedDose7ForDateByMode(date, mode){
-  return (mode === 'prior') ? weightedDose7BeforeDate(date) : weightedDose7EndingOnDate(date);
+function weightedDoseForDate(date, mode, todayOverride=null){
+  if(mode === 'end7') return weightedDoseEnd7InclToday(date, todayOverride);
+  return weightedDosePrior7ExclToday(date);
 }
 
-function buildInrDoseDataset(mode){
+/* ===========================
+   Build dataset + fit model
+   =========================== */
+function buildInrDoseDataset(){
   const data = [];
   const t = new Date();
+  const mode = getDoseWindowMode();
   for(let offset=-120; offset<=0; offset++){
     const d = addDaysLocal(t, offset);
     const key = isoLocal(d);
     if(!inrVal.has(key)) continue;
     const inr = inrVal.get(key);
-    const dose7 = weightedDose7ForDateByMode(d, mode);
+    const dose7 = weightedDoseForDate(d, mode);
     if(!isNaN(inr) && dose7 > 0) data.push({dose7, inr});
   }
   return data;
 }
-
 function fitLinearDoseInrModel(data){
   if(!data || data.length < 5) return null;
   let sumX=0,sumY=0,sumXY=0,sumXX=0;
@@ -785,7 +763,6 @@ function fitLinearDoseInrModel(data){
   }
   return { a, b, n };
 }
-
 function predictInrForDose7(model, dose7){
   if(!model || model.invalid) return null;
   const raw = model.a + model.b * dose7;
@@ -795,7 +772,6 @@ function predictInrForDose7(model, dose7){
 /* ===========================
    Recommendation engine
    =========================== */
-
 function maybeAdjustRepeatForInteractions(currentRepeatIso){
   const auto = document.getElementById('autoAdjustRepeat');
   if(!auto || !auto.checked) return currentRepeatIso;
@@ -841,39 +817,46 @@ function reco(){
   const band = pickPct(bestVal, L, H);
   const age = daysBetween(bestDate, new Date());
 
-  const mode = getDoseWindowMode();
-  const dataset = buildInrDoseDataset(mode);
+  const dataset = buildInrDoseDataset();
   const model = fitLinearDoseInrModel(dataset);
+  const mode = getDoseWindowMode();
 
-  function modelBlockHTML(dose7){
-    const modeLabel = (mode === 'prior')
-      ? 'Prior 7 days (excludes today)'
-      : 'Ending today (includes today’s plan)';
+  function modelBlockHTML(dose7, nPts, est){
+    const winLbl = windowLabel(mode);
+
+    const header = `<b>Personal response model (beta):</b> Experimental trend estimate using your INR + dosing history (lag-weighted).`;
+
+    const explain = `
+      <div class="small" style="margin-top:6px;color:#444;">
+        <b>What is “weighted dose”?</b> It’s a lag-aware 7-day dose score (not a simple sum). Doses from ~2–4 days ago count more because warfarin affects INR with delay.
+      </div>`;
 
     if(!model){
-      return `<div style="margin-top:8px;padding:10px 12px;border-radius:10px;background:#fff3cd;border:1px solid #ffe08a;font-size:13px;">
-        <b>Personal response model (beta):</b> Not enough usable history yet (need ≥5 INR-linked points with dosing history).
-        <div class="small" style="margin-top:4px;">Trend insight only; does not override protocol.</div>
+      return `<div style="margin-top:8px;padding:10px 12px;border-radius:12px;background:#fff3cd;border:1px solid #ffe08a;font-size:13px;">
+        ${header}
+        <div style="margin-top:6px;"><b>Status:</b> Not enough usable history yet (need ≥5 INR-linked points with dosing history).</div>
+        ${explain}
+        <div class="small" style="margin-top:6px;color:#666;"><b>For insight only</b>—does not replace clinical judgment and does not override protocol.</div>
       </div>`;
     }
     if(model.invalid){
-      return `<div style="margin-top:8px;padding:10px 12px;border-radius:10px;background:#fff3cd;border:1px solid #ffe08a;font-size:13px;">
-        <b>Personal response model (beta):</b> Not used. <span style="color:#8a0000;"><b>${model.reason}</b></span>
-        <div class="small" style="margin-top:4px;">Trend insight only; does not override protocol.</div>
+      return `<div style="margin-top:8px;padding:10px 12px;border-radius:12px;background:#fff3cd;border:1px solid #ffe08a;font-size:13px;">
+        ${header}
+        <div style="margin-top:6px;"><b>Status:</b> Not used. <span style="color:#8a0000;"><b>${model.reason}</b></span></div>
+        ${explain}
+        <div class="small" style="margin-top:6px;color:#666;"><b>For insight only</b>—does not replace clinical judgment and does not override protocol.</div>
       </div>`;
     }
-    const est = predictInrForDose7(model, dose7);
 
-    /* ✅ UPDATE 1: Rewritten yellow box copy (exact) */
-    return `<div style="margin-top:8px;padding:10px 12px;border-radius:10px;background:#fff3cd;border:1px solid #ffe08a;font-size:13px;">
-      <b>Personal response model (beta):</b> Experimental trend estimate using your INR + dosing history (lag-weighted).
-      <div style="margin-top:4px;">
-        <b>Model window:</b> ${modeLabel}. &nbsp; <b>Weighted 7-day dose:</b> <b>${dose7.toFixed(1)} mg</b>.
-        &nbsp; <b>Estimated INR:</b> <b>${(est!=null?est.toFixed(1):'—')}</b> (n=${model.n}).
+    return `<div style="margin-top:8px;padding:10px 12px;border-radius:12px;background:#fff3cd;border:1px solid #ffe08a;font-size:13px;">
+      ${header}
+      <div style="margin-top:6px;">
+        <b>Model window:</b> ${winLbl}. &nbsp;
+        <b>Weighted 7-day dose:</b> <b>${dose7.toFixed(1)} mg</b>. &nbsp;
+        <b>Estimated INR:</b> <b>${(est!=null?est.toFixed(1):'—')}</b> <span class="small">(n=${nPts})</span>.
       </div>
-      <div class="small" style="margin-top:6px;">
-        For insight only—<b>does not replace clinical judgment</b> and <b>does not override protocol</b>.
-      </div>
+      ${explain}
+      <div class="small" style="margin-top:6px;color:#666;"><b>For insight only</b>—does not replace clinical judgment and does not override protocol.</div>
     </div>`;
   }
 
@@ -887,13 +870,15 @@ function reco(){
     lastRecoINR = bestVal;
     lastRepeatIso = repeatKey;
 
-    const dose7 = weightedDose7ForDateByMode(new Date(), mode);
+    const dose7 = weightedDoseForDate(new Date(), mode);
+    const est = (model && !model.invalid) ? predictInrForDose7(model, dose7) : null;
+    const nPts = (model && model.n) ? model.n : (dataset ? dataset.length : 0);
 
     rec.innerHTML =
       `INR <b>${bestVal.toFixed(1)}</b> is in your goal range (${L}–${H}). ` +
       `<b>No change</b> to today’s warfarin dose. ` +
       `Repeat your INR on <b>${niceDate(repeatKey)}</b>.` +
-      modelBlockHTML(dose7) +
+      modelBlockHTML(dose7, nPts, est) +
       (interHTML || '');
 
     hasReco=true;
@@ -931,13 +916,19 @@ function reco(){
   const isHigh = bestVal > H;
   const dirText = isHigh ? 'above' : 'below';
 
-  const dose7 = weightedDose7ForDateByMode(new Date(), mode);
+  // IMPORTANT: compute dose7 using SAME window mode as dataset (refactor fix)
+  const dose7 = (mode === 'end7')
+    ? weightedDoseForDate(new Date(), mode, newDose)   // include today's plan if window includes today
+    : weightedDoseForDate(new Date(), mode);           // otherwise exclude today
+
+  const est = (model && !model.invalid) ? predictInrForDose7(model, dose7) : null;
+  const nPts = (model && model.n) ? model.n : (dataset ? dataset.length : 0);
 
   rec.innerHTML =
     `INR <b>${bestVal.toFixed(1)}</b> is <b>${dirText}</b> your goal range (${L}–${H}). ` +
     `Take <b>${newDose.toFixed(1)} mg of warfarin today</b> based on your recent dosing. ` +
     `Plan to recheck your INR on <b>${niceDate(repeatKey)}</b>, or sooner if your clinic advises.` +
-    modelBlockHTML(dose7) +
+    modelBlockHTML(dose7, nPts, est) +
     (interHTML || '');
 
   hasReco=true;
@@ -947,7 +938,6 @@ function reco(){
 /* ===========================
    Week rows for PDF
    =========================== */
-
 const weekdays = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
 function buildWeekRows(startDate){
@@ -981,9 +971,8 @@ function buildWeekRows(startDate){
 }
 
 /* ===========================
-   PDF Export (tighter + editable provider notes)
+   PDF Export (wording updated)
    =========================== */
-
 function exportRecommendationPDF(){
   const todayStr = isoLocal(today);
   const now = new Date();
@@ -1037,8 +1026,7 @@ function exportRecommendationPDF(){
     <body>
       <button id="printBtn" onclick="window.print()" style="float:right;">Print / Save as PDF</button>
 
-      <!-- ✅ UPDATE 2: Adjusted PDF wording -->
-      <h1>ThromboLogic INR – Dosing Summary</h1>
+      <h1>ThromboLogic INR – Visit Summary</h1>
       <div class="small">Generated on ${todayStr} at ${timeStr}</div>
       ${patientInfoLine ? `<div class="small" style="margin-top:4px;">${patientInfoLine}</div>` : ''}
 
@@ -1048,12 +1036,12 @@ function exportRecommendationPDF(){
         Repeat INR date:&nbsp;<b class="big">${repDisplay}</b>
       </div>
 
-      <h2>Recommendation (for clinician review)</h2>
+      <h2>Recommendation Summary</h2>
       <div class="card">
         ${rec.innerHTML || '<span class="small">No recommendation generated yet.</span>'}
       </div>
 
-      <h2>This Week's Calendar View</h2>
+      <h2>This Week</h2>
       <div class="card">
         <table>
           <thead>
@@ -1065,7 +1053,7 @@ function exportRecommendationPDF(){
         </table>
       </div>
 
-      <h2>Next Week's Calendar View</h2>
+      <h2>Next Week</h2>
       <div class="card">
         <table>
           <thead>
@@ -1151,7 +1139,7 @@ function openPatientHandout(){
         Repeat INR date:&nbsp;<b class="big">${repDisplay}</b>
       </div>
 
-      <h2>This Week's Calendar View</h2>
+      <h2>This Week</h2>
       <div class="card">
         <table>
           <thead>
@@ -1163,7 +1151,7 @@ function openPatientHandout(){
         </table>
       </div>
 
-      <h2>Next Week's Calendar View</h2>
+      <h2>Next Week</h2>
       <div class="card">
         <table>
           <thead>
@@ -1182,21 +1170,20 @@ function openPatientHandout(){
 }
 
 /* ===========================
-   What-if prediction panel
+   What-if prediction
    =========================== */
-
 function runWhatIfPrediction(){
   const predInput = document.getElementById('predWeeklyDose');
   const predOut = document.getElementById('predOut');
   const v = parseFloat(predInput.value);
   if(isNaN(v) || v <= 0){
-    predOut.innerHTML = '<span style="color:#b00020;">Enter a valid proposed weighted 7-day dose.</span>';
+    predOut.innerHTML = '<span style="color:#b00020;">Enter a valid proposed <b>weighted</b> 7-day dose.</span>';
     return;
   }
 
-  const mode = getDoseWindowMode();
-  const dataset = buildInrDoseDataset(mode);
+  const dataset = buildInrDoseDataset();
   const model = fitLinearDoseInrModel(dataset);
+  const mode = getDoseWindowMode();
 
   if(!model){
     predOut.innerHTML = '<span style="color:#b00020;">Not enough usable historical data (need ≥5 INR-linked points).</span>';
@@ -1212,31 +1199,29 @@ function runWhatIfPrediction(){
   }
 
   const predicted = predictInrForDose7(model, v);
-  const modeLabel = (mode === 'prior') ? 'Prior 7 days (excludes today)' : 'Ending today (includes today’s plan)';
   predOut.innerHTML = `
     <div>
-      Estimated INR for a <b>weighted 7-day dose</b> of <b>${v.toFixed(1)} mg</b> is approximately
+      Estimated INR for a <b>weighted</b> 7-day dose of <b>${v.toFixed(1)} mg</b> is approximately
       <b style="font-size:16px;">${predicted.toFixed(1)}</b>.
     </div>
     <div class="small" style="margin-top:4px;">
-      Model window: ${modeLabel}. Based on ${model.n} historical points. Lag-aware weighting + direction constraint applied. Trend insight only.
+      Model window: <b>${windowLabel(mode)}</b>. Based on ${model.n} historical points.
+      Lag-aware weighting + direction constraint applied. Trend insight only.
     </div>
   `;
 }
 
 /* ===========================
-   DEMO HISTORY (one-click)
+   DEMO HISTORY
    =========================== */
-
 function setBaselineRegimen(values7){
   for(let i=0;i<7;i++){
     const el = document.getElementById('b'+i);
     if(el) el.value = (values7[i] ?? 0).toFixed(1);
   }
   updSum();
-  applyVisible(); // puts baseline into the visible weeks so you see it immediately
+  applyVisible();
 }
-
 function setDemoMessage(text, isError=false){
   const el = document.getElementById('demoMsg');
   if(!el) return;
@@ -1244,7 +1229,6 @@ function setDemoMessage(text, isError=false){
   el.style.color = isError ? '#b00020' : '#2e7d32';
   el.textContent = text;
 }
-
 function clearDemoHistoryOnly(){
   planned.clear();
   actual.clear();
@@ -1265,7 +1249,6 @@ function clearDemoHistoryOnly(){
   applyVisible();
   pushDataToCells(); lin7();
 }
-
 function loadDemoHistory(){
   planned.clear(); actual.clear(); inrVal.clear();
   repeatKey = null;
@@ -1314,7 +1297,7 @@ function loadDemoHistory(){
   }
 
   const predInput = document.getElementById('predWeeklyDose');
-  if(predInput) predInput.value = (6.0*7).toFixed(1);
+  if(predInput) predInput.value = (30.0).toFixed(1); // example weighted value, not a "weekly total"
 
   pushDataToCells(); lin7();
   scrollToTodayWeek();
@@ -1324,7 +1307,6 @@ function loadDemoHistory(){
 /* ===========================
    DOM init + listeners
    =========================== */
-
 document.addEventListener('DOMContentLoaded', ()=>{
   try{ renderAll(); updSum(); }catch(e){ err.textContent = 'Calendar failed to render: '+e; }
 
@@ -1340,11 +1322,13 @@ document.addEventListener('DOMContentLoaded', ()=>{
     document.getElementById('cust').style.display = (v==='custom')?'block':'none';
   });
 
-  // ✅ Update 3: changing dose window should prompt recalculation if a rec already exists
-  const windowSel = document.getElementById('doseWindowMode');
-  if(windowSel){
-    windowSel.addEventListener('change', ()=>{
-      if(hasReco) markNeedsRecalc();
+  // Window mode change: if user already has a what-if result, nudge refresh
+  const modeSel = document.getElementById('doseWindowMode');
+  if(modeSel){
+    modeSel.addEventListener('change', ()=>{
+      const predOut = document.getElementById('predOut');
+      if(predOut) predOut.innerHTML = '';
+      if(hasReco){ markNeedsRecalc(); }
     });
   }
 
@@ -1431,7 +1415,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   const clearDemoBtn = document.getElementById('clearDemo');
   if(clearDemoBtn) clearDemoBtn.addEventListener('click', clearDemoHistoryOnly);
 
-  // DOB auto-format + FIXED validation (no alert loop)
+  // DOB auto-format + validation
   const dobInput = document.getElementById('patientDob');
   const dobInlineErr = document.getElementById('dobInlineErr');
   if(dobInput){
