@@ -68,15 +68,16 @@ textarea{resize:vertical}
 .kv > div{border:1px dashed #ddd;border-radius:10px;padding:8px 10px;background:#fff}
 .kv b{font-size:13px}
 
-/* Prediction panel */
-.predGridHdr{display:flex;justify-content:space-between;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-top:8px}
-.predNote{font-size:11px;color:#666;margin-top:6px}
-.predSummary{margin-top:10px;padding:10px;border:1px solid #e6e6e6;border-radius:10px;background:#fff}
-.miniLabel{font-size:11px;color:#444;text-align:center;margin-top:2px}
-.tight{margin-top:6px}
-
 /* Hide export button when printing */
 @media print { #exportPDF{display:none !important;} }
+
+/* Prediction grids */
+.predGridTitle{font-weight:700;margin-top:6px}
+.predRow{display:grid;grid-template-columns:repeat(7,minmax(78px,1fr));gap:8px;align-items:end}
+.predCell{display:flex;flex-direction:column;gap:4px;align-items:center}
+.predCell label{font-size:12px;color:#555}
+.predCell input{width:86px;max-width:86px;padding:6px;font-size:14px;text-align:center}
+@media(max-width:700px){.predCell input{width:78px;max-width:78px;font-size:13px;padding:5px}}
 </style>
 </head>
 <body>
@@ -90,7 +91,7 @@ textarea{resize:vertical}
     <div style="display:flex; flex-direction:column; line-height:1.1;">
       <span style="font-size:26px; font-weight:800;">ThromboLogic</span>
       <span style="font-size:16px; font-weight:600;">INR</span>
-      <span class="small" style="margin-top:4px;">INR 7.4 (Target INR + weighted-dose-aware recommendation + 14-day what-if)</span>
+      <span class="small" style="margin-top:4px;">INR 7.4 (Target INR + weighted-dose-aware recommendation + 7-day what-if)</span>
     </div>
   </div>
 
@@ -133,7 +134,6 @@ textarea{resize:vertical}
             <option value="custom">Custom…</option>
           </select>
 
-          <!-- Target INR button -->
           <button class="btnS" id="toggleTarget" type="button" title="Optional: aim for a specific INR within the goal range (e.g., low end for a procedure).">
             Target INR
           </button>
@@ -154,7 +154,6 @@ textarea{resize:vertical}
           </div>
         </div>
 
-        <!-- Target INR panel -->
         <div id="targetPanel" style="display:none;margin-top:10px;padding:10px;border:1px solid #e6e6e6;border-radius:10px;background:#fff;">
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
             <div style="display:flex;flex-direction:column;">
@@ -167,10 +166,6 @@ textarea{resize:vertical}
               ThromboLogic will make only a <b>small, cautious</b> adjustment when your INR is already “in range.”
             </div>
           </div>
-          <label style="display:flex;gap:8px;align-items:center;margin-top:8px;">
-            <input id="useSameDoseWindow" type="checkbox">
-            <span class="small">Use the same 7-day “weighted dose window” for all personal-model displays (reduces confusion)</span>
-          </label>
         </div>
       </div>
 
@@ -216,7 +211,6 @@ textarea{resize:vertical}
     <div id="sum" class="small" style="margin-top:6px">Scheduled weekly total: 0.0 mg</div>
   </fieldset>
 
-  <!-- Legend + Live Calendar BEFORE Bridging -->
   <div class="legend">
     <span><span class="sw" style="background:var(--blue);box-shadow:inset 0 0 0 2px var(--blue-ring)"></span>Today / Repeat INR</span>
     <span><span class="sw" style="background:var(--man);box-shadow:inset 0 0 0 2px var(--man-b)"></span>Manual entry present</span>
@@ -233,7 +227,7 @@ textarea{resize:vertical}
   </div>
   <div id="dbg" class="debug"></div>
 
-  <!-- Bridging – Parenteral Helper (Enoxaparin / Fondaparinux) -->
+  <!-- Bridging -->
   <h2>Bridging – Parenteral Helper (enoxaparin / fondaparinux) (beta)</h2>
   <fieldset><legend>Weight-based parenteral dose</legend>
     <div class="grid">
@@ -251,24 +245,12 @@ textarea{resize:vertical}
       <div>
         <label for="enoxType">Regimen</label>
         <select id="enoxType">
-          <option value="tx_q12" selected>
-            Enoxaparin – Therapeutic 1 mg/kg every 12 hours
-          </option>
-          <option value="tx_q24">
-            Enoxaparin – Therapeutic (renal adjustment) – 1 mg/kg once daily
-          </option>
-          <option value="px_40">
-            Enoxaparin – Prophylaxis – 40 mg once daily
-          </option>
-          <option value="px_30">
-            Enoxaparin – Prophylaxis (renal adjustment) – 30 mg once daily
-          </option>
-          <option value="fond_tx">
-            Fondaparinux – Treatment (5 mg if &lt;50 kg, 7.5 mg if 50–100 kg, 10 mg if &gt;100 kg)
-          </option>
-          <option value="fond_px">
-            Fondaparinux – Prophylaxis – 2.5 mg once daily
-          </option>
+          <option value="tx_q12" selected>Enoxaparin – Therapeutic 1 mg/kg every 12 hours</option>
+          <option value="tx_q24">Enoxaparin – Therapeutic (renal adjustment) – 1 mg/kg once daily</option>
+          <option value="px_40">Enoxaparin – Prophylaxis – 40 mg once daily</option>
+          <option value="px_30">Enoxaparin – Prophylaxis (renal adjustment) – 30 mg once daily</option>
+          <option value="fond_tx">Fondaparinux – Treatment (5 mg if &lt;50 kg, 7.5 mg if 50–100 kg, 10 mg if &gt;100 kg)</option>
+          <option value="fond_px">Fondaparinux – Prophylaxis – 2.5 mg once daily</option>
         </select>
         <div class="small">Always confirm with local protocol, especially in renal impairment or HIT.</div>
       </div>
@@ -282,7 +264,7 @@ textarea{resize:vertical}
     <div id="enoxOut" class="small" style="margin-top:8px;"></div>
   </fieldset>
 
-  <!-- Interaction checker AFTER Bridging -->
+  <!-- Interactions -->
   <h2>Warfarin Drug Interaction Check (beta)</h2>
   <fieldset><legend>Medication review</legend>
     <div class="small" style="margin-bottom:8px;">
@@ -328,46 +310,53 @@ textarea{resize:vertical}
   <h2>7-Day Recommendation (Linear — Today's Week)</h2>
   <div id="lin" class="card mono"></div>
 
-  <!-- Predicted INR (What-if – Beta) -->
+  <!-- Predicted INR -->
   <h2>Predicted INR (What-if – Beta)</h2>
   <div class="card small" id="predictCard">
     <div style="margin-bottom:6px;">
-      Uses INR history + dosing history to estimate a trend response. This is <b>experimental</b>,
+      Uses prior INR + dosing history to estimate a trend response. This is <b>experimental</b>,
       lag-aware (weighted), and direction-constrained (will refuse inverse models). Use clinical judgment.
     </div>
 
     <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:6px;">
       <button class="btnS" type="button" id="loadDemo">Load demo history</button>
       <button class="btnS" type="button" id="clearDemo" title="Clears planned/actual/INR history only (keeps baseline inputs)">Clear demo history</button>
-      <button class="btnS" type="button" id="syncPred" title="Pulls past/next 7-day doses from the calendar into the What-if panel">Sync from calendar</button>
       <span class="small" id="demoMsg" style="display:none;"></span>
     </div>
 
-    <!-- Past 7 days -->
-    <div class="predGridHdr">
-      <div>
-        <b>Past 7 days (most recent exposure)</b>
-        <div class="predNote">Edit if needed. Defaults pull from your calendar (Actual → Planned → Baseline).</div>
-      </div>
-      <div class="small" id="past7Label"></div>
+    <div class="predGridTitle">Enter the last 7 daily doses (mg) to estimate current trend (yesterday → 7 days ago)</div>
+    <div class="small" style="margin-top:2px;color:#666;">INR responds with delay, so more recent doses count more.</div>
+    <div class="predRow" style="margin-top:8px;">
+      <div class="predCell"><label>1d ago</label><input id="pd1" type="number" step="0.5" min="0"></div>
+      <div class="predCell"><label>2d ago</label><input id="pd2" type="number" step="0.5" min="0"></div>
+      <div class="predCell"><label>3d ago</label><input id="pd3" type="number" step="0.5" min="0"></div>
+      <div class="predCell"><label>4d ago</label><input id="pd4" type="number" step="0.5" min="0"></div>
+      <div class="predCell"><label>5d ago</label><input id="pd5" type="number" step="0.5" min="0"></div>
+      <div class="predCell"><label>6d ago</label><input id="pd6" type="number" step="0.5" min="0"></div>
+      <div class="predCell"><label>7d ago</label><input id="pd7" type="number" step="0.5" min="0"></div>
     </div>
-    <div class="grid7 tight" id="past7Grid"></div>
 
-    <!-- Next 7 days -->
-    <div class="predGridHdr">
-      <div>
-        <b>Next 7 days (starting today)</b>
-        <div class="predNote">This simulates a dose adjustment beginning today. Edit to test a plan.</div>
-      </div>
-      <div class="small" id="next7Label"></div>
+    <div class="predGridTitle" style="margin-top:12px;">Enter the next 7 daily doses (mg) to estimate INR after 7 days on the new plan (today → +6 days)</div>
+    <div class="small" style="margin-top:2px;color:#666;">This simulates a dose change starting today.</div>
+    <div class="predRow" style="margin-top:8px;">
+      <div class="predCell"><label>Today</label><input id="fd0" type="number" step="0.5" min="0"></div>
+      <div class="predCell"><label>+1 day</label><input id="fd1" type="number" step="0.5" min="0"></div>
+      <div class="predCell"><label>+2 days</label><input id="fd2" type="number" step="0.5" min="0"></div>
+      <div class="predCell"><label>+3 days</label><input id="fd3" type="number" step="0.5" min="0"></div>
+      <div class="predCell"><label>+4 days</label><input id="fd4" type="number" step="0.5" min="0"></div>
+      <div class="predCell"><label>+5 days</label><input id="fd5" type="number" step="0.5" min="0"></div>
+      <div class="predCell"><label>+6 days</label><input id="fd6" type="number" step="0.5" min="0"></div>
     </div>
-    <div class="grid7 tight" id="next7Grid"></div>
 
     <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px;">
-      <button class="btnS" type="button" id="runPrediction">Estimate INR after 7 days</button>
+      <button class="btnS" type="button" id="fillPredFromCalPast">Fill last 7 from calendar</button>
+      <button class="btnS" type="button" id="fillPredFromCalFuture">Fill next 7 from calendar</button>
+      <button class="btnS" type="button" id="clearPredInputs">Clear inputs</button>
+      <button class="btnS" type="button" id="runPrediction">Estimate INR</button>
     </div>
 
-    <div id="predOut" style="margin-top:10px;"></div>
+    <div id="predCalcLine" class="small" style="margin-top:10px;"></div>
+    <div id="predOut" style="margin-top:6px;"></div>
   </div>
 
 <script>
@@ -396,7 +385,7 @@ const planned=new Map(), actual=new Map(), inrVal=new Map(); let repeatKey=null;
 let lastRecoINR = null; let lastRepeatIso = null;
 
 /* ===========================
-   INTERACTION DATABASE (EDITABLE JSON)
+   INTERACTION DATABASE
    =========================== */
 const WARFARIN_INTERACTIONS = [
   { drug:"trimethoprim-sulfamethoxazole", aka:["bactrim","septra","tmp-smx"], level:"major", effect:"↑ INR", suggestDays:3 },
@@ -408,13 +397,13 @@ const WARFARIN_INTERACTIONS = [
   { drug:"carbamazepine", aka:["tegretol"], level:"moderate", effect:"↓ INR", suggestDays:7 },
   { drug:"sertraline", aka:["zoloft","ssri"], level:"bleeding", effect:"Bleeding risk", suggestDays:null },
   { drug:"citalopram", aka:["celexa","ssri"], level:"bleeding", effect:"Bleeding risk", suggestDays:null },
-  { drug:"fluoxetine", aka:["prozac","ssri"], level:"bleeding", effect:"Bleeding risk", suggestDays:null },
+  { drug:"fluoxetine", aka:["prozac"], level:"bleeding", effect:"Bleeding risk", suggestDays:null },
   { drug:"ibuprofen", aka:["nsaid","motrin","advil"], level:"bleeding", effect:"Bleeding risk", suggestDays:null },
   { drug:"naproxen", aka:["aleve","nsaid"], level:"bleeding", effect:"Bleeding risk", suggestDays:null },
   { drug:"aspirin", aka:["asa"], level:"bleeding", effect:"Bleeding risk", suggestDays:null }
 ];
 
-let currentInteractionHits = []; // last computed hits
+let currentInteractionHits = [];
 
 function normalizeMedText(s){
   return (s||"").toLowerCase().replace(/[\n\r]/g,' ').replace(/\s+/g,' ').trim();
@@ -444,13 +433,7 @@ function interactionSummary(hits){
   }
   const minDays = suggestedDays.length ? Math.min(...suggestedDays) : null;
 
-  return {
-    majorCount: major.length,
-    moderateCount: mod.length,
-    bleedCount: bleed.length,
-    minSuggestedDays: minDays,
-    major, mod, bleed
-  };
+  return { majorCount: major.length, moderateCount: mod.length, bleedCount: bleed.length, minSuggestedDays: minDays, major, mod, bleed };
 }
 function buildInteractionHTML(hits){
   const sum = interactionSummary(hits);
@@ -494,10 +477,11 @@ function base(){return [0,1,2,3,4,5,6].map(i=>{const v=parseFloat(document.getEl
 function baseSum(){return base().reduce((a,b)=>a+b,0)} function updSum(){sum.innerHTML='Scheduled weekly total: <b>'+r01(baseSum()).toFixed(1)+' mg</b>'}
 function schedAtIso(key){const d=new Date(key); const dow=d.getDay(); return base()[dow]||0}
 function effAtIso(key){if(actual.has(key))return actual.get(key); if(planned.has(key))return planned.get(key); return schedAtIso(key)}
+function plannedOrSchedAtIso(key){ if(planned.has(key)) return planned.get(key); return schedAtIso(key); }
 
 const today = new Date();
 
-// Calendar range: 26 weeks before + current + 26 weeks after (~1 yr)
+// Calendar range: 26 weeks before + current + 26 weeks after
 const weeksBefore = 26;
 const weeksAfter  = 26;
 let start = addDaysLocal(startOfWeekLocal(today), -7*weeksBefore);
@@ -561,22 +545,15 @@ function pushDataToCells(){
       const hasManual = (i!=='') || (a!=='');
       const inrNum = parseFloat(i);
       if(!isNaN(inrNum)){
-        if(inrNum >= 5.0){
-          cell.classList.add('redCell');
-        }else if(inrNum >= 4.0){
-          cell.classList.add('orangeCell');
-        }
+        if(inrNum >= 5.0){ cell.classList.add('redCell'); }
+        else if(inrNum >= 4.0){ cell.classList.add('orangeCell'); }
       }
       if(hasManual && !cell.classList.contains('redCell') && !cell.classList.contains('orangeCell')){
         cell.classList.add('manual');
       }
       const repEl = cell.querySelector('.repeat-inr');
-      if(repEl){
-        repEl.innerHTML = isRepeat ? '<b>Repeat INR</b>' : '';
-      }
-      if(isToday||isRepeat){
-        cell.classList.add('blue');
-      }
+      if(repEl){ repEl.innerHTML = isRepeat ? '<b>Repeat INR</b>' : ''; }
+      if(isToday||isRepeat){ cell.classList.add('blue'); }
     }
   }
 }
@@ -594,7 +571,6 @@ function applyVisible(){
     }
   });
   pushDataToCells(); lin7(); updSum();
-  syncPredictionFromCalendar(); // keep What-if aligned
 }
 
 function clearVisible(){
@@ -609,14 +585,12 @@ function clearVisible(){
     }
   });
   pushDataToCells(); lin7(); rec.innerHTML='';
-  syncPredictionFromCalendar();
 }
 
 function clearAll(){
   planned.clear(); actual.clear(); inrVal.clear(); repeatKey=null;
   for(let i=0;i<7;i++) document.getElementById('b'+i).value='';
   updSum(); pushDataToCells(); lin7(); rec.innerHTML='';
-  syncPredictionFromCalendar();
 }
 
 function lin7(){
@@ -650,17 +624,17 @@ function pickPct(inr, L, H){
   else                return {pct:-0.10, label:'-10–15%', repeat:7};
 }
 
-/* cautious in-range target steering */
 function pickPctWithTarget(inr, L, H, target){
   if(target==null || isNaN(target)) return pickPct(inr, L, H);
   if(inr < L || inr > H) return pickPct(inr, L, H);
   if(target < L || target > H) return {pct:0, label:'in range (target outside goal)', repeat:7};
-
   const diff = inr - target;
   if(Math.abs(diff) <= 0.1) return {pct:0, label:'at/near target', repeat:7};
   if(diff > 0.1) return {pct:-0.03, label:'small decrease toward target', repeat:5};
   return {pct:+0.03, label:'small increase toward target', repeat:5};
 }
+
+function sched7EndOnDate(d){ let s=0; for(let k=6;k>=0;k--){ const key=isoLocal(addDaysLocal(d,-k)); s+=schedAtIso(key) } return r01(s) }
 
 function markNeedsRecalc(){
   if(hasReco){
@@ -675,6 +649,7 @@ function markNeedsRecalc(){
 /* ===========================
    Bridging (Enox / Fonda)
    =========================== */
+
 function roundEnoxaparinDose(doseMg){
   if (doseMg == null || isNaN(doseMg)) return null;
   const raw = Math.round(doseMg);
@@ -682,6 +657,7 @@ function roundEnoxaparinDose(doseMg){
   if (units <= 5) return raw - units;
   return raw + (10 - units);
 }
+
 function calcEnoxaparinDose(){
   const wtEl  = document.getElementById('enoxWeight');
   const typeEl= document.getElementById('enoxType');
@@ -749,6 +725,7 @@ function calcEnoxaparinDose(){
     <div class="small" style="margin-top:6px;">${context}</div>
   `;
 }
+
 function clearEnoxaparin(){
   const wtEl  = document.getElementById('enoxWeight');
   const typeEl= document.getElementById('enoxType');
@@ -761,44 +738,47 @@ function clearEnoxaparin(){
 /* ===========================
    Weighted-dose helpers (lag-aware)
    =========================== */
-/*
-  IMPORTANT: weights are intentionally NOT monotonic.
-  They approximate INR lag: doses from ~3–4 days ago often influence INR more than yesterday’s dose.
-  (Day 1 = yesterday, Day 7 = a week ago)
-*/
-const LAG_WEIGHTS_BEFORE = [0.4,0.4,1.0,1.0,0.7,0.7,0.3]; // days 1..7
-const LAG_WEIGHTS_ENDING = [0.3,0.7,0.7,1.0,1.0,0.4,0.4]; // days 0..6
 
-function weighted7BeforeUsing(fnDose, date){
-  // sum dose(date-1..date-7) * weights
-  let sum=0;
+// Helper: lag-weighted 7-day window “before date” (yesterday..7d ago), customizable getter
+function weightedDose7BeforeDateWithGetter(date, getterFn){
+  const weights = [0.4,0.4,1.0,1.0,0.7,0.7,0.3]; // days 1..7
+  let sum = 0;
   for(let i=1;i<=7;i++){
     const key = isoLocal(addDaysLocal(date, -i));
-    sum += (fnDose(key)||0) * LAG_WEIGHTS_BEFORE[i-1];
-  }
-  return r01(sum);
-}
-function weighted7EndingUsing(fnDose, date){
-  // sum dose(date..date-6) * weights
-  let sum=0;
-  for(let i=0;i<7;i++){
-    const key = isoLocal(addDaysLocal(date, -i));
-    sum += (fnDose(key)||0) * LAG_WEIGHTS_ENDING[i];
+    sum += getterFn(key) * weights[i-1];
   }
   return r01(sum);
 }
 
 function weightedDose7BeforeDate(date){
-  return weighted7BeforeUsing(effAtIso, date);
+  return weightedDose7BeforeDateWithGetter(date, effAtIso);
 }
-function weightedDose7EndingOnDate(date){
-  return weighted7EndingUsing(effAtIso, date);
+
+function weightedDose7BeforeDateScheduled(date){
+  return weightedDose7BeforeDateWithGetter(date, schedAtIso);
 }
-function weightedSched7BeforeDate(date){
-  return weighted7BeforeUsing(schedAtIso, date);
+
+// For “future plan” (today..+6), use weights aligned to “ending on day+6”
+function weightedDose7FromNext7Array(next7){
+  // days 0..6 (today..+6)
+  const weights = [0.3,0.7,0.7,1.0,1.0,0.4,0.4];
+  let sum=0;
+  for(let i=0;i<7;i++){
+    const v = Number(next7[i]||0);
+    if(!isNaN(v)) sum += v * weights[i];
+  }
+  return r01(sum);
 }
-function weightedSched7EndingOnDate(date){
-  return weighted7EndingUsing(schedAtIso, date);
+
+function weightedDose7FromPrior7Array(prior7){
+  // prior7 array is [1d ago..7d ago] => apply weights [0.4,0.4,1.0,1.0,0.7,0.7,0.3]
+  const weights = [0.4,0.4,1.0,1.0,0.7,0.7,0.3];
+  let sum=0;
+  for(let i=0;i<7;i++){
+    const v = Number(prior7[i]||0);
+    if(!isNaN(v)) sum += v * weights[i];
+  }
+  return r01(sum);
 }
 
 function buildInrDoseDataset(){
@@ -863,6 +843,7 @@ function getGoalBounds(){
   const H = (goalVal==='2-3')?3.0:(goalVal==='2.5-3.5')?3.5:parseFloat(document.getElementById('gH').value);
   return {L,H};
 }
+
 function getTargetInrIfEnabled(L,H){
   const panel = document.getElementById('targetPanel');
   if(!panel || panel.style.display==='none') return null;
@@ -929,26 +910,21 @@ function reco(){
   }
 
   const age = daysBetween(bestDate, new Date());
-
   const target = getTargetInrIfEnabled(L,H);
   const usingTarget = (target!=null);
 
   const band = usingTarget ? pickPctWithTarget(bestVal, L, H, target) : pickPct(bestVal, L, H);
-
   const dataset = buildInrDoseDataset();
   const model = fitLinearDoseInrModel(dataset);
 
-  const useSameWin = !!document.getElementById('useSameDoseWindow')?.checked;
   const interHTML = buildInteractionHTML(currentInteractionHits);
 
-  // Weighted-dose numbers
-  const wEffBefore = weightedDose7BeforeDate(new Date());
-  const wSchBefore = weightedSched7BeforeDate(new Date());
+  const wEffPrior = weightedDose7BeforeDate(new Date());
+  const wSchedPrior = weightedDose7BeforeDateScheduled(new Date());
 
-  // Clearer line: explain what weighted dose is doing
   const weightExplain = `<div class="small" style="margin-top:6px;color:#666;">
-    <b>Lag-weighted dose (7-day):</b> doses from ~3–5 days ago “count more” than yesterday or a full week ago.
-    Recent exposure (prior-7-days) ≈ <b>${wEffBefore.toFixed(1)} mg</b>.
+    <b>Lag-weighted dose (7-day):</b> recent doses count more than older doses (because INR responds with delay).
+    Prior-7-days (effective) ≈ <b>${wEffPrior.toFixed(1)} mg</b>.
   </div>`;
 
   if(band.pct===0){
@@ -959,45 +935,38 @@ function reco(){
     lastRecoINR = bestVal;
     lastRepeatIso = repeatKey;
 
-    const doseForModel = useSameWin ? wEffBefore : wEffBefore;
-
     rec.innerHTML =
       `INR <b>${bestVal.toFixed(1)}</b> is in your goal range (${L}–${H}). ` +
       `<b>No change</b> to today’s warfarin dose. ` +
       `Repeat your INR on <b>${niceDate(repeatKey)}</b>.` +
       weightExplain +
-      modelBlockHTML('Your', doseForModel, model) +
+      modelBlockHTML('Your', wEffPrior, model) +
       (interHTML || '');
 
     hasReco=true;
-    pushDataToCells(); lin7(); syncPredictionFromCalendar(); return;
+    pushDataToCells(); lin7(); return;
   }
 
-  // --- Adjustment path (weighted-dose-aware adherence delta) ---
+  // Adjustment path (weighted-dose-aware adherence correction)
   const baseToday = schedAtIso(todayIso);
+  const s7 = sched7EndOnDate(new Date());
 
-  // Protocol target change (use weighted scheduled exposure as baseline for “7-day total”)
-  const targetDelta = r01(wSchBefore * band.pct);
+  const targetDelta = r01(s7 * band.pct);
 
-  // How far off is the patient’s recent exposure from what the schedule would have produced?
-  // Positive means they've taken MORE (weighted) than scheduled; negative means LESS.
-  const priorDelta  = r01(wEffBefore - wSchBefore);
+  // NEW: weighted adherence delta (effective vs scheduled in prior 7 days)
+  const priorDelta = r01(wEffPrior - wSchedPrior);
 
-  // Remaining change needed after accounting for adherence/exposure difference:
-  // If they under-dosed recently (priorDelta negative), we don't “double count” by over-increasing.
+  // Remaining change to apply today
   const remaining   = r01(targetDelta - priorDelta);
 
-  // cap change based on today-dose context (still conservative)
-  const naive = r01((wEffBefore + baseToday) * band.pct);
+  const naive = r01((wEffPrior + baseToday) * band.pct);
   const sign  = remaining>0?1:-1;
   const capped= Math.min(Math.abs(naive), Math.abs(remaining)) * sign;
-
   const targetDose = Math.max(0, r01(baseToday + capped));
   const newDose = r05(targetDose);
 
   planned.set(todayIso, newDose);
 
-  // Repeat date logic
   let repDate;
   if(bestVal>4.5) repDate = addDaysLocal(new Date(), 2);
   else if(age>=2 && age<=3) repDate = addDaysLocal(bestDate, 7);
@@ -1020,15 +989,11 @@ function reco(){
   const dirText = isHigh ? 'above' : isLow ? 'below' : 'within';
   const withinButTarget = usingTarget && !isHigh && !isLow;
 
-  const doseForModel = useSameWin ? wEffBefore : (withinButTarget ? wEffBefore : weightedDose7EndingOnDate(new Date()));
-
-  const wEndingAfterPlan = weightedDose7EndingOnDate(new Date());
-
   const mainSentence = withinButTarget
     ? `INR <b>${bestVal.toFixed(1)}</b> is <b>within</b> your goal range (${L}–${H}). ${context}`
       + `To gently move toward the target, take <b>${newDose.toFixed(1)} mg of warfarin today</b>.`
     : `INR <b>${bestVal.toFixed(1)}</b> is <b>${dirText}</b> your goal range (${L}–${H}). `
-      + `Take <b>${newDose.toFixed(1)} mg of warfarin today</b> based on your weighted recent exposure.`;
+      + `Take <b>${newDose.toFixed(1)} mg of warfarin today</b> based on your recent dosing.`;
 
   const steerExplain = withinButTarget
     ? `<div class="small" style="margin-top:6px;color:#666;">
@@ -1037,29 +1002,25 @@ function reco(){
        </div>`
     : '';
 
-  const adherenceExplain = `<div class="small" style="margin-top:6px;color:#666;">
-    <b>Weighted-dose-aware adjustment:</b> scheduled exposure ≈ <b>${wSchBefore.toFixed(1)} mg</b> vs actual exposure ≈ <b>${wEffBefore.toFixed(1)} mg</b>.
-    This prevents over-correcting when the INR is driven by recent missed/extra doses.
-  </div>`;
-
   rec.innerHTML =
     mainSentence +
     ` Plan to recheck your INR on <b>${niceDate(repeatKey)}</b>, or sooner if your clinic advises.` +
     `<div class="small" style="margin-top:6px;color:#666;">
-      <b>Lag-weighted dose (7-day):</b> prior-7-days ≈ <b>${wEffBefore.toFixed(1)} mg</b>. With today’s plan, “ending-today” ≈ <b>${wEndingAfterPlan.toFixed(1)} mg</b>.
+      <b>Lag-weighted dose (7-day):</b> prior-7-days effective ≈ <b>${wEffPrior.toFixed(1)} mg</b>. Prior-7-days scheduled ≈ <b>${wSchedPrior.toFixed(1)} mg</b>.
+      <br><b>Weighted adherence delta:</b> ${priorDelta.toFixed(1)} mg (used to avoid over/under-reacting to missed/extra doses).
     </div>` +
-    adherenceExplain +
     steerExplain +
-    modelBlockHTML(withinButTarget ? 'Your' : 'With today’s plan, your', doseForModel, model) +
+    modelBlockHTML(withinButTarget ? 'Your' : 'Your', wEffPrior, model) +
     (interHTML || '');
 
   hasReco=true;
-  pushDataToCells(); lin7(); syncPredictionFromCalendar();
+  pushDataToCells(); lin7();
 }
 
 /* ===========================
    Week rows for PDF
    =========================== */
+
 const weekdays = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
 function buildWeekRows(startDate){
@@ -1095,6 +1056,7 @@ function buildWeekRows(startDate){
 /* ===========================
    PDF Export
    =========================== */
+
 function exportRecommendationPDF(){
   const todayStr = isoLocal(today);
   const now = new Date();
@@ -1301,180 +1263,116 @@ function openPatientHandout(){
 }
 
 /* ===========================
-   What-if prediction panel (Past 7 + Next 7)
+   Prediction panel (daily inputs → weighted windows)
    =========================== */
-const past7Grid = document.getElementById('past7Grid');
-const next7Grid = document.getElementById('next7Grid');
-const past7Label = document.getElementById('past7Label');
-const next7Label = document.getElementById('next7Label');
 
-function buildPredGrid(container, prefix, dayKeys){
-  // dayKeys are ISO dates in display order left→right
-  container.innerHTML = '';
-  for(let i=0;i<7;i++){
-    const key = dayKeys[i];
-    const d = new Date(key);
-    const dow = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
-    const mmdd = pad(d.getMonth()+1)+'/'+pad(d.getDate());
-    const wrap = document.createElement('div');
-    wrap.innerHTML = `
-      <div class="miniLabel"><b>${dow}</b><div class="small">${mmdd}</div></div>
-      <input id="${prefix}${i}" data-iso="${key}" type="number" step="0.1" min="0" inputmode="decimal" placeholder="mg">
-    `;
-    container.appendChild(wrap);
-  }
+function getPrior7FromInputs(){
+  // returns [1d ago..7d ago]
+  const ids = ['pd1','pd2','pd3','pd4','pd5','pd6','pd7'];
+  return ids.map(id=>{
+    const v = parseFloat(document.getElementById(id).value);
+    return isNaN(v)?0:r01(v);
+  });
 }
 
-function getPredValues(prefix){
-  const vals = [];
-  for(let i=0;i<7;i++){
-    const el = document.getElementById(prefix+i);
-    const v = el && el.value!=='' ? parseFloat(el.value) : NaN;
-    vals.push(isNaN(v)?null:r01(v));
-  }
-  return vals;
+function getNext7FromInputs(){
+  // returns [today..+6]
+  const ids = ['fd0','fd1','fd2','fd3','fd4','fd5','fd6'];
+  return ids.map(id=>{
+    const v = parseFloat(document.getElementById(id).value);
+    return isNaN(v)?0:r01(v);
+  });
 }
 
-function weightedFromPastArray(pastVals){
-  // pastVals correspond to [yesterday, 2d ago, ... 7d ago] ??? We'll map carefully
-  // For UI we display oldest→newest. We will compute based on date-1..date-7 weights.
-  // We'll compute using ISO dates instead to avoid confusion. (see computeWeightedForDateFromInputs)
-  return null;
-}
+function sumArr(a){return r01(a.reduce((s,x)=>s+(isNaN(x)?0:Number(x)),0));}
 
-function computeWeightedForDateFromInputs(measureDateIso, getDoseFn){
-  const measureDate = new Date(measureDateIso);
-  return weighted7BeforeUsing((iso)=>getDoseFn(iso), measureDate);
-}
-
-function buildDoseFnFromInputs(pastMap, nextMap){
-  // pastMap and nextMap store overrides keyed by ISO; if none, fall back to calendar effective/planned.
-  return function(iso){
-    if(pastMap.has(iso)) return pastMap.get(iso);
-    if(nextMap.has(iso)) return nextMap.get(iso);
-    // default: for past or future, use effAtIso (future will resolve to planned or baseline)
-    return effAtIso(iso) || 0;
-  };
-}
-
-function syncPredictionFromCalendar(){
-  // Past 7: dates from today-7 .. today-1 (display oldest→newest)
+function fillPredFromCalendarPast(){
+  // yesterday..7d ago: actual if present, else planned, else scheduled
   const t = new Date();
-  const pastKeys = [];
-  for(let i=7;i>=1;i--) pastKeys.push(isoLocal(addDaysLocal(t, -i)));
+  for(let i=1;i<=7;i++){
+    const key = isoLocal(addDaysLocal(t,-i));
+    let dose = 0;
+    if(actual.has(key)) dose = actual.get(key);
+    else if(planned.has(key)) dose = planned.get(key);
+    else dose = schedAtIso(key);
 
-  // Next 7: dates from today .. today+6
-  const nextKeys = [];
-  for(let i=0;i<=6;i++) nextKeys.push(isoLocal(addDaysLocal(t, i)));
-
-  buildPredGrid(past7Grid, 'p7_', pastKeys);
-  buildPredGrid(next7Grid, 'n7_', nextKeys);
-
-  past7Label.textContent = niceDate(pastKeys[0]) + ' → ' + niceDate(pastKeys[6]);
-  next7Label.textContent = niceDate(nextKeys[0]) + ' → ' + niceDate(nextKeys[6]);
-
-  // Default fill values from calendar: past uses effAtIso, next uses planned if present else baseline schedule
-  for(let i=0;i<7;i++){
-    const kPast = pastKeys[i];
-    const kNext = nextKeys[i];
-
-    const pEl = document.getElementById('p7_'+i);
-    const nEl = document.getElementById('n7_'+i);
-
-    const pDose = effAtIso(kPast);
-    const nDose = (planned.has(kNext) ? planned.get(kNext) : schedAtIso(kNext)); // future plan defaults
-
-    if(pEl) pEl.value = (pDose>0 ? pDose.toFixed(1) : '');
-    if(nEl) nEl.value = (nDose>0 ? nDose.toFixed(1) : '');
+    const el = document.getElementById('pd'+i);
+    if(el) el.value = r01(dose).toFixed(1);
   }
+}
+
+function fillPredFromCalendarFuture(){
+  // today..+6: planned if present else scheduled
+  const t = new Date();
+  for(let i=0;i<=6;i++){
+    const key = isoLocal(addDaysLocal(t,i));
+    const dose = plannedOrSchedAtIso(key);
+    const el = document.getElementById('fd'+i);
+    if(el) el.value = r01(dose).toFixed(1);
+  }
+}
+
+function clearPredInputs(){
+  ['pd1','pd2','pd3','pd4','pd5','pd6','pd7','fd0','fd1','fd2','fd3','fd4','fd5','fd6'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.value = '';
+  });
+  document.getElementById('predCalcLine').innerHTML = '';
+  document.getElementById('predOut').innerHTML = '';
 }
 
 function runWhatIfPrediction(){
   const predOut = document.getElementById('predOut');
+  const calcLine = document.getElementById('predCalcLine');
 
-  // Build override maps from inputs
-  const pastOverride = new Map();
-  const nextOverride = new Map();
+  const prior7 = getPrior7FromInputs();
+  const next7  = getNext7FromInputs();
 
-  for(let i=0;i<7;i++){
-    const pEl = document.getElementById('p7_'+i);
-    const nEl = document.getElementById('n7_'+i);
-    if(pEl){
-      const iso = pEl.getAttribute('data-iso');
-      const v = pEl.value!=='' ? parseFloat(pEl.value) : NaN;
-      if(iso && !isNaN(v)) pastOverride.set(iso, r01(v));
-    }
-    if(nEl){
-      const iso = nEl.getAttribute('data-iso');
-      const v = nEl.value!=='' ? parseFloat(nEl.value) : NaN;
-      if(iso && !isNaN(v)) nextOverride.set(iso, r01(v));
-    }
-  }
+  const priorSum = sumArr(prior7);
+  const nextSum  = sumArr(next7);
 
-  // Ensure next 7 has enough data
-  let nextCount=0;
-  for(const v of nextOverride.values()) if(v!=null) nextCount++;
-  if(nextCount < 7){
-    // we still can predict with defaults (calendar/baseline), but warn if blank
-    // We'll compute from getDoseFn which falls back.
-  }
+  const wPrior = weightedDose7FromPrior7Array(prior7);
+  const wNext  = weightedDose7FromNext7Array(next7);
+
+  calcLine.innerHTML = `<b>Simple sums:</b> prior 7 = ${priorSum.toFixed(1)} mg, next 7 = ${nextSum.toFixed(1)} mg
+    &nbsp;&nbsp;|&nbsp;&nbsp;<b>Lag-weighted:</b> prior-window = ${wPrior.toFixed(1)} mg, next-window = ${wNext.toFixed(1)} mg`;
 
   const dataset = buildInrDoseDataset();
   const model = fitLinearDoseInrModel(dataset);
 
   if(!model){
-    predOut.innerHTML = '<span style="color:#b00020;">Not enough usable historical data (need ≥5 INR-linked points).</span>';
+    predOut.innerHTML = '<span style="color:#b00020;">Not enough usable historical data (need ≥5 INR-linked points recorded in the calendar).</span>';
     return;
   }
   if(model.invalid){
     predOut.innerHTML = `
       <div style="color:#8a0000;"><b>Model not used.</b></div>
       <div class="small">Reason: ${model.reason}</div>
-      <div class="small" style="margin-top:4px;">This prevents inverse (non-physiologic) predictions.</div>
+      <div class="small" style="margin-top:4px;">Tip: add more INR points during stable dosing (avoid only “reactive” changes) so the slope becomes reliable.</div>
     `;
     return;
   }
 
-  // Predict INR on day +7 (i.e., 7 days from today), using lag-weighted exposure in the 7 days BEFORE that date.
-  const t = new Date();
-  const futureMeasure = addDaysLocal(t, 7);
-  const futureIso = isoLocal(futureMeasure);
-
-  const doseFn = buildDoseFnFromInputs(pastOverride, nextOverride);
-
-  const wNow = weighted7BeforeUsing(doseFn, t);          // exposure that drives today's INR (prior 7)
-  const wFuture = weighted7BeforeUsing(doseFn, futureMeasure); // exposure that would drive INR at day+7
-
-  const predictedFuture = predictInrForDose7(model, wFuture);
-  const predictedNowFromInputs = predictInrForDose7(model, wNow);
+  const predNow = predictInrForDose7(model, wPrior);
+  const predAfter7 = predictInrForDose7(model, wNext);
 
   predOut.innerHTML = `
-    <div class="predSummary">
-      <div><b>Prediction target date:</b> ${niceDate(futureIso)} (about 7 days from today)</div>
-      <div class="small" style="margin-top:6px;">
-        <b>Lag-weighted dose math:</b> doses from ~3–5 days before the INR date count more (lag effect).
-      </div>
-      <div class="kv">
-        <div><b>Current exposure (prior 7 days):</b> ${wNow.toFixed(1)} mg</div>
-        <div><b>Projected exposure for ${niceDate(futureIso)}:</b> ${wFuture.toFixed(1)} mg</div>
-      </div>
-      <div style="margin-top:8px;">
-        <b>Estimated INR on ${niceDate(futureIso)}:</b>
-        <span style="font-size:18px;font-weight:800;">${predictedFuture!=null ? predictedFuture.toFixed(1) : '—'}</span>
-      </div>
-      <div class="small" style="margin-top:6px;">
-        Based on ${model.n} historical INR points. Trend insight only; does not override protocol.
-      </div>
+    <div style="margin-top:6px;">
+      <div><b>Estimated INR aligned with the prior 7-day lag-weighted dose:</b>
+        <b style="font-size:16px;">${predNow!=null?predNow.toFixed(1):'—'}</b></div>
+      <div style="margin-top:6px;"><b>Estimated INR after ~7 days on the next-7-day plan (starting today):</b>
+        <b style="font-size:18px;">${predAfter7!=null?predAfter7.toFixed(1):'—'}</b></div>
       <div class="small" style="margin-top:6px;color:#666;">
-        (Optional sanity check) Model-estimated INR for your current exposure is ~ <b>${predictedNowFromInputs!=null ? predictedNowFromInputs.toFixed(1) : '—'}</b>.
+        Based on <b>${model.n}</b> historical INR points. This is a trend estimate only; confirm with clinical judgment and protocol.
       </div>
     </div>
   `;
 }
 
 /* ===========================
-   DEMO HISTORY
+   DEMO HISTORY (one-click)
    =========================== */
+
 function setBaselineRegimen(values7){
   for(let i=0;i<7;i++){
     const el = document.getElementById('b'+i);
@@ -1483,6 +1381,7 @@ function setBaselineRegimen(values7){
   updSum();
   applyVisible();
 }
+
 function setDemoMessage(text, isError=false){
   const el = document.getElementById('demoMsg');
   if(!el) return;
@@ -1490,6 +1389,7 @@ function setDemoMessage(text, isError=false){
   el.style.color = isError ? '#b00020' : '#2e7d32';
   el.textContent = text;
 }
+
 function clearDemoHistoryOnly(){
   planned.clear();
   actual.clear();
@@ -1505,12 +1405,13 @@ function clearDemoHistoryOnly(){
 
   rec.innerHTML = '';
   document.getElementById('predOut').innerHTML = '';
+  document.getElementById('predCalcLine').innerHTML = '';
   setDemoMessage('Demo history cleared.', false);
 
   applyVisible();
   pushDataToCells(); lin7();
-  syncPredictionFromCalendar();
 }
+
 function loadDemoHistory(){
   planned.clear(); actual.clear(); inrVal.clear();
   repeatKey = null;
@@ -1520,6 +1421,7 @@ function loadDemoHistory(){
   lastRepeatIso = null;
   rec.innerHTML = '';
   document.getElementById('predOut').innerHTML = '';
+  document.getElementById('predCalcLine').innerHTML = '';
 
   setBaselineRegimen([5,5,5,5,5,5,5]);
 
@@ -1560,18 +1462,21 @@ function loadDemoHistory(){
 
   pushDataToCells(); lin7();
   scrollToTodayWeek();
-  syncPredictionFromCalendar();
-  setDemoMessage('Demo history loaded: stable-dose segments + INR points (positive dose→INR relationship).', false);
+
+  // Prefill prediction inputs from calendar
+  fillPredFromCalendarPast();
+  fillPredFromCalendarFuture();
+
+  setDemoMessage('Demo history loaded: stable-dose segments + INR points (designed to train a positive dose→INR relationship).', false);
 }
 
 /* ===========================
    DOM init + listeners
    =========================== */
+
 document.addEventListener('DOMContentLoaded', ()=>{
   try{ renderAll(); updSum(); }catch(e){ err.textContent = 'Calendar failed to render: '+e; }
-
   setTimeout(scrollToTodayWeek, 50);
-  setTimeout(syncPredictionFromCalendar, 60);
 
   for(let i=0;i<7;i++){
     const el=document.getElementById('b'+i);
@@ -1590,7 +1495,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
     }
   });
 
-  // Target INR toggle
   const toggleBtn = document.getElementById('toggleTarget');
   const targetPanel = document.getElementById('targetPanel');
   const targetInr = document.getElementById('targetInr');
@@ -1630,6 +1534,12 @@ document.addEventListener('DOMContentLoaded', ()=>{
   });
   medList.addEventListener('blur', ()=>{ if(medList.value.trim()) renderInteractions(); });
 
+  // Prediction buttons
+  document.getElementById('fillPredFromCalPast').addEventListener('click', fillPredFromCalendarPast);
+  document.getElementById('fillPredFromCalFuture').addEventListener('click', fillPredFromCalendarFuture);
+  document.getElementById('clearPredInputs').addEventListener('click', clearPredInputs);
+  document.getElementById('runPrediction').addEventListener('click', runWhatIfPrediction);
+
   const inrTop = document.getElementById('inr');
   const tIso = isoLocal(new Date());
   inrTop.addEventListener('input', e=>{
@@ -1647,7 +1557,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       inrVal.delete(tIso);
     }
     if(hasReco){ markNeedsRecalc(); }
-    pushDataToCells(); lin7(); syncPredictionFromCalendar();
+    pushDataToCells(); lin7();
   });
 
   document.getElementById('getRec').addEventListener('click', reco);
@@ -1656,10 +1566,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   if(recalcBtn){
     recalcBtn.disabled = true;
     recalcBtn.style.opacity = '0.5';
-    recalcBtn.addEventListener('click', ()=>{
-      if(!hasReco && !pendingRecalc){ return; }
-      reco();
-    });
+    recalcBtn.addEventListener('click', ()=>{ if(!hasReco && !pendingRecalc){ return; } reco(); });
   }
 
   document.getElementById('applyCur').addEventListener('click', applyVisible);
@@ -1681,20 +1588,13 @@ document.addEventListener('DOMContentLoaded', ()=>{
   const clearEnoxBtn = document.getElementById('clearEnox');
   if (clearEnoxBtn) clearEnoxBtn.addEventListener('click', clearEnoxaparin);
 
-  // What-if panel buttons
-  const predBtn = document.getElementById('runPrediction');
-  if(predBtn) predBtn.addEventListener('click', runWhatIfPrediction);
-
-  const syncBtn = document.getElementById('syncPred');
-  if(syncBtn) syncBtn.addEventListener('click', syncPredictionFromCalendar);
-
   const demoBtn = document.getElementById('loadDemo');
   if(demoBtn) demoBtn.addEventListener('click', loadDemoHistory);
 
   const clearDemoBtn = document.getElementById('clearDemo');
   if(clearDemoBtn) clearDemoBtn.addEventListener('click', clearDemoHistoryOnly);
 
-  // DOB auto-format + validation (no alert loop)
+  // DOB auto-format + validation
   const dobInput = document.getElementById('patientDob');
   const dobInlineErr = document.getElementById('dobInlineErr');
   if(dobInput){
@@ -1772,7 +1672,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       if(role==='inr')     inrVal.delete(key);
     }
     if(role==='inr' && hasReco) markNeedsRecalc();
-    pushDataToCells(); lin7(); syncPredictionFromCalendar();
+    pushDataToCells(); lin7();
   }, true);
 });
 </script>
