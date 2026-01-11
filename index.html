@@ -247,75 +247,6 @@ textarea{resize:vertical}
   </div>
   <div id="dbg" class="debug"></div>
 
-  <!-- Bridging -->
-  <h2>Bridging – Parenteral Helper (enoxaparin / fondaparinux) (beta)</h2>
-  <fieldset><legend>Weight-based parenteral dose</legend>
-    <div class="grid">
-      <div>
-        <label for="enoxWeight">Weight (kg)</label>
-        <input id="enoxWeight"
-               type="number"
-               step="0.1"
-               min="20"
-               inputmode="decimal"
-               placeholder="e.g., 78.5">
-        <div class="small">Use actual body weight unless local protocol says otherwise.</div>
-      </div>
-
-      <div>
-        <label for="enoxType">Regimen</label>
-        <select id="enoxType">
-          <option value="tx_q12" selected>Enoxaparin – Therapeutic 1 mg/kg every 12 hours</option>
-          <option value="tx_q24">Enoxaparin – Therapeutic (renal adjustment) – 1 mg/kg once daily</option>
-          <option value="px_40">Enoxaparin – Prophylaxis – 40 mg once daily</option>
-          <option value="px_30">Enoxaparin – Prophylaxis (renal adjustment) – 30 mg once daily</option>
-          <option value="fond_tx">Fondaparinux – Treatment (5 mg if &lt;50 kg, 7.5 mg if 50–100 kg, 10 mg if &gt;100 kg)</option>
-          <option value="fond_px">Fondaparinux – Prophylaxis – 2.5 mg once daily</option>
-        </select>
-        <div class="small">Always confirm with local protocol, especially in renal impairment or HIT.</div>
-      </div>
-    </div>
-
-    <div style="margin-top:10px;">
-      <button class="btnS" type="button" id="calcEnox">Calculate bridging dose</button>
-      <button class="btnS" type="button" id="clearEnox" style="margin-left:8px;">Bridging not required</button>
-    </div>
-
-    <div id="enoxOut" class="small" style="margin-top:8px;"></div>
-  </fieldset>
-
-  <!-- Interactions -->
-  <h2>Warfarin Drug Interaction Check (beta)</h2>
-  <fieldset><legend>Medication review</legend>
-    <div class="small" style="margin-bottom:8px;">
-      Type or paste meds (comma-separated). This is a high-yield screen, not a comprehensive database. Confirm clinically.
-    </div>
-
-    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start;">
-      <div style="flex:1;min-width:260px;">
-        <label for="medList"><b>Current medications</b></label>
-        <textarea id="medList" rows="3" placeholder="e.g., Bactrim, Metronidazole, Ibuprofen"></textarea>
-      </div>
-      <div style="min-width:240px;">
-        <div style="margin-top:22px;">
-          <button class="btnS" type="button" id="checkInteractions">Check interactions</button>
-          <button class="btnS" type="button" id="clearInteractions" style="margin-left:6px;">Clear</button>
-        </div>
-        <div style="margin-top:10px;">
-          <label style="display:flex;gap:8px;align-items:center;">
-            <input id="autoAdjustRepeat" type="checkbox">
-            <span class="small">Auto-move repeat INR earlier (optional)</span>
-          </label>
-          <div class="small" style="margin-top:4px;color:#666;">
-            OFF by default. If enabled, major interactions may set repeat INR to 2–3 days.
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div id="interactionResults" class="card small" style="margin-top:10px;display:none;"></div>
-  </fieldset>
-
   <!-- Verbal Recommendation + Export button -->
   <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:16px;">
     <h2 style="margin:0;">Verbal Recommendation</h2>
@@ -378,6 +309,75 @@ textarea{resize:vertical}
     <div id="predCalcLine" class="small" style="margin-top:10px;"></div>
     <div id="predOut" style="margin-top:6px;"></div>
   </div>
+
+  <!-- Bridging (MOVED TO END) -->
+  <h2>Bridging – Parenteral Helper (enoxaparin / fondaparinux) (beta)</h2>
+  <fieldset><legend>Weight-based parenteral dose</legend>
+    <div class="grid">
+      <div>
+        <label for="enoxWeight">Weight (kg)</label>
+        <input id="enoxWeight"
+               type="number"
+               step="0.1"
+               min="20"
+               inputmode="decimal"
+               placeholder="e.g., 78.5">
+        <div class="small">Use actual body weight unless local protocol says otherwise.</div>
+      </div>
+
+      <div>
+        <label for="enoxType">Regimen</label>
+        <select id="enoxType">
+          <option value="tx_q12" selected>Enoxaparin – Therapeutic 1 mg/kg every 12 hours</option>
+          <option value="tx_q24">Enoxaparin – Therapeutic (renal adjustment) – 1 mg/kg once daily</option>
+          <option value="px_40">Enoxaparin – Prophylaxis – 40 mg once daily</option>
+          <option value="px_30">Enoxaparin – Prophylaxis (renal adjustment) – 30 mg once daily</option>
+          <option value="fond_tx">Fondaparinux – Treatment (5 mg if &lt;50 kg, 7.5 mg if 50–100 kg, 10 mg if &gt;100 kg)</option>
+          <option value="fond_px">Fondaparinux – Prophylaxis – 2.5 mg once daily</option>
+        </select>
+        <div class="small">Always confirm with local protocol, especially in renal impairment or HIT.</div>
+      </div>
+    </div>
+
+    <div style="margin-top:10px;">
+      <button class="btnS" type="button" id="calcEnox">Calculate bridging dose</button>
+      <button class="btnS" type="button" id="clearEnox" style="margin-left:8px;">Bridging not required</button>
+    </div>
+
+    <div id="enoxOut" class="small" style="margin-top:8px;"></div>
+  </fieldset>
+
+  <!-- Interactions (MOVED TO END) -->
+  <h2>Warfarin Drug Interaction Check (beta)</h2>
+  <fieldset><legend>Medication review</legend>
+    <div class="small" style="margin-bottom:8px;">
+      Type or paste meds (comma-separated). This is a high-yield screen, not a comprehensive database. Confirm clinically.
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start;">
+      <div style="flex:1;min-width:260px;">
+        <label for="medList"><b>Current medications</b></label>
+        <textarea id="medList" rows="3" placeholder="e.g., Bactrim, Metronidazole, Ibuprofen"></textarea>
+      </div>
+      <div style="min-width:240px;">
+        <div style="margin-top:22px;">
+          <button class="btnS" type="button" id="checkInteractions">Check interactions</button>
+          <button class="btnS" type="button" id="clearInteractions" style="margin-left:6px;">Clear</button>
+        </div>
+        <div style="margin-top:10px;">
+          <label style="display:flex;gap:8px;align-items:center;">
+            <input id="autoAdjustRepeat" type="checkbox">
+            <span class="small">Auto-move repeat INR earlier (optional)</span>
+          </label>
+          <div class="small" style="margin-top:4px;color:#666;">
+            OFF by default. If enabled, major interactions may set repeat INR to 2–3 days.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="interactionResults" class="card small" style="margin-top:10px;display:none;"></div>
+  </fieldset>
 
 <script>
 /* ===========================
