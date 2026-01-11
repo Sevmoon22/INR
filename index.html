@@ -78,6 +78,16 @@ textarea{resize:vertical}
 .predCell label{font-size:12px;color:#555}
 .predCell input{width:86px;max-width:86px;padding:6px;font-size:14px;text-align:center}
 @media(max-width:700px){.predCell input{width:78px;max-width:78px;font-size:13px;padding:5px}}
+
+/* Footer */
+.footerStamp{
+  margin-top:14px;
+  padding-top:10px;
+  border-top:1px solid #eee;
+  font-size:11px;
+  color:#777;
+  text-align:center;
+}
 </style>
 </head>
 <body>
@@ -91,7 +101,7 @@ textarea{resize:vertical}
     <div style="display:flex; flex-direction:column; line-height:1.1;">
       <span style="font-size:26px; font-weight:800;">ThromboLogic</span>
       <span style="font-size:16px; font-weight:600;">INR</span>
-      <span class="small" style="margin-top:4px;">INR 7.4 (Target INR + weighted-dose-aware recommendation + 7-day what-if)</span>
+      <span class="small" style="margin-top:4px;">INR v7.5 (Target INR + weighted-dose-aware recommendation + 7-day what-if)</span>
     </div>
   </div>
 
@@ -137,6 +147,16 @@ textarea{resize:vertical}
           <button class="btnS" id="toggleTarget" type="button" title="Optional: aim for a specific INR within the goal range (e.g., low end for a procedure).">
             Target INR
           </button>
+        </div>
+
+        <!-- NEW: Progressive interval toggle -->
+        <div style="margin-top:10px;">
+          <label style="display:flex;gap:10px;align-items:center;">
+            <input id="useProgressiveInterval" type="checkbox" checked>
+            <span class="small">
+              Progressive INR interval (stability-based) — extends to 2–5 weeks after consecutive in-range weekly INRs (<b>if appropriate</b>)
+            </span>
+          </label>
         </div>
 
         <div id="cust" style="display:none; margin-top:6px;">
@@ -227,6 +247,75 @@ textarea{resize:vertical}
   </div>
   <div id="dbg" class="debug"></div>
 
+  <!-- Bridging -->
+  <h2>Bridging – Parenteral Helper (enoxaparin / fondaparinux) (beta)</h2>
+  <fieldset><legend>Weight-based parenteral dose</legend>
+    <div class="grid">
+      <div>
+        <label for="enoxWeight">Weight (kg)</label>
+        <input id="enoxWeight"
+               type="number"
+               step="0.1"
+               min="20"
+               inputmode="decimal"
+               placeholder="e.g., 78.5">
+        <div class="small">Use actual body weight unless local protocol says otherwise.</div>
+      </div>
+
+      <div>
+        <label for="enoxType">Regimen</label>
+        <select id="enoxType">
+          <option value="tx_q12" selected>Enoxaparin – Therapeutic 1 mg/kg every 12 hours</option>
+          <option value="tx_q24">Enoxaparin – Therapeutic (renal adjustment) – 1 mg/kg once daily</option>
+          <option value="px_40">Enoxaparin – Prophylaxis – 40 mg once daily</option>
+          <option value="px_30">Enoxaparin – Prophylaxis (renal adjustment) – 30 mg once daily</option>
+          <option value="fond_tx">Fondaparinux – Treatment (5 mg if &lt;50 kg, 7.5 mg if 50–100 kg, 10 mg if &gt;100 kg)</option>
+          <option value="fond_px">Fondaparinux – Prophylaxis – 2.5 mg once daily</option>
+        </select>
+        <div class="small">Always confirm with local protocol, especially in renal impairment or HIT.</div>
+      </div>
+    </div>
+
+    <div style="margin-top:10px;">
+      <button class="btnS" type="button" id="calcEnox">Calculate bridging dose</button>
+      <button class="btnS" type="button" id="clearEnox" style="margin-left:8px;">Bridging not required</button>
+    </div>
+
+    <div id="enoxOut" class="small" style="margin-top:8px;"></div>
+  </fieldset>
+
+  <!-- Interactions -->
+  <h2>Warfarin Drug Interaction Check (beta)</h2>
+  <fieldset><legend>Medication review</legend>
+    <div class="small" style="margin-bottom:8px;">
+      Type or paste meds (comma-separated). This is a high-yield screen, not a comprehensive database. Confirm clinically.
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start;">
+      <div style="flex:1;min-width:260px;">
+        <label for="medList"><b>Current medications</b></label>
+        <textarea id="medList" rows="3" placeholder="e.g., Bactrim, Metronidazole, Ibuprofen"></textarea>
+      </div>
+      <div style="min-width:240px;">
+        <div style="margin-top:22px;">
+          <button class="btnS" type="button" id="checkInteractions">Check interactions</button>
+          <button class="btnS" type="button" id="clearInteractions" style="margin-left:6px;">Clear</button>
+        </div>
+        <div style="margin-top:10px;">
+          <label style="display:flex;gap:8px;align-items:center;">
+            <input id="autoAdjustRepeat" type="checkbox">
+            <span class="small">Auto-move repeat INR earlier (optional)</span>
+          </label>
+          <div class="small" style="margin-top:4px;color:#666;">
+            OFF by default. If enabled, major interactions may set repeat INR to 2–3 days.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="interactionResults" class="card small" style="margin-top:10px;display:none;"></div>
+  </fieldset>
+
   <!-- Verbal Recommendation + Export button -->
   <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:16px;">
     <h2 style="margin:0;">Verbal Recommendation</h2>
@@ -290,76 +379,16 @@ textarea{resize:vertical}
     <div id="predOut" style="margin-top:6px;"></div>
   </div>
 
-  <!-- (MOVED) Bridging -->
-  <h2>Bridging – Parenteral Helper (enoxaparin / fondaparinux) (beta)</h2>
-  <fieldset><legend>Weight-based parenteral dose</legend>
-    <div class="grid">
-      <div>
-        <label for="enoxWeight">Weight (kg)</label>
-        <input id="enoxWeight"
-               type="number"
-               step="0.1"
-               min="20"
-               inputmode="decimal"
-               placeholder="e.g., 78.5">
-        <div class="small">Use actual body weight unless local protocol says otherwise.</div>
-      </div>
-
-      <div>
-        <label for="enoxType">Regimen</label>
-        <select id="enoxType">
-          <option value="tx_q12" selected>Enoxaparin – Therapeutic 1 mg/kg every 12 hours</option>
-          <option value="tx_q24">Enoxaparin – Therapeutic (renal adjustment) – 1 mg/kg once daily</option>
-          <option value="px_40">Enoxaparin – Prophylaxis – 40 mg once daily</option>
-          <option value="px_30">Enoxaparin – Prophylaxis (renal adjustment) – 30 mg once daily</option>
-          <option value="fond_tx">Fondaparinux – Treatment (5 mg if &lt;50 kg, 7.5 mg if 50–100 kg, 10 mg if &gt;100 kg)</option>
-          <option value="fond_px">Fondaparinux – Prophylaxis – 2.5 mg once daily</option>
-        </select>
-        <div class="small">Always confirm with local protocol, especially in renal impairment or HIT.</div>
-      </div>
-    </div>
-
-    <div style="margin-top:10px;">
-      <button class="btnS" type="button" id="calcEnox">Calculate bridging dose</button>
-      <button class="btnS" type="button" id="clearEnox" style="margin-left:8px;">Bridging not required</button>
-    </div>
-
-    <div id="enoxOut" class="small" style="margin-top:8px;"></div>
-  </fieldset>
-
-  <!-- (MOVED) Interactions -->
-  <h2>Warfarin Drug Interaction Check (beta)</h2>
-  <fieldset><legend>Medication review</legend>
-    <div class="small" style="margin-bottom:8px;">
-      Type or paste meds (comma-separated). This is a high-yield screen, not a comprehensive database. Confirm clinically.
-    </div>
-
-    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start;">
-      <div style="flex:1;min-width:260px;">
-        <label for="medList"><b>Current medications</b></label>
-        <textarea id="medList" rows="3" placeholder="e.g., Bactrim, Metronidazole, Ibuprofen"></textarea>
-      </div>
-      <div style="min-width:240px;">
-        <div style="margin-top:22px;">
-          <button class="btnS" type="button" id="checkInteractions">Check interactions</button>
-          <button class="btnS" type="button" id="clearInteractions" style="margin-left:6px;">Clear</button>
-        </div>
-        <div style="margin-top:10px;">
-          <label style="display:flex;gap:8px;align-items:center;">
-            <input id="autoAdjustRepeat" type="checkbox">
-            <span class="small">Auto-move repeat INR earlier (optional)</span>
-          </label>
-          <div class="small" style="margin-top:4px;color:#666;">
-            OFF by default. If enabled, major interactions may set repeat INR to 2–3 days.
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div id="interactionResults" class="card small" style="margin-top:10px;display:none;"></div>
-  </fieldset>
-
 <script>
+/* ===========================
+   Version tagging
+   =========================== */
+const APP_VERSION = "7.5";
+function versionStampText(){
+  // You asked to keep this as v7.5; this just auto-renders it consistently in the UI/PDF/handout.
+  return `ThromboLogic INR v${APP_VERSION}`;
+}
+
 function pad(n){return (n<10?'0':'')+n}
 function isoLocal(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
 function startOfWeekLocal(d){const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); const dow=x.getDay(); x.setHours(0,0,0,0); x.setDate(x.getDate()-dow); return x}
@@ -486,72 +515,6 @@ const weeksBefore = 26;
 const weeksAfter  = 26;
 let start = addDaysLocal(startOfWeekLocal(today), -7*weeksBefore);
 let totalWeeks = weeksBefore + weeksAfter + 1;
-
-/* ===========================
-   NEW: In-range cadence logic (1→2→3→4→5 weeks, max 5)
-   =========================== */
-function inRange(val, L, H){ return (typeof val==="number" && !isNaN(val) && val>=L && val<=H); }
-
-function latestInrOnOrBefore(dateObj){
-  // find most recent INR date <= dateObj
-  const targetIso = isoLocal(dateObj);
-  let bestIso = null;
-  for(const [k,v] of inrVal.entries()){
-    if(!k) continue;
-    if(k <= targetIso){
-      if(bestIso==null || k > bestIso) bestIso = k;
-    }
-  }
-  return bestIso;
-}
-
-function consecutiveWeeklyInRangeCount(anchorIso, L, H){
-  // count consecutive "weekly" INRs in-range going backwards in ~7-day steps from anchorIso
-  // weekly window tolerance: 6–8 days
-  if(!anchorIso || !inrVal.has(anchorIso)) return 0;
-  if(!inRange(inrVal.get(anchorIso), L, H)) return 0;
-
-  let count = 1;
-  let cur = new Date(anchorIso);
-  for(let step=0; step<10; step++){
-    const target = addDaysLocal(cur, -7);
-    const candidates = [
-      isoLocal(addDaysLocal(target, -1)),
-      isoLocal(target),
-      isoLocal(addDaysLocal(target, +1))
-    ];
-    let found = null;
-    for(const c of candidates){
-      if(inrVal.has(c) && inRange(inrVal.get(c), L, H)){
-        found = c;
-        break;
-      }
-    }
-    if(!found) break;
-    count++;
-    cur = new Date(found);
-  }
-  return count;
-}
-
-function cadenceDaysFromStreak(streak){
-  // 1 -> 7d, 2 -> 14d, 3 -> 21d, 4 -> 28d, 5+ -> 35d
-  if(streak>=5) return 35;
-  if(streak===4) return 28;
-  if(streak===3) return 21;
-  if(streak===2) return 14;
-  return 7;
-}
-
-function pickNextInrDateInRange(bestDateObj, L, H){
-  const anchorIso = latestInrOnOrBefore(bestDateObj);
-  if(!anchorIso) return isoLocal(addDaysLocal(bestDateObj, 7));
-  const streak = consecutiveWeeklyInRangeCount(anchorIso, L, H);
-  const days = cadenceDaysFromStreak(streak);
-  return isoLocal(addDaysLocal(new Date(anchorIso), days));
-}
-
-/* =========================== */
 
 function renderAll(){
   weeksEl.innerHTML='';
@@ -805,6 +768,7 @@ function clearEnoxaparin(){
    Weighted-dose helpers (lag-aware)
    =========================== */
 
+// Helper: lag-weighted 7-day window “before date” (yesterday..7d ago), customizable getter
 function weightedDose7BeforeDateWithGetter(date, getterFn){
   const weights = [0.4,0.4,1.0,1.0,0.7,0.7,0.3]; // days 1..7
   let sum = 0;
@@ -823,7 +787,9 @@ function weightedDose7BeforeDateScheduled(date){
   return weightedDose7BeforeDateWithGetter(date, schedAtIso);
 }
 
+// For “future plan” (today..+6), use weights aligned to “ending on day+6”
 function weightedDose7FromNext7Array(next7){
+  // days 0..6 (today..+6)
   const weights = [0.3,0.7,0.7,1.0,1.0,0.4,0.4];
   let sum=0;
   for(let i=0;i<7;i++){
@@ -834,6 +800,7 @@ function weightedDose7FromNext7Array(next7){
 }
 
 function weightedDose7FromPrior7Array(prior7){
+  // prior7 array is [1d ago..7d ago] => apply weights [0.4,0.4,1.0,1.0,0.7,0.7,0.3]
   const weights = [0.4,0.4,1.0,1.0,0.7,0.7,0.3];
   let sum=0;
   for(let i=0;i<7;i++){
@@ -882,6 +849,60 @@ function predictInrForDose7(model, dose7){
   if(!model || model.invalid) return null;
   const raw = model.a + model.b * dose7;
   return Math.max(0.5, Math.min(8.0, r01(raw)));
+}
+
+/* ===========================
+   Progressive interval / stability streak
+   =========================== */
+
+// Find an INR near a target date (±2 days), preferring the closest
+function findNearestInrAroundDate(targetDate, windowDays=2){
+  const candidates=[];
+  for(let d=-windowDays; d<=windowDays; d++){
+    const key = isoLocal(addDaysLocal(targetDate, d));
+    if(inrVal.has(key)){
+      candidates.push({key, date:addDaysLocal(targetDate,d), inr:inrVal.get(key), dist:Math.abs(d)});
+    }
+  }
+  if(!candidates.length) return null;
+  candidates.sort((a,b)=> a.dist - b.dist);
+  return candidates[0];
+}
+
+// Count consecutive in-range INRs occurring in consecutive weeks (approx 7-day spacing)
+function computeWeeklyInRangeStreak(L,H, anchorDate){
+  const used=[];
+  // anchor point: try exact anchorDate first, else nearest within ±2
+  let anchor = findNearestInrAroundDate(anchorDate, 2);
+  if(!anchor) return {streak:0, used:[]};
+  if(anchor.inr < L || anchor.inr > H) return {streak:0, used:[anchor]};
+
+  used.push(anchor);
+  let streak=1;
+
+  // look back up to 4 prior weeks (for max 5 streak)
+  for(let k=1;k<=4;k++){
+    const target = addDaysLocal(anchor.date, -7*k);
+    const prev = findNearestInrAroundDate(target, 2);
+    if(!prev) break;
+    // require it to be "weekly-ish": within 5–9 days of expected week step
+    const gap = Math.abs(daysBetween(prev.date, target));
+    if(gap > 2) { /* still within windowDays by definition */ }
+
+    if(prev.inr >= L && prev.inr <= H){
+      used.push(prev);
+      streak++;
+    }else{
+      break;
+    }
+  }
+  return {streak, used};
+}
+
+// Convert streak to days: 1wk→7d, 2wk→14d ... max 5wk→35d
+function progressiveIntervalDaysFromStreak(streak){
+  if(!streak || streak < 1) return 7;
+  return 7 * Math.min(streak, 5);
 }
 
 /* ===========================
@@ -989,31 +1010,44 @@ function reco(){
     Prior-7-days (effective) ≈ <b>${wEffPrior.toFixed(1)} mg</b>.
   </div>`;
 
+  // In-range path
   if(band.pct===0){
-    // NEW: cadence escalation (ONLY for in-range AND NOT in target-nudge mode)
-    let repeatIso;
-    if(usingTarget){
-      // keep your original behavior for target nudges / special situations (sooner confirmation)
-      const rep = (age>=2 && age<=3) ? addDaysLocal(bestDate, 7) : addDaysLocal(new Date(), 7);
-      repeatIso = isoLocal(rep);
-    }else{
-      repeatIso = pickNextInrDateInRange(bestDate, L, H);
+    // Progressive interval logic (toggle)
+    const useProg = document.getElementById('useProgressiveInterval')?.checked;
+    let rep;
+
+    // Stability streak indicator for in-range weekly INRs
+    let streakInfo = {streak:0, used:[]};
+    if(useProg){
+      streakInfo = computeWeeklyInRangeStreak(L,H,bestDate);
     }
 
-    repeatIso = maybeAdjustRepeatForInteractions(repeatIso);
-    repeatKey = repeatIso;
+    const streak = streakInfo.streak || 0;
+    const intervalDays = (useProg && streak>=1) ? progressiveIntervalDaysFromStreak(streak) : 7;
+
+    // default: 7 days. if INR age 2–3 days, stick to bestDate-based date
+    rep = addDaysLocal(bestDate, intervalDays);
+
+    repeatKey = isoLocal(rep);
+    repeatKey = maybeAdjustRepeatForInteractions(repeatKey);
 
     lastRecoINR = bestVal;
     lastRepeatIso = repeatKey;
 
-    const cadencePhrase = (!usingTarget)
-      ? ` Repeat your INR on <b>${niceDate(repeatKey)}</b> <span class="small">(if appropriate)</span>.`
-      : ` Repeat your INR on <b>${niceDate(repeatKey)}</b>.`;
+    const streakLine = (useProg && streak>0)
+      ? `<div class="small" style="margin-top:6px;color:#666;">
+          <b>Stability streak:</b> <b>${streak}</b> consecutive in-range weekly INR(s).
+          ${streak>=2 ? `Eligible for extended interval to ${Math.min(streak,5)} week(s) <b>(if appropriate)</b>.` : ''}
+        </div>`
+      : '';
+
+    const ifAppropriate = (useProg && streak>=2) ? ' <span class="small">(if appropriate)</span>' : '';
 
     rec.innerHTML =
       `INR <b>${bestVal.toFixed(1)}</b> is in your goal range (${L}–${H}). ` +
-      `<b>No change</b> to today’s warfarin dose.` +
-      cadencePhrase +
+      `<b>No change</b> to today’s warfarin dose. ` +
+      `Repeat your INR on <b>${niceDate(repeatKey)}</b>${ifAppropriate}.` +
+      streakLine +
       weightExplain +
       modelBlockHTML('Your', wEffPrior, model) +
       (interHTML || '');
@@ -1028,7 +1062,10 @@ function reco(){
 
   const targetDelta = r01(s7 * band.pct);
 
+  // weighted adherence delta (effective vs scheduled in prior 7 days)
   const priorDelta = r01(wEffPrior - wSchedPrior);
+
+  // Remaining change to apply today
   const remaining   = r01(targetDelta - priorDelta);
 
   const naive = r01((wEffPrior + baseToday) * band.pct);
@@ -1179,6 +1216,7 @@ function exportRecommendationPDF(){
         .notes-box{min-height:60px;outline:none;white-space:pre-wrap;font-size:12px;}
         #printBtn{margin:4px 0 8px 8px;}
         @media print { #printBtn{display:none;} }
+        .footer{margin-top:14px;padding-top:8px;border-top:1px solid #eee;font-size:10px;color:#777;text-align:center;}
       </style>
     </head>
     <body>
@@ -1233,6 +1271,8 @@ function exportRecommendationPDF(){
         ________________________________<br>
         Provider Signature &nbsp;&nbsp;&nbsp; Date: ____________
       </div>
+
+      <div class="footer">${versionStampText()}</div>
     </body>
     </html>
   `);
@@ -1286,6 +1326,7 @@ function openPatientHandout(){
         .card{border:1px solid #ccc;border-radius:8px;padding:8px;margin:6px 0;background:#fafafa;}
         .summary-line{margin-top:8px;font-size:14px;}
         .summary-line b.big{font-size:18px;}
+        .footer{margin-top:14px;padding-top:8px;border-top:1px solid #eee;font-size:10px;color:#777;text-align:center;}
       </style>
     </head>
     <body>
@@ -1327,6 +1368,8 @@ function openPatientHandout(){
           <tbody>${nextWeekRows}</tbody>
         </table>
       </div>
+
+      <div class="footer">${versionStampText()}</div>
     </body>
     </html>
   `);
@@ -1339,6 +1382,7 @@ function openPatientHandout(){
    =========================== */
 
 function getPrior7FromInputs(){
+  // returns [1d ago..7d ago]
   const ids = ['pd1','pd2','pd3','pd4','pd5','pd6','pd7'];
   return ids.map(id=>{
     const v = parseFloat(document.getElementById(id).value);
@@ -1347,6 +1391,7 @@ function getPrior7FromInputs(){
 }
 
 function getNext7FromInputs(){
+  // returns [today..+6]
   const ids = ['fd0','fd1','fd2','fd3','fd4','fd5','fd6'];
   return ids.map(id=>{
     const v = parseFloat(document.getElementById(id).value);
@@ -1357,6 +1402,7 @@ function getNext7FromInputs(){
 function sumArr(a){return r01(a.reduce((s,x)=>s+(isNaN(x)?0:Number(x)),0));}
 
 function fillPredFromCalendarPast(){
+  // yesterday..7d ago: actual if present, else planned, else scheduled
   const t = new Date();
   for(let i=1;i<=7;i++){
     const key = isoLocal(addDaysLocal(t,-i));
@@ -1371,6 +1417,7 @@ function fillPredFromCalendarPast(){
 }
 
 function fillPredFromCalendarFuture(){
+  // today..+6: planned if present else scheduled
   const t = new Date();
   for(let i=0;i<=6;i++){
     const key = isoLocal(addDaysLocal(t,i));
@@ -1531,6 +1578,7 @@ function loadDemoHistory(){
   pushDataToCells(); lin7();
   scrollToTodayWeek();
 
+  // Prefill prediction inputs from calendar
   fillPredFromCalendarPast();
   fillPredFromCalendarFuture();
 
@@ -1544,6 +1592,12 @@ function loadDemoHistory(){
 document.addEventListener('DOMContentLoaded', ()=>{
   try{ renderAll(); updSum(); }catch(e){ err.textContent = 'Calendar failed to render: '+e; }
   setTimeout(scrollToTodayWeek, 50);
+
+  // footer stamp (bottom of page)
+  const footer = document.createElement('div');
+  footer.className = 'footerStamp';
+  footer.textContent = versionStampText();
+  document.querySelector('.container')?.appendChild(footer);
 
   for(let i=0;i<7;i++){
     const el=document.getElementById('b'+i);
@@ -1743,6 +1797,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }, true);
 });
 </script>
+
 </div>
 </body>
 </html>
