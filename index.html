@@ -88,6 +88,24 @@ textarea{resize:vertical}
   color:#777;
   text-align:center;
 }
+
+/* Tablet strengths UI */
+.pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.pill{
+  display:inline-flex;align-items:center;gap:8px;
+  border:1px solid #ddd;border-radius:999px;padding:6px 10px;background:#fff;
+  font-size:13px;
+}
+.pill input{transform:scale(1.05)}
+.notice{
+  margin-top:8px;
+  padding:8px 10px;
+  border-radius:10px;
+  border:1px solid #e6e6e6;
+  background:#fff;
+  font-size:12px;
+  color:#555;
+}
 </style>
 </head>
 <body>
@@ -99,7 +117,7 @@ textarea{resize:vertical}
          alt="ThromboLogic INR Logo"
          style="height:80px; width:auto;">
     <div style="display:flex; flex-direction:column; line-height:1.1;">
-      <span style="font-size:26px; font-weight:800;">ThromboLogic™</span>
+      <span style="font-size:26px; font-weight:800;">ThromboLogic</span>
       <span style="font-size:16px; font-weight:600;">INR</span>
       <span class="small" style="margin-top:4px;">INR v7.5 (Target INR + weighted-dose-aware recommendation + 7-day what-if)</span>
     </div>
@@ -108,14 +126,6 @@ textarea{resize:vertical}
   <div class="toolbar">
     <span class="small" id="rangeLabel"></span>
   </div>
-<div class="card small" style="margin-bottom:12px; background:#fffef5; border:1px solid #ffe08a;">
-  <b>Demo / Evaluation Notice</b><br>
-  ThromboLogic™ INR is a clinical decision-support demonstration tool intended for
-  <b>educational and evaluation purposes only</b>.
-  It does <b>not replace clinical judgment</b>, institutional protocols,
-  or provider responsibility.
-  Use in live patient care requires appropriate clinical oversight and local approval.
-</div>
 
   <div id="err" class="err"></div>
 
@@ -139,6 +149,38 @@ textarea{resize:vertical}
     </div>
   </fieldset>
 
+  <!-- Tablet-strength constraint (NEW) -->
+  <h2>Tablet Strengths (Optional)</h2>
+  <fieldset><legend>Constrain today’s dose to tablets on hand</legend>
+    <label style="display:flex;gap:10px;align-items:flex-start;">
+      <input id="useTabletConstraint" type="checkbox">
+      <span class="small">
+        <b>Constrain today’s recommended dose</b> to a combination of the patient’s available warfarin tablet strengths using <b>whole + half tablets only</b>.
+        (No quarter-tablet options.)
+      </span>
+    </label>
+
+    <div id="tabletPanel" style="display:none;margin-top:10px;">
+      <div class="small" style="margin-bottom:6px;"><b>Select strengths the patient has on hand:</b></div>
+      <div class="pills" id="tabletPills">
+        <label class="pill"><input type="checkbox" data-strength="1"> 1 mg</label>
+        <label class="pill"><input type="checkbox" data-strength="2"> 2 mg</label>
+        <label class="pill"><input type="checkbox" data-strength="2.5"> 2.5 mg</label>
+        <label class="pill"><input type="checkbox" data-strength="3"> 3 mg</label>
+        <label class="pill"><input type="checkbox" data-strength="4"> 4 mg</label>
+        <label class="pill"><input type="checkbox" data-strength="5"> 5 mg</label>
+        <label class="pill"><input type="checkbox" data-strength="6"> 6 mg</label>
+        <label class="pill"><input type="checkbox" data-strength="7.5"> 7.5 mg</label>
+        <label class="pill"><input type="checkbox" data-strength="10"> 10 mg</label>
+      </div>
+      <div class="notice">
+        This feature affects <b>today’s planned dose only</b> (the calendar cell for today and the verbal recommendation will match).
+        Turn OFF if you intend to prescribe a new strength.
+      </div>
+      <div id="tabletWarn" class="inlineErr" style="display:none;margin-top:8px;">Select at least one tablet strength (or turn OFF the constraint).</div>
+    </div>
+  </fieldset>
+
   <h2>Therapeutic Goal & Current INR</h2>
   <fieldset><legend>Inputs</legend>
     <div class="grid">
@@ -157,7 +199,7 @@ textarea{resize:vertical}
           </button>
         </div>
 
-        <!-- NEW: Progressive interval toggle -->
+        <!-- Progressive interval toggle -->
         <div style="margin-top:10px;">
           <label style="display:flex;gap:10px;align-items:center;">
             <input id="useProgressiveInterval" type="checkbox" checked>
@@ -318,7 +360,7 @@ textarea{resize:vertical}
     <div id="predOut" style="margin-top:6px;"></div>
   </div>
 
-  <!-- Bridging (MOVED TO END) -->
+  <!-- Bridging -->
   <h2>Bridging – Parenteral Helper (enoxaparin / fondaparinux) (beta)</h2>
   <fieldset><legend>Weight-based parenteral dose</legend>
     <div class="grid">
@@ -355,7 +397,7 @@ textarea{resize:vertical}
     <div id="enoxOut" class="small" style="margin-top:8px;"></div>
   </fieldset>
 
-  <!-- Interactions (MOVED TO END) -->
+  <!-- Interactions -->
   <h2>Warfarin Drug Interaction Check (beta)</h2>
   <fieldset><legend>Medication review</legend>
     <div class="small" style="margin-bottom:8px;">
@@ -393,16 +435,30 @@ textarea{resize:vertical}
    =========================== */
 const APP_VERSION = "7.5";
 function versionStampText(){
-  // You asked to keep this as v7.5; this just auto-renders it consistently in the UI/PDF/handout.
   return `ThromboLogic INR v${APP_VERSION}`;
 }
 
+/* ===========================
+   Helpers
+   =========================== */
 function pad(n){return (n<10?'0':'')+n}
 function isoLocal(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
 function startOfWeekLocal(d){const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); const dow=x.getDay(); x.setHours(0,0,0,0); x.setDate(x.getDate()-dow); return x}
 function addDaysLocal(d,days){const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); x.setDate(x.getDate()+days); return x}
 function daysBetween(a,b){const d1=new Date(a.getFullYear(),a.getMonth(),a.getDate()); const d2=new Date(b.getFullYear(),b.getMonth(),b.getDate()); return Math.round((d2-d1)/86400000)}
-function r01(x){return Math.round(x*10)/10} function r05(x){return Math.round(x*2)/2}
+function r01(x){return Math.round(x*10)/10}
+function r05(x){return Math.round(x*2)/2}
+function r025(x){return Math.round(x*4)/4}
+function stripZeros(s){return s.replace(/(\.\d*?[1-9])0+$/,'$1').replace(/\.0+$/,'')}
+function formatDose(x){
+  if(x==null || isNaN(x)) return '—';
+  // show up to 2 decimals (supports 0.25 increments), but keep it clean
+  return stripZeros((Math.round(x*100)/100).toFixed(2));
+}
+function formatDoseWithUnit(x){
+  if(x==null || isNaN(x)) return '—';
+  return formatDose(x)+' mg';
+}
 
 function niceDate(isoStr){
   if(!isoStr) return '';
@@ -415,10 +471,17 @@ function niceDate(isoStr){
   return pad(m)+'/'+pad(d)+'/'+y;
 }
 
-const weeksEl = document.getElementById('weeks'); const calwrap = document.getElementById('calwrap'); const rangeLabel=document.getElementById('rangeLabel');
-const rec = document.getElementById('rec'); const linEl = document.getElementById('lin'); const sum = document.getElementById('sum'); const err = document.getElementById('err'); const dbg = document.getElementById('dbg');
+const weeksEl = document.getElementById('weeks');
+const calwrap = document.getElementById('calwrap');
+const rangeLabel=document.getElementById('rangeLabel');
+const rec = document.getElementById('rec');
+const linEl = document.getElementById('lin');
+const sum = document.getElementById('sum');
+const err = document.getElementById('err');
+const dbg = document.getElementById('dbg');
 
-const planned=new Map(), actual=new Map(), inrVal=new Map(); let repeatKey=null; let hasReco=false, pendingRecalc=false;
+const planned=new Map(), actual=new Map(), inrVal=new Map();
+let repeatKey=null; let hasReco=false, pendingRecalc=false;
 let lastRecoINR = null; let lastRepeatIso = null;
 
 /* ===========================
@@ -510,8 +573,202 @@ function buildInteractionHTML(hits){
   `;
 }
 
+/* ===========================
+   Tablet-strength constraint (NEW)
+   - Whole + half tablets only (NO quarters)
+   - Applies to TODAY’s planned dose only
+   =========================== */
+
+function getSelectedTabletStrengths(){
+  const panel = document.getElementById('tabletPills');
+  if(!panel) return [];
+  const checks = Array.from(panel.querySelectorAll('input[type="checkbox"][data-strength]'));
+  const strengths = checks
+    .filter(c=>c.checked)
+    .map(c=>parseFloat(c.getAttribute('data-strength')))
+    .filter(x=>!isNaN(x) && x>0);
+
+  // dedupe + sort
+  const seen=new Set();
+  const out=[];
+  strengths.sort((a,b)=>a-b).forEach(s=>{ const k=s.toString(); if(seen.has(k)) return; seen.add(k); out.push(s); });
+  return out;
+}
+
+function quarterUnitsFromMg(mg){ return Math.round(mg*4); } // 0.25mg units (supports halves of 2.5mg, etc.)
+function mgFromQuarterUnits(q){ return q/4; }
+
+function buildFeasibleDoseOptions(strengths){
+  // allowed tablet increments: full + half only
+  // represent as "items" in quarter units
+  const items=[];
+  for(const s of strengths){
+    const fullQ = quarterUnitsFromMg(s);
+    const halfQ = quarterUnitsFromMg(s/2);
+    if(fullQ>0) items.push({strength:s, tab:1.0, q:fullQ});
+    if(halfQ>0) items.push({strength:s, tab:0.5, q:halfQ});
+  }
+  // prefer using full tablets before halves when ties exist (handled later)
+  items.sort((a,b)=> b.q - a.q);
+  return items;
+}
+
+function comboToText(combo){
+  // combo: Map<string, {strength:number, full:number, half:number}>
+  const entries = Array.from(combo.values()).sort((a,b)=> b.strength - a.strength);
+  const parts=[];
+  for(const e of entries){
+    if(e.full>0){
+      parts.push(`${e.full} × ${stripZeros(e.strength.toFixed(2))} mg`);
+    }
+    if(e.half>0){
+      const halfSym = '½';
+      parts.push(`${e.half} ${halfSym} × ${stripZeros(e.strength.toFixed(2))} mg`);
+    }
+  }
+  return parts.join(' + ');
+}
+
+function scoreCombo(combo){
+  // prefer fewer tablets, and fewer halves (splits)
+  let tabs=0, halves=0;
+  for(const v of combo.values()){
+    tabs += v.full + v.half*0.5;
+    halves += v.half;
+  }
+  return {tabs, halves};
+}
+
+function cloneCombo(combo){
+  const m=new Map();
+  for(const [k,v] of combo.entries()){
+    m.set(k, {strength:v.strength, full:v.full, half:v.half});
+  }
+  return m;
+}
+
+function addItemToCombo(combo, item){
+  const key = item.strength.toString();
+  if(!combo.has(key)) combo.set(key, {strength:item.strength, full:0, half:0});
+  const e = combo.get(key);
+  if(item.tab===1.0) e.full += 1;
+  else e.half += 1;
+}
+
+function findBestFeasibleDose(targetMg, strengths, tolAbs=0.5, tolPct=0.10){
+  // Returns:
+  // { ok:boolean, dose:number, comboText:string, diff:number, reason?:string, closest?:{dose,comboText,diff} }
+  if(targetMg==null || isNaN(targetMg) || targetMg<=0){
+    return {ok:false, reason:'Target dose is invalid.'};
+  }
+  if(!strengths || strengths.length===0){
+    return {ok:false, reason:'No tablet strengths selected.'};
+  }
+
+  const items = buildFeasibleDoseOptions(strengths);
+
+  // search space:
+  // limit to up to 8 tablets worth (full=1, half=0.5). Equivalent to 16 half-steps.
+  const MAX_HALF_STEPS = 16;
+
+  // BFS DP over quarter-units with tablet-count constraints
+  // state: dp[steps] = Map(sumQ -> combo)
+  const dp = Array.from({length: MAX_HALF_STEPS+1}, ()=> new Map());
+
+  dp[0].set(0, new Map()); // sumQ=0, empty combo
+
+  for(let steps=0; steps<MAX_HALF_STEPS; steps++){
+    for(const [sumQ, combo] of dp[steps].entries()){
+      for(const it of items){
+        const stepCost = (it.tab===1.0) ? 2 : 1; // full tablet = 2 half-steps, half tablet = 1 half-step
+        const nextSteps = steps + stepCost;
+        if(nextSteps > MAX_HALF_STEPS) continue;
+
+        const nextSumQ = sumQ + it.q;
+        // hard cap: don't let sums explode too far above target (still allow some over)
+        // allow up to target + 50% or + 10mg, whichever larger
+        const capMg = Math.max(targetMg*1.5, targetMg+10);
+        if(mgFromQuarterUnits(nextSumQ) > capMg) continue;
+
+        const nextCombo = cloneCombo(combo);
+        addItemToCombo(nextCombo, it);
+
+        const existing = dp[nextSteps].get(nextSumQ);
+        if(!existing){
+          dp[nextSteps].set(nextSumQ, nextCombo);
+        }else{
+          // keep better combo for same sum: fewer halves, then fewer tablets
+          const s1 = scoreCombo(existing);
+          const s2 = scoreCombo(nextCombo);
+          if(s2.halves < s1.halves || (s2.halves===s1.halves && s2.tabs < s1.tabs)){
+            dp[nextSteps].set(nextSumQ, nextCombo);
+          }
+        }
+      }
+    }
+  }
+
+  const allowedDiff = Math.max(tolAbs, Math.abs(targetMg)*tolPct);
+  const targetQ = quarterUnitsFromMg(targetMg);
+
+  let best = null;
+  let closest = null;
+
+  for(let steps=1; steps<=MAX_HALF_STEPS; steps++){
+    for(const [sumQ, combo] of dp[steps].entries()){
+      if(sumQ===0) continue;
+      const doseMg = mgFromQuarterUnits(sumQ);
+      const diff = doseMg - targetMg;
+      const absDiff = Math.abs(diff);
+      const comboText = comboToText(combo);
+      const sc = scoreCombo(combo);
+
+      // track closest overall (even if outside tolerance)
+      const candClose = {dose:doseMg, diff, absDiff, comboText, tabs:sc.tabs, halves:sc.halves};
+      if(!closest ||
+         candClose.absDiff < closest.absDiff ||
+         (candClose.absDiff === closest.absDiff && (candClose.halves < closest.halves)) ||
+         (candClose.absDiff === closest.absDiff && candClose.halves === closest.halves && candClose.tabs < closest.tabs)
+      ){
+        closest = candClose;
+      }
+
+      // within tolerance: choose best
+      if(absDiff <= allowedDiff){
+        const cand = {dose:doseMg, diff, absDiff, comboText, tabs:sc.tabs, halves:sc.halves};
+        if(!best ||
+           cand.absDiff < best.absDiff ||
+           (cand.absDiff === best.absDiff && cand.halves < best.halves) ||
+           (cand.absDiff === best.absDiff && cand.halves === best.halves && cand.tabs < best.tabs)
+        ){
+          best = cand;
+        }
+      }
+    }
+  }
+
+  if(best){
+    return {
+      ok:true,
+      dose:r025(best.dose),
+      diff:r025(best.diff),
+      comboText:best.comboText
+    };
+  }
+
+  return {
+    ok:false,
+    reason:`No whole/half-tablet combination found within tolerance (±${stripZeros(allowedDiff.toFixed(2))} mg).`,
+    closest: closest ? { dose:r025(closest.dose), diff:r025(closest.diff), comboText:closest.comboText } : null
+  };
+}
+
+/* ===========================
+   Baseline schedule helpers
+   =========================== */
 function base(){return [0,1,2,3,4,5,6].map(i=>{const v=parseFloat(document.getElementById('b'+i).value);return isNaN(v)?0:r01(v)})}
-function baseSum(){return base().reduce((a,b)=>a+b,0)} function updSum(){sum.innerHTML='Scheduled weekly total: <b>'+r01(baseSum()).toFixed(1)+' mg</b>'}
+function baseSum(){return base().reduce((a,b)=>a+b,0)}
+function updSum(){sum.innerHTML='Scheduled weekly total: <b>'+stripZeros(r01(baseSum()).toFixed(1))+' mg</b>'}
 function schedAtIso(key){const d=new Date(key); const dow=d.getDay(); return base()[dow]||0}
 function effAtIso(key){if(actual.has(key))return actual.get(key); if(planned.has(key))return planned.get(key); return schedAtIso(key)}
 function plannedOrSchedAtIso(key){ if(planned.has(key)) return planned.get(key); return schedAtIso(key); }
@@ -540,11 +797,11 @@ function renderAll(){
         '<div class="hdr"><b>'+['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][date.getDay()]+'</b> '+
         '<span class="date">'+(date.getMonth()+1).toString().padStart(2,'0')+'/'+date.getDate().toString().padStart(2,'0')+'</span></div>'+
         '<div class="lbl">Planned dose (mg)</div>'+
-        '<input class="cell-input" data-k="'+key+'" data-role="planned" type="number" step="0.1" min="0">'+
+        '<input class="cell-input" data-k="'+key+'" data-role="planned" type="number" step="0.25" min="0">'+
         '<div class="lbl">INR</div>'+
         '<input class="cell-input inrbox" data-k="'+key+'" data-role="inr" type="number" step="0.1" min="0">'+
         '<div class="lbl">Actual dose</div>'+
-        '<input class="cell-input" data-k="'+key+'" data-role="actual" type="number" step="0.1" min="0">'+
+        '<input class="cell-input" data-k="'+key+'" data-role="actual" type="number" step="0.25" min="0">'+
         '<div class="lbl repeat-inr"></div>';
       wk.appendChild(cell);
     }
@@ -574,9 +831,9 @@ function pushDataToCells(){
       const cell=document.getElementById('c_'+key); if(!cell) continue;
       const p=planned.has(key)?planned.get(key):''; const a=actual.has(key)?actual.get(key):''; const i=inrVal.has(key)?inrVal.get(key).toFixed(1):'';
       const inputs=cell.querySelectorAll('input');
-      if(inputs[0]) inputs[0].value = (p!==''? Number(p).toFixed(1):'');
+      if(inputs[0]) inputs[0].value = (p!==''? formatDose(p):'');
       if(inputs[1]) inputs[1].value = i;
-      if(inputs[2]) inputs[2].value = (a!==''? Number(a).toFixed(1):'');
+      if(inputs[2]) inputs[2].value = (a!==''? formatDose(a):'');
       const isToday = key===tIso; const isRepeat=(key===repeatKey);
       cell.className='day';
       const hasManual = (i!=='') || (a!=='');
@@ -604,7 +861,7 @@ function applyVisible(){
     if(r.bottom < rect.top-200 || r.top > rect.bottom+200) return;
     for(let d=0; d<7; d++){
       const date = addDaysLocal(start, wi*7+d); const key=isoLocal(date);
-      planned.set(key, base7[d]);
+      planned.set(key, r025(base7[d]));
     }
   });
   pushDataToCells(); lin7(); updSum();
@@ -638,11 +895,14 @@ function lin7(){
     const d=addDaysLocal(weekStart,i); const key=isoLocal(d);
     let dose = (actual.has(key)? actual.get(key) : (planned.has(key)? planned.get(key) : NaN));
     if(isNaN(dose)) dose = undefined;
-    parts.push(names[i]+' '+(dose===undefined? '—' : dose.toFixed(1)+' mg'));
+    parts.push(names[i]+' '+(dose===undefined? '—' : formatDoseWithUnit(dose)));
   }
   linEl.textContent = parts.join('  |  ');
 }
 
+/* ===========================
+   Dose adjustment bands
+   =========================== */
 function pickPct(inr, L, H){
   const withinRange = (inr>=L && inr<=H);
   if(withinRange) return {pct:0, label:'in range', repeat:7};
@@ -686,7 +946,6 @@ function markNeedsRecalc(){
 /* ===========================
    Bridging (Enox / Fonda)
    =========================== */
-
 function roundEnoxaparinDose(doseMg){
   if (doseMg == null || isNaN(doseMg)) return null;
   const raw = Math.round(doseMg);
@@ -741,8 +1000,8 @@ function calcEnoxaparinDose(){
   const isFonda = (reg === 'fond_tx' || reg === 'fond_px');
   if(isFonda){
     out.innerHTML = `
-      <div><b>Calculated dose:</b> ${baseDose.toFixed(1)} mg</div>
-      <div><b>Suggested dose:</b> ${baseDose.toFixed(1)} mg ${freqText}</div>
+      <div><b>Calculated dose:</b> ${stripZeros(baseDose.toFixed(2))} mg</div>
+      <div><b>Suggested dose:</b> ${stripZeros(baseDose.toFixed(2))} mg ${freqText}</div>
       <div class="small" style="margin-top:4px;">
         Fondaparinux is supplied as fixed prefilled syringe strengths (2.5, 5, 7.5, 10 mg).
       </div>
@@ -775,8 +1034,6 @@ function clearEnoxaparin(){
 /* ===========================
    Weighted-dose helpers (lag-aware)
    =========================== */
-
-// Helper: lag-weighted 7-day window “before date” (yesterday..7d ago), customizable getter
 function weightedDose7BeforeDateWithGetter(date, getterFn){
   const weights = [0.4,0.4,1.0,1.0,0.7,0.7,0.3]; // days 1..7
   let sum = 0;
@@ -786,18 +1043,9 @@ function weightedDose7BeforeDateWithGetter(date, getterFn){
   }
   return r01(sum);
 }
-
-function weightedDose7BeforeDate(date){
-  return weightedDose7BeforeDateWithGetter(date, effAtIso);
-}
-
-function weightedDose7BeforeDateScheduled(date){
-  return weightedDose7BeforeDateWithGetter(date, schedAtIso);
-}
-
-// For “future plan” (today..+6), use weights aligned to “ending on day+6”
+function weightedDose7BeforeDate(date){ return weightedDose7BeforeDateWithGetter(date, effAtIso); }
+function weightedDose7BeforeDateScheduled(date){ return weightedDose7BeforeDateWithGetter(date, schedAtIso); }
 function weightedDose7FromNext7Array(next7){
-  // days 0..6 (today..+6)
   const weights = [0.3,0.7,0.7,1.0,1.0,0.4,0.4];
   let sum=0;
   for(let i=0;i<7;i++){
@@ -806,9 +1054,7 @@ function weightedDose7FromNext7Array(next7){
   }
   return r01(sum);
 }
-
 function weightedDose7FromPrior7Array(prior7){
-  // prior7 array is [1d ago..7d ago] => apply weights [0.4,0.4,1.0,1.0,0.7,0.7,0.3]
   const weights = [0.4,0.4,1.0,1.0,0.7,0.7,0.3];
   let sum=0;
   for(let i=0;i<7;i++){
@@ -817,7 +1063,6 @@ function weightedDose7FromPrior7Array(prior7){
   }
   return r01(sum);
 }
-
 function buildInrDoseDataset(){
   const data = [];
   const t = new Date();
@@ -831,28 +1076,23 @@ function buildInrDoseDataset(){
   }
   return data;
 }
-
 function fitLinearDoseInrModel(data){
   if(!data || data.length < 5) return null;
   let sumX=0,sumY=0,sumXY=0,sumXX=0;
   const n = data.length;
-
   for(const pt of data){
     const x = pt.dose7, y = pt.inr;
     sumX += x; sumY += y; sumXY += x*y; sumXX += x*x;
   }
   const denom = (n*sumXX - sumX*sumX);
   if(denom === 0) return null;
-
   const b = (n*sumXY - sumX*sumY) / denom;
   const a = (sumY - b*sumX) / n;
-
   if(b <= 0.01){
     return { invalid:true, reason:'Dose–response direction unclear or inverse (reactive dosing / limited stable history).', n };
   }
   return { a, b, n };
 }
-
 function predictInrForDose7(model, dose7){
   if(!model || model.invalid) return null;
   const raw = model.a + model.b * dose7;
@@ -862,8 +1102,6 @@ function predictInrForDose7(model, dose7){
 /* ===========================
    Progressive interval / stability streak
    =========================== */
-
-// Find an INR near a target date (±2 days), preferring the closest
 function findNearestInrAroundDate(targetDate, windowDays=2){
   const candidates=[];
   for(let d=-windowDays; d<=windowDays; d++){
@@ -876,27 +1114,17 @@ function findNearestInrAroundDate(targetDate, windowDays=2){
   candidates.sort((a,b)=> a.dist - b.dist);
   return candidates[0];
 }
-
-// Count consecutive in-range INRs occurring in consecutive weeks (approx 7-day spacing)
 function computeWeeklyInRangeStreak(L,H, anchorDate){
   const used=[];
-  // anchor point: try exact anchorDate first, else nearest within ±2
   let anchor = findNearestInrAroundDate(anchorDate, 2);
   if(!anchor) return {streak:0, used:[]};
   if(anchor.inr < L || anchor.inr > H) return {streak:0, used:[anchor]};
-
   used.push(anchor);
   let streak=1;
-
-  // look back up to 4 prior weeks (for max 5 streak)
   for(let k=1;k<=4;k++){
     const target = addDaysLocal(anchor.date, -7*k);
     const prev = findNearestInrAroundDate(target, 2);
     if(!prev) break;
-    // require it to be "weekly-ish": within 5–9 days of expected week step
-    const gap = Math.abs(daysBetween(prev.date, target));
-    if(gap > 2) { /* still within windowDays by definition */ }
-
     if(prev.inr >= L && prev.inr <= H){
       used.push(prev);
       streak++;
@@ -906,8 +1134,6 @@ function computeWeeklyInRangeStreak(L,H, anchorDate){
   }
   return {streak, used};
 }
-
-// Convert streak to days: 1wk→7d, 2wk→14d ... max 5wk→35d
 function progressiveIntervalDaysFromStreak(streak){
   if(!streak || streak < 1) return 7;
   return 7 * Math.min(streak, 5);
@@ -916,25 +1142,21 @@ function progressiveIntervalDaysFromStreak(streak){
 /* ===========================
    Recommendation engine
    =========================== */
-
 function maybeAdjustRepeatForInteractions(currentRepeatIso){
   const auto = document.getElementById('autoAdjustRepeat');
   if(!auto || !auto.checked) return currentRepeatIso;
   const sum = interactionSummary(currentInteractionHits);
   if(!sum || sum.minSuggestedDays == null) return currentRepeatIso;
-
   const proposed = isoLocal(addDaysLocal(new Date(), sum.minSuggestedDays));
   if(!currentRepeatIso) return proposed;
   return (proposed < currentRepeatIso) ? proposed : currentRepeatIso;
 }
-
 function getGoalBounds(){
   const goalVal = document.getElementById('goal').value;
   const L = (goalVal==='2-3')?2.0:(goalVal==='2.5-3.5')?2.5:parseFloat(document.getElementById('gL').value);
   const H = (goalVal==='2-3')?3.0:(goalVal==='2.5-3.5')?3.5:parseFloat(document.getElementById('gH').value);
   return {L,H};
 }
-
 function getTargetInrIfEnabled(L,H){
   const panel = document.getElementById('targetPanel');
   if(!panel || panel.style.display==='none') return null;
@@ -943,7 +1165,6 @@ function getTargetInrIfEnabled(L,H){
   if(t < L || t > H) return null;
   return r01(t);
 }
-
 function modelBlockHTML(contextLabel, dose7, model){
   if(!model){
     return `<div class="betaBlock" style="margin-top:8px;padding:8px 10px;border-radius:10px;background:#fff3cd;border:1px solid #ffe08a;font-size:13px;">
@@ -958,7 +1179,7 @@ function modelBlockHTML(contextLabel, dose7, model){
   }
   const est = predictInrForDose7(model, dose7);
   return `<div class="betaBlock" style="margin-top:8px;padding:8px 10px;border-radius:10px;background:#fff3cd;border:1px solid #ffe08a;font-size:13px;">
-    <b>Personal trend insight (beta):</b> ${contextLabel} lag-weighted 7-day dose is <b>${dose7.toFixed(1)} mg</b>.
+    <b>Personal trend insight (beta):</b> ${contextLabel} lag-weighted 7-day dose is <b>${stripZeros(dose7.toFixed(1))} mg</b>.
     Based on <b>${model.n}</b> past INR points, this dose usually lines up with an INR around <b>${(est!=null?est.toFixed(1):'—')}</b>.
     <div class="small" style="margin-top:4px;">This is a <b>trend estimate</b> only (helps explain direction), and does not override clinic protocol.</div>
   </div>`;
@@ -975,6 +1196,10 @@ function reco(){
   const {L,H} = getGoalBounds();
   if(isNaN(L)||isNaN(H)||L>=H){ alert('Set a valid INR goal.'); return }
   if(baseSum()<=0){ alert('Enter baseline regimen first.'); return }
+
+  // clear tablet warning
+  const tabletWarn = document.getElementById('tabletWarn');
+  if(tabletWarn) tabletWarn.style.display='none';
 
   pendingRecalc=false;
   const hint=document.getElementById('recalcHint');
@@ -1015,16 +1240,14 @@ function reco(){
 
   const weightExplain = `<div class="small" style="margin-top:6px;color:#666;">
     <b>Lag-weighted dose (7-day):</b> recent doses count more than older doses (because INR responds with delay).
-    Prior-7-days (effective) ≈ <b>${wEffPrior.toFixed(1)} mg</b>.
+    Prior-7-days (effective) ≈ <b>${stripZeros(wEffPrior.toFixed(1))} mg</b>.
   </div>`;
 
   // In-range path
   if(band.pct===0){
-    // Progressive interval logic (toggle)
     const useProg = document.getElementById('useProgressiveInterval')?.checked;
     let rep;
 
-    // Stability streak indicator for in-range weekly INRs
     let streakInfo = {streak:0, used:[]};
     if(useProg){
       streakInfo = computeWeeklyInRangeStreak(L,H,bestDate);
@@ -1033,7 +1256,6 @@ function reco(){
     const streak = streakInfo.streak || 0;
     const intervalDays = (useProg && streak>=1) ? progressiveIntervalDaysFromStreak(streak) : 7;
 
-    // default: 7 days. if INR age 2–3 days, stick to bestDate-based date
     rep = addDaysLocal(bestDate, intervalDays);
 
     repeatKey = isoLocal(rep);
@@ -1069,20 +1291,58 @@ function reco(){
   const s7 = sched7EndOnDate(new Date());
 
   const targetDelta = r01(s7 * band.pct);
-
-  // weighted adherence delta (effective vs scheduled in prior 7 days)
   const priorDelta = r01(wEffPrior - wSchedPrior);
-
-  // Remaining change to apply today
   const remaining   = r01(targetDelta - priorDelta);
 
   const naive = r01((wEffPrior + baseToday) * band.pct);
   const sign  = remaining>0?1:-1;
   const capped= Math.min(Math.abs(naive), Math.abs(remaining)) * sign;
   const targetDose = Math.max(0, r01(baseToday + capped));
-  const newDose = r05(targetDose);
+  let newDose = r05(targetDose); // clinical target rounding
 
-  planned.set(todayIso, newDose);
+  // Tablet constraint (apply to TODAY dose only, and verbal reflects calendar)
+  const useConstraint = document.getElementById('useTabletConstraint')?.checked;
+  let tabletLineHTML = '';
+  if(useConstraint){
+    const strengths = getSelectedTabletStrengths();
+    if(!strengths.length){
+      if(tabletWarn) tabletWarn.style.display='block';
+      // keep the clinical dose; add a note
+      tabletLineHTML = `<div class="small" style="margin-top:6px;color:#8a0000;"><b>Tablet constraint is ON</b> but no strengths are selected. Turn OFF or select strengths.</div>`;
+    }else{
+      const res = findBestFeasibleDose(newDose, strengths, 0.5, 0.10);
+      if(res.ok){
+        const constrained = r025(res.dose);
+        planned.set(todayIso, constrained);
+        newDose = constrained;
+
+        tabletLineHTML = `
+          <div class="small" style="margin-top:6px;color:#666;">
+            <b>Tablet-aware dosing (whole/half only):</b> today’s planned dose set to <b>${formatDose(newDose)} mg</b>
+            using <b>${res.comboText}</b>.
+          </div>
+        `;
+      }else{
+        // keep clinical dose; show closest combo suggestion
+        if(res.closest){
+          tabletLineHTML = `
+            <div class="small" style="margin-top:6px;color:#8a0000;">
+              <b>Tablet-aware dosing:</b> ${res.reason}
+              <br>Closest whole/half option: <b>${formatDose(res.closest.dose)} mg</b> using <b>${res.closest.comboText}</b>.
+              Consider prescribing a new strength if needed.
+            </div>
+          `;
+        }else{
+          tabletLineHTML = `<div class="small" style="margin-top:6px;color:#8a0000;"><b>Tablet-aware dosing:</b> ${res.reason} Consider prescribing a new strength.</div>`;
+        }
+      }
+    }
+  }
+
+  // If tablet constraint did not set today, set today from clinical newDose
+  if(!planned.has(todayIso)){
+    planned.set(todayIso, r025(newDose));
+  }
 
   let repDate;
   if(bestVal>4.5) repDate = addDaysLocal(new Date(), 2);
@@ -1108,9 +1368,9 @@ function reco(){
 
   const mainSentence = withinButTarget
     ? `INR <b>${bestVal.toFixed(1)}</b> is <b>within</b> your goal range (${L}–${H}). ${context}`
-      + `To gently move toward the target, take <b>${newDose.toFixed(1)} mg of warfarin today</b>.`
+      + `To gently move toward the target, take <b>${formatDose(newDose)} mg of warfarin today</b>.`
     : `INR <b>${bestVal.toFixed(1)}</b> is <b>${dirText}</b> your goal range (${L}–${H}). `
-      + `Take <b>${newDose.toFixed(1)} mg of warfarin today</b> based on your recent dosing.`;
+      + `Take <b>${formatDose(newDose)} mg of warfarin today</b> based on your recent dosing.`;
 
   const steerExplain = withinButTarget
     ? `<div class="small" style="margin-top:6px;color:#666;">
@@ -1122,12 +1382,13 @@ function reco(){
   rec.innerHTML =
     mainSentence +
     ` Plan to recheck your INR on <b>${niceDate(repeatKey)}</b>, or sooner if your clinic advises.` +
+    tabletLineHTML +
     `<div class="small" style="margin-top:6px;color:#666;">
-      <b>Lag-weighted dose (7-day):</b> prior-7-days effective ≈ <b>${wEffPrior.toFixed(1)} mg</b>. Prior-7-days scheduled ≈ <b>${wSchedPrior.toFixed(1)} mg</b>.
-      <br><b>Weighted adherence delta:</b> ${priorDelta.toFixed(1)} mg (used to avoid over/under-reacting to missed/extra doses).
+      <b>Lag-weighted dose (7-day):</b> prior-7-days effective ≈ <b>${stripZeros(wEffPrior.toFixed(1))} mg</b>. Prior-7-days scheduled ≈ <b>${stripZeros(wSchedPrior.toFixed(1))} mg</b>.
+      <br><b>Weighted adherence delta:</b> ${stripZeros(priorDelta.toFixed(1))} mg (used to avoid over/under-reacting to missed/extra doses).
     </div>` +
     steerExplain +
-    modelBlockHTML(withinButTarget ? 'Your' : 'Your', wEffPrior, model) +
+    modelBlockHTML('Your', wEffPrior, model) +
     (interHTML || '');
 
   hasReco=true;
@@ -1137,7 +1398,6 @@ function reco(){
 /* ===========================
    Week rows for PDF
    =========================== */
-
 const weekdays = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
 function buildWeekRows(startDate){
@@ -1152,9 +1412,9 @@ function buildWeekRows(startDate){
     const inrValNum   = inrVal.has(key) ? inrVal.get(key) : NaN;
     const actualDose  = actual.has(key) ? actual.get(key) : NaN;
 
-    const plannedStr = isNaN(plannedDose) ? '—' : plannedDose.toFixed(1)+' mg';
+    const plannedStr = isNaN(plannedDose) ? '—' : formatDoseWithUnit(plannedDose);
     const inrStr     = isNaN(inrValNum)   ? '—' : inrValNum.toFixed(1);
-    const actualStr  = isNaN(actualDose)  ? '—' : actualDose.toFixed(1)+' mg';
+    const actualStr  = isNaN(actualDose)  ? '—' : formatDoseWithUnit(actualDose);
     const notesStr   = (repeatKey === key) ? 'Repeat INR' : '';
 
     rows += `
@@ -1173,7 +1433,6 @@ function buildWeekRows(startDate){
 /* ===========================
    PDF Export
    =========================== */
-
 function exportRecommendationPDF(){
   const todayStr = isoLocal(today);
   const now = new Date();
@@ -1386,31 +1645,25 @@ function openPatientHandout(){
 }
 
 /* ===========================
-   Prediction panel (daily inputs → weighted windows)
+   Prediction panel
    =========================== */
-
 function getPrior7FromInputs(){
-  // returns [1d ago..7d ago]
   const ids = ['pd1','pd2','pd3','pd4','pd5','pd6','pd7'];
   return ids.map(id=>{
     const v = parseFloat(document.getElementById(id).value);
     return isNaN(v)?0:r01(v);
   });
 }
-
 function getNext7FromInputs(){
-  // returns [today..+6]
   const ids = ['fd0','fd1','fd2','fd3','fd4','fd5','fd6'];
   return ids.map(id=>{
     const v = parseFloat(document.getElementById(id).value);
     return isNaN(v)?0:r01(v);
   });
 }
-
 function sumArr(a){return r01(a.reduce((s,x)=>s+(isNaN(x)?0:Number(x)),0));}
 
 function fillPredFromCalendarPast(){
-  // yesterday..7d ago: actual if present, else planned, else scheduled
   const t = new Date();
   for(let i=1;i<=7;i++){
     const key = isoLocal(addDaysLocal(t,-i));
@@ -1423,9 +1676,7 @@ function fillPredFromCalendarPast(){
     if(el) el.value = r01(dose).toFixed(1);
   }
 }
-
 function fillPredFromCalendarFuture(){
-  // today..+6: planned if present else scheduled
   const t = new Date();
   for(let i=0;i<=6;i++){
     const key = isoLocal(addDaysLocal(t,i));
@@ -1434,7 +1685,6 @@ function fillPredFromCalendarFuture(){
     if(el) el.value = r01(dose).toFixed(1);
   }
 }
-
 function clearPredInputs(){
   ['pd1','pd2','pd3','pd4','pd5','pd6','pd7','fd0','fd1','fd2','fd3','fd4','fd5','fd6'].forEach(id=>{
     const el = document.getElementById(id);
@@ -1443,7 +1693,6 @@ function clearPredInputs(){
   document.getElementById('predCalcLine').innerHTML = '';
   document.getElementById('predOut').innerHTML = '';
 }
-
 function runWhatIfPrediction(){
   const predOut = document.getElementById('predOut');
   const calcLine = document.getElementById('predCalcLine');
@@ -1493,9 +1742,8 @@ function runWhatIfPrediction(){
 }
 
 /* ===========================
-   DEMO HISTORY (one-click)
+   DEMO HISTORY
    =========================== */
-
 function setBaselineRegimen(values7){
   for(let i=0;i<7;i++){
     const el = document.getElementById('b'+i);
@@ -1504,7 +1752,6 @@ function setBaselineRegimen(values7){
   updSum();
   applyVisible();
 }
-
 function setDemoMessage(text, isError=false){
   const el = document.getElementById('demoMsg');
   if(!el) return;
@@ -1512,7 +1759,6 @@ function setDemoMessage(text, isError=false){
   el.style.color = isError ? '#b00020' : '#2e7d32';
   el.textContent = text;
 }
-
 function clearDemoHistoryOnly(){
   planned.clear();
   actual.clear();
@@ -1534,7 +1780,6 @@ function clearDemoHistoryOnly(){
   applyVisible();
   pushDataToCells(); lin7();
 }
-
 function loadDemoHistory(){
   planned.clear(); actual.clear(); inrVal.clear();
   repeatKey = null;
@@ -1554,8 +1799,8 @@ function loadDemoHistory(){
   function fillDose(daysAgoStart, daysAgoEnd, dose){
     for(let d=daysAgoStart; d>=daysAgoEnd; d--){
       const key = mk(d);
-      planned.set(key, r01(dose));
-      actual.set(key, r01(dose));
+      planned.set(key, r025(dose));
+      actual.set(key, r025(dose));
     }
   }
 
@@ -1586,7 +1831,6 @@ function loadDemoHistory(){
   pushDataToCells(); lin7();
   scrollToTodayWeek();
 
-  // Prefill prediction inputs from calendar
   fillPredFromCalendarPast();
   fillPredFromCalendarFuture();
 
@@ -1596,7 +1840,6 @@ function loadDemoHistory(){
 /* ===========================
    DOM init + listeners
    =========================== */
-
 document.addEventListener('DOMContentLoaded', ()=>{
   try{ renderAll(); updSum(); }catch(e){ err.textContent = 'Calendar failed to render: '+e; }
   setTimeout(scrollToTodayWeek, 50);
@@ -1604,8 +1847,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
   // footer stamp (bottom of page)
   const footer = document.createElement('div');
   footer.className = 'footerStamp';
- footer.textContent = `ThromboLogic™ INR v${APP_VERSION} · © 2026 Sevak Olmessekian`;
-  
+  footer.textContent = versionStampText();
   document.querySelector('.container')?.appendChild(footer);
 
   for(let i=0;i<7;i++){
@@ -1638,6 +1880,18 @@ document.addEventListener('DOMContentLoaded', ()=>{
           targetInr.value = L.toFixed(1);
         }
       }
+    });
+  }
+
+  // Tablet constraint toggle behavior
+  const useTab = document.getElementById('useTabletConstraint');
+  const tabPanel = document.getElementById('tabletPanel');
+  const tabWarn  = document.getElementById('tabletWarn');
+  if(useTab && tabPanel){
+    useTab.addEventListener('change', ()=>{
+      const on = useTab.checked;
+      tabPanel.style.display = on ? 'block' : 'none';
+      if(!on && tabWarn) tabWarn.style.display='none';
     });
   }
 
@@ -1792,10 +2046,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
     if(!key||!role) return;
     const v = parseFloat(t.value);
     if(!isNaN(v)){
-      const val = r01(v);
-      if(role==='planned') planned.set(key, val);
-      if(role==='actual')  actual.set(key, val);
-      if(role==='inr')     inrVal.set(key, val);
+      if(role==='planned') planned.set(key, r025(v));
+      if(role==='actual')  actual.set(key, r025(v));
+      if(role==='inr')     inrVal.set(key, r01(v));
     }else{
       if(role==='planned') planned.delete(key);
       if(role==='actual')  actual.delete(key);
@@ -1806,11 +2059,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
   }, true);
 });
 </script>
-<!--
-© 2026 Sevak Olmessekian. All rights reserved.
-ThromboLogic® INR is proprietary software.
-Unauthorized copying, modification, or distribution is prohibited.
--->
 
 </div>
 </body>
