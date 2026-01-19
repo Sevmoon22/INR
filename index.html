@@ -2180,9 +2180,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
     recalcBtn.addEventListener('click', ()=>{ if(!hasReco && !pendingRecalc){ return; } reco(); });
   }
 
-  document.getElementById('applyCur').addEventListener('click', applyVisible);
-  document.getElementById('clearVisible').addEventListener('click', clearVisible);
-  document.getElementById('clearAll').addEventListener('click', clearAll);
+  document.getElementById('applyCur').addEventListener('click', ()=>{ applyVisible(); saveState(); });
+document.getElementById('clearVisible').addEventListener('click', ()=>{ clearVisible(); saveState(); });
+document.getElementById('clearAll').addEventListener('click', ()=>{ clearAll(); saveState(); });
 
   const goTodayBtn = document.getElementById('goToday');
   if (goTodayBtn) goTodayBtn.addEventListener('click', scrollToTodayWeek);
