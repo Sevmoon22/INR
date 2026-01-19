@@ -2067,6 +2067,8 @@ function loadDemoHistory(){
    DOM init + listeners
    =========================== */
 document.addEventListener('DOMContentLoaded', ()=>{
+  loadState(); // <-- ADD THIS LINE
+
   try{ renderAll(); updSum(); }catch(e){ err.textContent = 'Calendar failed to render: '+e; }
   setTimeout(scrollToTodayWeek, 50);
 
