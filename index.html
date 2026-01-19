@@ -1803,11 +1803,7 @@ function openPatientHandout(){
 
   const cleanRecHTML = getRecHTMLForPDF();
 
-  const win = window.open('', '_blank');
-  if(!win){ alert('Please allow pop-ups to open the patient handout view.'); return; }
-
-  win.document.open();
-  win.document.write(`
+  const html = `
     <html>
     <head>
       <meta charset="utf-8">
@@ -1869,9 +1865,9 @@ function openPatientHandout(){
       <div class="footer">${versionStampText()}</div>
     </body>
     </html>
-  `);
-  win.document.close();
-  win.focus();
+  `;
+
+  openHandoutModal(html);
 }
 
 /* ===========================
