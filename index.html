@@ -2171,7 +2171,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     pushDataToCells(); lin7();
   });
 
-  document.getElementById('getRec').addEventListener('click', reco);
+document.getElementById('getRec').addEventListener('click', ()=>{ reco(); saveState(); });
 
   const recalcBtn = document.getElementById('recalcNow');
   if(recalcBtn){
