@@ -462,6 +462,216 @@ const APP_VERSION = "7.5";
 function versionStampText(){
   return `ThromboLogic INR v${APP_VERSION}`;
 }
+/* ===========================
+   iOS / WebView printing helpers
+   =========================== */
+function printHtmlDocument(html){
+  const frame = document.getElementById('printFrame');
+  if(!frame || !frame.contentWindow) { alert('Print frame not available.'); return; }
+  const doc = frame.contentWindow.document;
+  doc.open();
+  doc.write(html);
+  doc.close();
+  frame.contentWindow.focus();
+  frame.contentWindow.print();
+}
+
+function openHandoutModal(html){
+  const modal = document.getElementById('handoutModal');
+  const frame = document.getElementById('handoutFrame');
+  if(!modal || !frame) { alert('Handout preview not available.'); return; }
+
+  modal.style.display = 'block';
+
+  // Use srcdoc when available; fallback to document write
+  try{
+    frame.srcdoc = html;
+  }catch(e){
+    const d = frame.contentWindow.document;
+    d.open(); d.write(html); d.close();
+  }
+
+  // Wire buttons (idempotent)
+  const closeBtn = document.getElementById('handoutCloseBtn');
+  const printBtn = document.getElementById('handoutPrintBtn');
+  if(closeBtn){
+    closeBtn.onclick = ()=>{ modal.style.display='none'; };
+  }
+  if(printBtn){
+    printBtn.onclick = ()=>{ printHtmlDocument(html); };
+  }
+
+  // Click outside closes
+  modal.onclick = (ev)=>{
+    if(ev.target === modal) modal.style.display='none';
+  };
+}
+
+/* ===========================
+   Local storage persistence
+   =========================== */
+const STORAGE_KEY = "thrombologic_state_v7_5";
+
+function mapToObj(m){
+  const o = {};
+  m.forEach((v,k)=>{ o[k]=v; });
+  return o;
+}
+function objToMap(o){
+  const m = new Map();
+  if(!o || typeof o !== 'object') return m;
+  for(const k of Object.keys(o)){
+    const v = o[k];
+    if(typeof v === 'number' && !isNaN(v)) m.set(k, v);
+  }
+  return m;
+}
+
+function collectState(){
+  const goalEl = document.getElementById('goal');
+  const gL = document.getElementById('gL');
+  const gH = document.getElementById('gH');
+
+  const targetPanel = document.getElementById('targetPanel');
+  const targetInrEl = document.getElementById('targetInr');
+
+  const useProg = document.getElementById('useProgressiveInterval');
+
+  const medList = document.getElementById('medList');
+  const autoAdj = document.getElementById('autoAdjustRepeat');
+
+  const enoxWeight = document.getElementById('enoxWeight');
+  const enoxType = document.getElementById('enoxType');
+
+  const state = {
+    appVersion: APP_VERSION,
+    savedAt: Date.now(),
+
+    patient: {
+      name: (document.getElementById('patientName')?.value || ''),
+      dob:  (document.getElementById('patientDob')?.value || ''),
+      mrn:  (document.getElementById('patientMrn')?.value || '')
+    },
+
+    goal: {
+      preset: goalEl ? goalEl.value : '2-3',
+      gL: gL ? gL.value : '',
+      gH: gH ? gH.value : ''
+    },
+
+    target: {
+      enabled: targetPanel ? (targetPanel.style.display !== 'none') : false,
+      value: targetInrEl ? targetInrEl.value : ''
+    },
+
+    flags: {
+      progressiveInterval: useProg ? !!useProg.checked : true,
+      autoAdjustRepeat: autoAdj ? !!autoAdj.checked : false
+    },
+
+    meds: {
+      list: medList ? medList.value : ''
+    },
+
+    bridging: {
+      weight: enoxWeight ? enoxWeight.value : '',
+      regimen: enoxType ? enoxType.value : 'tx_q12'
+    },
+
+    baseline: [0,1,2,3,4,5,6].map(i => document.getElementById('b'+i)?.value || ''),
+
+    calendar: {
+      planned: mapToObj(planned),
+      actual: mapToObj(actual),
+      inrVal: mapToObj(inrVal),
+      repeatKey: repeatKey || null
+    }
+  };
+
+  return state;
+}
+
+function saveState(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(collectState()));
+  }catch(e){
+    // Storage might be full or blocked; fail silently
+  }
+}
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return;
+    const s = JSON.parse(raw);
+
+    // Patient
+    if(s.patient){
+      const n=document.getElementById('patientName'); if(n) n.value = s.patient.name || '';
+      const d=document.getElementById('patientDob');  if(d) d.value = s.patient.dob  || '';
+      const m=document.getElementById('patientMrn');  if(m) m.value = s.patient.mrn  || '';
+    }
+
+    // Goal
+    if(s.goal){
+      const goalEl=document.getElementById('goal');
+      if(goalEl && s.goal.preset) goalEl.value = s.goal.preset;
+      const cust=document.getElementById('cust');
+      if(cust) cust.style.display = (goalEl && goalEl.value==='custom') ? 'block' : 'none';
+
+      const gL=document.getElementById('gL'); if(gL) gL.value = s.goal.gL || '';
+      const gH=document.getElementById('gH'); if(gH) gH.value = s.goal.gH || '';
+    }
+
+    // Target
+    if(s.target){
+      const panel=document.getElementById('targetPanel');
+      const t=document.getElementById('targetInr');
+      if(panel) panel.style.display = s.target.enabled ? 'block' : 'none';
+      if(t) t.value = s.target.value || '';
+    }
+
+    // Flags
+    if(s.flags){
+      const useProg=document.getElementById('useProgressiveInterval');
+      if(useProg) useProg.checked = (s.flags.progressiveInterval !== false);
+
+      const autoAdj=document.getElementById('autoAdjustRepeat');
+      if(autoAdj) autoAdj.checked = !!s.flags.autoAdjustRepeat;
+    }
+
+    // Meds
+    if(s.meds){
+      const medList=document.getElementById('medList');
+      if(medList) medList.value = s.meds.list || '';
+    }
+
+    // Bridging
+    if(s.bridging){
+      const w=document.getElementById('enoxWeight'); if(w) w.value = s.bridging.weight || '';
+      const t=document.getElementById('enoxType');   if(t) t.value = s.bridging.regimen || 'tx_q12';
+    }
+
+    // Baseline
+    if(Array.isArray(s.baseline)){
+      for(let i=0;i<7;i++){
+        const el=document.getElementById('b'+i);
+        if(el) el.value = s.baseline[i] || '';
+      }
+    }
+
+    // Calendar maps
+    if(s.calendar){
+      planned.clear(); actual.clear(); inrVal.clear();
+      objToMap(s.calendar.planned).forEach((v,k)=> planned.set(k,v));
+      objToMap(s.calendar.actual).forEach((v,k)=> actual.set(k,v));
+      objToMap(s.calendar.inrVal).forEach((v,k)=> inrVal.set(k,v));
+      repeatKey = s.calendar.repeatKey || null;
+    }
+  }catch(e){
+    // ignore corrupt state
+  }
+}
 
 /* ===========================
    Helpers
