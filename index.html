@@ -437,6 +437,22 @@ textarea{resize:vertical}
 
     <div id="interactionResults" class="card small" style="margin-top:10px;display:none;"></div>
   </fieldset>
+  <!-- iOS/WebView helpers -->
+  <iframe id="printFrame" style="display:none;"></iframe>
+
+  <!-- Patient Handout Modal (avoids window.open in iOS WKWebView) -->
+  <div id="handoutModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:9999;">
+    <div style="position:absolute; inset:16px; background:#fff; border-radius:12px; overflow:hidden; display:flex; flex-direction:column;">
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 12px; border-bottom:1px solid #eee;">
+        <b>Patient Handout Preview</b>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button class="btnS" type="button" id="handoutPrintBtn">Print / Save PDF</button>
+          <button class="btnS" type="button" id="handoutCloseBtn">Close</button>
+        </div>
+      </div>
+      <iframe id="handoutFrame" style="border:0; width:100%; height:100%;"></iframe>
+    </div>
+  </div>
 
 <script>
 /* ===========================
