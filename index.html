@@ -2479,6 +2479,49 @@ document.addEventListener('DOMContentLoaded', ()=>{
   loadState(); // <-- ADD THIS LINE
 
   try{ renderAll(); updSum(); }catch(e){ err.textContent = 'Calendar failed to render: '+e; }
+    // ===== Profiles UI init =====
+  const searchEl = document.getElementById('profileSearch');
+
+  // restore active profile if exists
+  activeProfileId = localStorage.getItem(ACTIVE_PROFILE_KEY) || null;
+
+  renderProfileList('');
+  updateCurrentLine();
+
+  if(searchEl){
+    searchEl.addEventListener('input', ()=> renderProfileList(searchEl.value));
+    searchEl.addEventListener('focus', ()=> renderProfileList(searchEl.value));
+  }
+
+  document.getElementById('btnNewPatient')?.addEventListener('click', ()=>{
+    guardUnsaved(()=>{
+      activeProfileId = null;
+      localStorage.removeItem(ACTIVE_PROFILE_KEY);
+      resetToBlankPatient();
+      clearDirty();
+      renderProfileList(searchEl?.value || '');
+      updateCurrentLine();
+    });
+  });
+
+  document.getElementById('btnSavePatient')?.addEventListener('click', ()=>{
+    saveActiveProfile();
+  });
+
+  document.getElementById('btnSaveAsPatient')?.addEventListener('click', ()=>{
+    saveAsNewProfile();
+  });
+
+  document.getElementById('btnDeletePatient')?.addEventListener('click', ()=>{
+    guardUnsaved(()=> deleteActiveProfile());
+  });
+
+  // mark dirty on basically any edits (simple + reliable)
+  document.querySelector('.container')?.addEventListener('input', (ev)=>{
+    if(ev.target && ev.target.id === 'profileSearch') return;
+    markDirty();
+  }, true);
+
   setTimeout(scrollToTodayWeek, 50);
 
   // footer stamp (bottom of page)
