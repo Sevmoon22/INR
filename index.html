@@ -613,10 +613,11 @@ function collectState(){
     savedAt: Date.now(),
 
     patient: {
-      name: (document.getElementById('patientName')?.value || ''),
-      dob:  (document.getElementById('patientDob')?.value || ''),
-      mrn:  (document.getElementById('patientMrn')?.value || '')
-    },
+  name:  (document.getElementById('patientName')?.value || ''),
+  dob:   (document.getElementById('patientDob')?.value || ''),
+  mrn:   (document.getElementById('patientMrn')?.value || ''),
+  phone: (document.getElementById('patientPhone')?.value || '')
+},
 
     goal: {
       preset: goalEl ? goalEl.value : '2-3',
