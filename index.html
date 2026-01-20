@@ -2087,9 +2087,9 @@ document.addEventListener('DOMContentLoaded', ()=>{
   document.querySelector('.container')?.appendChild(footer);
 
   for(let i=0;i<7;i++){
-    const el=document.getElementById('b'+i);
-    if(el){ el.addEventListener('input', ()=>{ updSum(); }) }
-  }
+  const el=document.getElementById('b'+i);
+  if(el){ el.addEventListener('input', ()=>{ updSum(); saveState(); }) }
+}
 
   document.getElementById('goal').addEventListener('change', (ev)=>{
     const v = ev.target.value;
