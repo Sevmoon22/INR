@@ -601,9 +601,16 @@ function saveState(){
 
 function loadState(){
   try{
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if(!raw) return;
-    const s = JSON.parse(raw);
+   const raw = localStorage.getItem(STORAGE_KEY);
+if(!raw) return;
+
+let s;
+try{
+  s = JSON.parse(raw);
+}catch(e){
+  localStorage.removeItem(STORAGE_KEY); // clear corrupt save
+  return;
+}
 
     // Patient
     if(s.patient){
