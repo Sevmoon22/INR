@@ -174,6 +174,30 @@ textarea{resize:vertical}
   </div>
 
   <div id="err" class="err"></div>
+  <!-- Patient Profiles (NEW) -->
+  <h2>Patient Profiles</h2>
+  <div class="profilesBar">
+    <div class="profilesTop">
+      <input id="profileSearch" type="text" placeholder="Search patients (Name, MRN, Phone)…">
+      <div class="profilesBtns">
+        <button class="btnS" id="btnNewPatient" type="button">New</button>
+        <button class="btnS" id="btnSavePatient" type="button">Save</button>
+        <button class="btnS" id="btnSaveAsPatient" type="button">Save As…</button>
+        <button class="btnS" id="btnDeletePatient" type="button">Delete</button>
+      </div>
+    </div>
+
+    <div id="profileList" class="profileList" style="display:none;"></div>
+
+    <div class="currentLine">
+      <div id="currentPatientLabel">Currently loaded: <b>None</b></div>
+      <div id="unsavedBadge" class="unsavedDot">● Unsaved changes</div>
+    </div>
+
+    <div class="small" style="margin-top:6px;color:#666;">
+      Saved locally on this device/browser only. Clearing browser data will remove profiles.
+    </div>
+  </div>
 
   <!-- Patient Information -->
   <h2>Patient Information</h2>
