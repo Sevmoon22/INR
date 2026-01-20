@@ -1084,68 +1084,6 @@ function resetToBlankPatient(){
   try{ updSum(); pushDataToCells(); lin7(); }catch(e){}
 }
 
-    // Goal
-    if(s.goal){
-      const goalEl=document.getElementById('goal');
-      if(goalEl && s.goal.preset) goalEl.value = s.goal.preset;
-
-      const cust=document.getElementById('cust');
-      if(cust) cust.style.display = (goalEl && goalEl.value==='custom') ? 'block' : 'none';
-
-      const gL=document.getElementById('gL'); if(gL) gL.value = s.goal.gL || '';
-      const gH=document.getElementById('gH'); if(gH) gH.value = s.goal.gH || '';
-    }
-
-    // Target
-    if(s.target){
-      const panel=document.getElementById('targetPanel');
-      const t=document.getElementById('targetInr');
-      if(panel) panel.style.display = s.target.enabled ? 'block' : 'none';
-      if(t) t.value = s.target.value || '';
-    }
-
-    // Flags
-    if(s.flags){
-      const useProg=document.getElementById('useProgressiveInterval');
-      if(useProg) useProg.checked = (s.flags.progressiveInterval !== false);
-
-      const autoAdj=document.getElementById('autoAdjustRepeat');
-      if(autoAdj) autoAdj.checked = !!s.flags.autoAdjustRepeat;
-    }
-
-    // Meds
-    if(s.meds){
-      const medList=document.getElementById('medList');
-      if(medList) medList.value = s.meds.list || '';
-    }
-
-    // Bridging
-    if(s.bridging){
-      const w=document.getElementById('enoxWeight'); if(w) w.value = s.bridging.weight || '';
-      const t=document.getElementById('enoxType');   if(t) t.value = s.bridging.regimen || 'tx_q12';
-    }
-
-    // Baseline (restore values ONLY)
-    if(Array.isArray(s.baseline)){
-      for(let i=0;i<7;i++){
-        const el = document.getElementById('b'+i);
-        if(el) el.value = (s.baseline[i] ?? '');
-      }
-    }
-
-    // Calendar maps
-    if(s.calendar){
-      planned.clear(); actual.clear(); inrVal.clear();
-      objToMap(s.calendar.planned).forEach((v,k)=> planned.set(k,v));
-      objToMap(s.calendar.actual).forEach((v,k)=> actual.set(k,v));
-      objToMap(s.calendar.inrVal).forEach((v,k)=> inrVal.set(k,v));
-      repeatKey = s.calendar.repeatKey || null;
-    }
-  }catch(e){
-    // ignore state if storage blocked
-  }
-}
-
 /* ===========================
    Helpers
    =========================== */
