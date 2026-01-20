@@ -680,10 +680,11 @@ function loadState(){
 
     // Patient
     if(s.patient){
-      const n=document.getElementById('patientName'); if(n) n.value = s.patient.name || '';
-      const d=document.getElementById('patientDob');  if(d) d.value = s.patient.dob  || '';
-      const m=document.getElementById('patientMrn');  if(m) m.value = s.patient.mrn  || '';
-    }
+  const n=document.getElementById('patientName'); if(n) n.value = s.patient.name || '';
+  const d=document.getElementById('patientDob');  if(d) d.value = s.patient.dob  || '';
+  const m=document.getElementById('patientMrn');  if(m) m.value = s.patient.mrn  || '';
+  const p=document.getElementById('patientPhone');if(p) p.value = s.patient.phone || '';
+}
 
     // Goal
     if(s.goal){
