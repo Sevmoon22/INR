@@ -601,16 +601,16 @@ function saveState(){
 
 function loadState(){
   try{
-   const raw = localStorage.getItem(STORAGE_KEY);
-if(!raw) return;
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return;
 
-let s;
-try{
-  s = JSON.parse(raw);
-}catch(e){
-  localStorage.removeItem(STORAGE_KEY); // clear corrupt save
-  return;
-}
+    let s;
+    try{
+      s = JSON.parse(raw);
+    }catch(e){
+      localStorage.removeItem(STORAGE_KEY); // clear corrupt save
+      return;
+    }
 
     // Patient
     if(s.patient){
@@ -623,6 +623,7 @@ try{
     if(s.goal){
       const goalEl=document.getElementById('goal');
       if(goalEl && s.goal.preset) goalEl.value = s.goal.preset;
+
       const cust=document.getElementById('cust');
       if(cust) cust.style.display = (goalEl && goalEl.value==='custom') ? 'block' : 'none';
 
@@ -659,14 +660,13 @@ try{
       const t=document.getElementById('enoxType');   if(t) t.value = s.bridging.regimen || 'tx_q12';
     }
 
-    // Baseline
-  // Baseline (restore values)
-if(Array.isArray(s.baseline)){
- for(let i=0;i<7;i++){
-  const el=document.getElementById('b'+i);
-  if(el){ el.addEventListener('input', ()=>{ updSum(); saveState(); }) }
-}
-
+    // Baseline (restore values ONLY)
+    if(Array.isArray(s.baseline)){
+      for(let i=0;i<7;i++){
+        const el = document.getElementById('b'+i);
+        if(el) el.value = (s.baseline[i] ?? '');
+      }
+    }
 
     // Calendar maps
     if(s.calendar){
@@ -677,7 +677,7 @@ if(Array.isArray(s.baseline)){
       repeatKey = s.calendar.repeatKey || null;
     }
   }catch(e){
-    // ignore corrupt state
+    // ignore state if storage blocked
   }
 }
 
