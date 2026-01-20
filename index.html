@@ -2516,12 +2516,6 @@ document.addEventListener('DOMContentLoaded', ()=>{
     guardUnsaved(()=> deleteActiveProfile());
   });
 
-  // mark dirty on basically any edits (simple + reliable)
-  document.querySelector('.container')?.addEventListener('input', (ev)=>{
-    if(ev.target && ev.target.id === 'profileSearch') return;
-    markDirty();
-  }, true);
-
   setTimeout(scrollToTodayWeek, 50);
 
   // footer stamp (bottom of page)
