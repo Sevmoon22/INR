@@ -685,6 +685,340 @@ function loadState(){
   const m=document.getElementById('patientMrn');  if(m) m.value = s.patient.mrn  || '';
   const p=document.getElementById('patientPhone');if(p) p.value = s.patient.phone || '';
 }
+/* ===========================
+   Multi-patient Profiles (local)
+   =========================== */
+const PROFILES_KEY = "thrombologic_profiles_v1";
+const ACTIVE_PROFILE_KEY = "thrombologic_active_profile_v1";
+let activeProfileId = null;
+let isDirty = false;
+
+function safeUUID(){
+  try{ return crypto.randomUUID(); }catch(e){
+    return 'p_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,8);
+  }
+}
+
+function digitsOnlyPhone(s){
+  return (s||"").toString().replace(/\D/g,'');
+}
+function normText(s){
+  return (s||"").toString().toLowerCase().trim();
+}
+
+function getProfiles(){
+  try{
+    const raw = localStorage.getItem(PROFILES_KEY);
+    if(!raw) return {};
+    const obj = JSON.parse(raw);
+    return (obj && typeof obj === 'object') ? obj : {};
+  }catch(e){ return {}; }
+}
+function setProfiles(obj){
+  try{ localStorage.setItem(PROFILES_KEY, JSON.stringify(obj||{})); }catch(e){}
+}
+
+function profileDisplayName(meta){
+  const name = (meta?.name||'').trim();
+  const mrn  = (meta?.mrn||'').trim();
+  if(name && mrn) return `${name} (MRN ${mrn})`;
+  if(name) return name;
+  if(mrn) return `MRN ${mrn}`;
+  return 'Unnamed patient';
+}
+
+function updateCurrentLine(){
+  const label = document.getElementById('currentPatientLabel');
+  const badge = document.getElementById('unsavedBadge');
+  if(label){
+    if(activeProfileId){
+      const profiles = getProfiles();
+      const p = profiles[activeProfileId];
+      const disp = p ? profileDisplayName(p.meta) : 'Unknown';
+      label.innerHTML = `Currently loaded: <b>${disp}</b>`;
+    }else{
+      label.innerHTML = `Currently loaded: <b>None</b>`;
+    }
+  }
+  if(badge){
+    badge.style.display = isDirty ? 'inline-flex' : 'none';
+  }
+}
+
+function markDirty(){
+  isDirty = true;
+  updateCurrentLine();
+}
+
+function clearDirty(){
+  isDirty = false;
+  updateCurrentLine();
+}
+
+function guardUnsaved(nextActionFn){
+  if(!isDirty){ nextActionFn(); return; }
+  const okSave = confirm("Unsaved changes detected.\n\nPress OK to SAVE before continuing.\nPress Cancel to discard changes and continue.");
+  if(okSave){
+    saveActiveProfile();
+    nextActionFn();
+  }else{
+    clearDirty();
+    nextActionFn();
+  }
+}
+
+function renderProfileList(filterText=''){
+  const list = document.getElementById('profileList');
+  if(!list) return;
+
+  const q = normText(filterText);
+  const qPhone = digitsOnlyPhone(filterText);
+
+  const profiles = getProfiles();
+  const items = Object.entries(profiles).map(([id, p])=>{
+    const meta = p?.meta || {};
+    return {
+      id,
+      meta,
+      nameN: normText(meta.name),
+      mrnN: normText(meta.mrn),
+      phoneD: digitsOnlyPhone(meta.phone),
+      lastUsed: meta.lastUsed || 0,
+      updatedAt: meta.updatedAt || 0
+    };
+  });
+
+  let filtered = items;
+  if(q || qPhone){
+    const terms = q.split(/\s+/).filter(Boolean);
+    filtered = items.filter(it=>{
+      const hay = `${it.nameN} ${it.mrnN} ${it.phoneD}`;
+      return terms.every(t=>{
+        const tDigits = digitsOnlyPhone(t);
+        if(tDigits && it.phoneD.includes(tDigits)) return true;
+        return hay.includes(t);
+      });
+    });
+  }
+
+  filtered.sort((a,b)=> (b.lastUsed - a.lastUsed) || (b.updatedAt - a.updatedAt));
+
+  list.innerHTML = '';
+  list.style.display = 'block';
+
+  if(filtered.length === 0){
+    list.innerHTML = `<div class="profileRow" style="cursor:default;background:#fafafa;">
+      <div class="small">No matches.</div>
+    </div>`;
+    return;
+  }
+
+  for(const it of filtered){
+    const disp = profileDisplayName(it.meta);
+    const mrn = (it.meta.mrn||'').trim();
+    const phone = (it.meta.phone||'').trim();
+    const updated = it.updatedAt ? new Date(it.updatedAt).toLocaleDateString() : '—';
+
+    const row = document.createElement('div');
+    row.className = 'profileRow' + (it.id === activeProfileId ? ' active' : '');
+    row.innerHTML = `
+      <b>${disp}</b>
+      <div class="profileMeta">
+        <span>MRN: ${mrn || '—'}</span>
+        <span>Phone: ${phone || '—'}</span>
+        <span>Updated: ${updated}</span>
+      </div>
+    `;
+    row.addEventListener('click', ()=>{
+      guardUnsaved(()=> loadProfileById(it.id));
+    });
+    list.appendChild(row);
+  }
+}
+
+function applyStateObject(s){
+  if(s.patient){
+    const n=document.getElementById('patientName'); if(n) n.value = s.patient.name || '';
+    const d=document.getElementById('patientDob');  if(d) d.value = s.patient.dob  || '';
+    const m=document.getElementById('patientMrn');  if(m) m.value = s.patient.mrn  || '';
+    const p=document.getElementById('patientPhone');if(p) p.value = s.patient.phone || '';
+  }
+
+  if(s.goal){
+    const goalEl=document.getElementById('goal');
+    if(goalEl && s.goal.preset) goalEl.value = s.goal.preset;
+    const cust=document.getElementById('cust');
+    if(cust) cust.style.display = (goalEl && goalEl.value==='custom') ? 'block' : 'none';
+    const gL=document.getElementById('gL'); if(gL) gL.value = s.goal.gL || '';
+    const gH=document.getElementById('gH'); if(gH) gH.value = s.goal.gH || '';
+  }
+
+  if(s.target){
+    const panel=document.getElementById('targetPanel');
+    const t=document.getElementById('targetInr');
+    if(panel) panel.style.display = s.target.enabled ? 'block' : 'none';
+    if(t) t.value = s.target.value || '';
+  }
+
+  if(s.flags){
+    const useProg=document.getElementById('useProgressiveInterval');
+    if(useProg) useProg.checked = (s.flags.progressiveInterval !== false);
+    const autoAdj=document.getElementById('autoAdjustRepeat');
+    if(autoAdj) autoAdj.checked = !!s.flags.autoAdjustRepeat;
+  }
+
+  if(s.meds){
+    const medList=document.getElementById('medList');
+    if(medList) medList.value = s.meds.list || '';
+  }
+
+  if(s.bridging){
+    const w=document.getElementById('enoxWeight'); if(w) w.value = s.bridging.weight || '';
+    const t=document.getElementById('enoxType');   if(t) t.value = s.bridging.regimen || 'tx_q12';
+  }
+
+  if(Array.isArray(s.baseline)){
+    for(let i=0;i<7;i++){
+      const el = document.getElementById('b'+i);
+      if(el) el.value = (s.baseline[i] ?? '');
+    }
+  }
+
+  if(s.calendar){
+    planned.clear(); actual.clear(); inrVal.clear();
+    objToMap(s.calendar.planned).forEach((v,k)=> planned.set(k,v));
+    objToMap(s.calendar.actual).forEach((v,k)=> actual.set(k,v));
+    objToMap(s.calendar.inrVal).forEach((v,k)=> inrVal.set(k,v));
+    repeatKey = s.calendar.repeatKey || null;
+  }
+
+  try{ updSum(); pushDataToCells(); lin7(); }catch(e){}
+}
+
+function loadProfileById(id){
+  const profiles = getProfiles();
+  const p = profiles[id];
+  if(!p || !p.state){ alert("Profile not found."); return; }
+
+  activeProfileId = id;
+  localStorage.setItem(ACTIVE_PROFILE_KEY, id);
+
+  p.meta = p.meta || {};
+  p.meta.lastUsed = Date.now();
+  profiles[id] = p;
+  setProfiles(profiles);
+
+  applyStateObject(p.state);
+  clearDirty();
+  renderProfileList(document.getElementById('profileSearch')?.value || '');
+  updateCurrentLine();
+}
+
+function saveActiveProfile(){
+  if(!activeProfileId){
+    saveAsNewProfile();
+    return;
+  }
+  const profiles = getProfiles();
+  const existing = profiles[activeProfileId] || {meta:{}, state:{}};
+
+  const name = (document.getElementById('patientName')?.value || '').trim();
+  const mrn  = (document.getElementById('patientMrn')?.value || '').trim();
+  const phone= (document.getElementById('patientPhone')?.value || '').trim();
+
+  existing.meta = existing.meta || {};
+  existing.meta.name = name;
+  existing.meta.mrn = mrn;
+  existing.meta.phone = phone;
+  existing.meta.updatedAt = Date.now();
+  existing.meta.lastUsed  = Date.now();
+
+  existing.state = collectState();
+
+  profiles[activeProfileId] = existing;
+  setProfiles(profiles);
+
+  clearDirty();
+  renderProfileList(document.getElementById('profileSearch')?.value || '');
+  updateCurrentLine();
+}
+
+function saveAsNewProfile(){
+  const name = (document.getElementById('patientName')?.value || '').trim();
+  const mrn  = (document.getElementById('patientMrn')?.value || '').trim();
+  const phone= (document.getElementById('patientPhone')?.value || '').trim();
+
+  const defaultLabel = profileDisplayName({name, mrn});
+  const label = prompt("Save as new patient profile.\n\nEnter a label (you can include Name and/or MRN):", defaultLabel);
+  if(label === null) return;
+
+  const id = safeUUID();
+  const profiles = getProfiles();
+
+  profiles[id] = {
+    meta: {
+      label: (label||'').trim(),
+      name, mrn, phone,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      lastUsed: Date.now()
+    },
+    state: collectState()
+  };
+
+  setProfiles(profiles);
+  activeProfileId = id;
+  localStorage.setItem(ACTIVE_PROFILE_KEY, id);
+
+  clearDirty();
+  renderProfileList(document.getElementById('profileSearch')?.value || '');
+  updateCurrentLine();
+}
+
+function deleteActiveProfile(){
+  if(!activeProfileId){ alert("No patient profile selected."); return; }
+  const profiles = getProfiles();
+  const p = profiles[activeProfileId];
+  const disp = p ? (p.meta?.label || profileDisplayName(p.meta)) : 'this patient';
+  const ok = confirm(`Delete ${disp}?\n\nThis cannot be undone.`);
+  if(!ok) return;
+
+  delete profiles[activeProfileId];
+  setProfiles(profiles);
+
+  activeProfileId = null;
+  localStorage.removeItem(ACTIVE_PROFILE_KEY);
+
+  resetToBlankPatient();
+  clearDirty();
+  renderProfileList(document.getElementById('profileSearch')?.value || '');
+  updateCurrentLine();
+}
+
+function resetToBlankPatient(){
+  const ids = ['patientName','patientDob','patientMrn','patientPhone','inr','medList','enoxWeight'];
+  ids.forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.value = '';
+  });
+  const enoxType = document.getElementById('enoxType');
+  if(enoxType) enoxType.value = 'tx_q12';
+
+  for(let i=0;i<7;i++){
+    const el = document.getElementById('b'+i);
+    if(el) el.value = '';
+  }
+
+  planned.clear(); actual.clear(); inrVal.clear(); repeatKey=null;
+  hasReco=false; pendingRecalc=false; lastRecoINR=null; lastRepeatIso=null;
+  currentInteractionHits=[];
+
+  if(rec) rec.innerHTML = '';
+  const results = document.getElementById('interactionResults');
+  if(results){ results.style.display='none'; results.innerHTML=''; }
+
+  try{ updSum(); pushDataToCells(); lin7(); }catch(e){}
+}
 
     // Goal
     if(s.goal){
