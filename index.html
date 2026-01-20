@@ -653,10 +653,12 @@ function loadState(){
     }
 
     // Baseline
-    if(Array.isArray(s.baseline)){
-      for(let i=0;i<7;i++){
-  const el=document.getElementById('b'+i);
-  if(el){ el.addEventListener('input', ()=>{ updSum(); saveState(); }) }
+   // Baseline (restore values)
+if(Array.isArray(s.baseline)){
+  for(let i=0;i<7;i++){
+    const el = document.getElementById('b'+i);
+    if(el) el.value = (s.baseline[i] ?? '');
+  }
 }
 
     // Calendar maps
