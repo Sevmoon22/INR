@@ -1074,6 +1074,33 @@ function niceDate(isoStr){
   if(isNaN(m)||isNaN(d)||isNaN(y)) return isoStr;
   return pad(m)+'/'+pad(d)+'/'+y;
 }
+function applyRecoPlan(todayIso, todayDose, repeatIso){
+  // Always apply today's planned dose
+  if(todayDose != null && !isNaN(todayDose)){
+    planned.set(todayIso, r025(todayDose));
+  }
+
+  // Mark repeat INR day
+  repeatKey = repeatIso || null;
+
+  // Fill days from today → repeat INR using scheduled regimen
+  if(repeatIso){
+    const t0 = new Date(todayIso);
+    const tR = new Date(repeatIso);
+    const days = Math.max(0, daysBetween(t0, tR));
+
+    for(let i = 1; i <= days; i++){
+      const k = isoLocal(addDaysLocal(t0, i));
+      if(!planned.has(k)){
+        planned.set(k, r025(schedAtIso(k)));
+      }
+    }
+  }
+
+  pushDataToCells();
+  lin7();
+  saveState();
+}
 
 const weeksEl = document.getElementById('weeks');
 const calwrap = document.getElementById('calwrap');
