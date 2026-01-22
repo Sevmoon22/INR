@@ -1850,8 +1850,9 @@ function reco(){
       `Repeat your INR on <b>${niceDate(repeatKey)}</b>${ifAppropriate}.` +
       streakLine +
       weightExplain +
-      modelBlockHTML('Your', wEffPrior, model) +
-      (interHTML || '');
+        modelBlockHTML('Your', wEffPrior, model) +
+  (interHTML || '') +
+  getBridgingHTML();
 
     hasReco=true;
 
