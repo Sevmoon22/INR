@@ -1101,6 +1101,19 @@ function applyRecoPlan(todayIso, todayDose, repeatIso){
   lin7();
   saveState();
 }
+function getBridgingHTML(){
+  const el = document.getElementById('enoxOut');
+  if(!el) return '';
+  const html = el.innerHTML?.trim();
+  if(!html) return '';
+  if(/not required/i.test(html)) return '';
+  return `
+    <div class="betaBlock" style="margin-top:10px;">
+      <b>Bridging recommendation:</b>
+      <div class="small">${html}</div>
+    </div>
+  `;
+}
 
 const weeksEl = document.getElementById('weeks');
 const calwrap = document.getElementById('calwrap');
