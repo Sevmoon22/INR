@@ -1114,6 +1114,22 @@ function getBridgingHTML(){
     </div>
   `;
 }
+function getBridgingBlockHTML(){
+  const el = document.getElementById('enoxOut');
+  if(!el) return '';
+  const html = (el.innerHTML || '').trim();
+  if(!html) return '';
+  // ignore “not required” / empty prompt states
+  if(/bridging not required/i.test(html)) return '';
+  if(/enter a valid weight/i.test(html)) return '';
+  if(/select a valid regimen/i.test(html)) return '';
+  return `
+    <div class="bridgeBlock" style="margin-top:10px;padding:10px;border-radius:10px;border:1px solid #e6e6e6;background:#fff;">
+      <div style="font-weight:700;margin-bottom:6px;">Bridging recommendation</div>
+      <div class="small">${html}</div>
+    </div>
+  `;
+}
 
 const weeksEl = document.getElementById('weeks');
 const calwrap = document.getElementById('calwrap');
