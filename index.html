@@ -1130,6 +1130,95 @@ function getBridgingBlockHTML(){
     </div>
   `;
 }
+/* ===========================
+   Bridging calculator (FIX — add missing functions)
+   =========================== */
+function calcEnoxaparinDose(){
+  const out = document.getElementById('enoxOut');
+  const wEl = document.getElementById('enoxWeight');
+  const tEl = document.getElementById('enoxType');
+  if(!out || !wEl || !tEl) return;
+
+  const wt = parseFloat(wEl.value);
+  const type = (tEl.value || '').trim();
+
+  if(isNaN(wt) || wt <= 0){
+    out.innerHTML = `<span style="color:#b00020;"><b>Enter a valid weight</b> to calculate bridging dose.</span>`;
+    return;
+  }
+
+  // Helper: round to nearest 10mg with your special rule:
+  // - any dose ending in 5 mg OR <=5 mg above a multiple of 10 → round DOWN
+  // - anything >5 mg above a multiple of 10 → round UP
+  function roundToNearest10_special(x){
+    const base = Math.floor(x/10)*10;
+    const diff = x - base;
+    if(diff <= 5) return base;
+    return base + 10;
+  }
+
+  let html = '';
+
+  // Enoxaparin regimens
+  if(type === 'tx_q12' || type === 'tx_q24'){
+    const raw = wt * 1.0; // 1 mg/kg
+    const rounded = roundToNearest10_special(raw);
+
+    html += `<div><b>Enoxaparin therapeutic dose:</b> <b>${rounded} mg</b> per dose</div>`;
+    html += `<div class="small" style="margin-top:4px;color:#666;">
+      Based on 1 mg/kg (${raw.toFixed(1)} mg before rounding).
+    </div>`;
+
+    if(type === 'tx_q12'){
+      html += `<div style="margin-top:6px;"><b>Frequency:</b> every 12 hours</div>`;
+    }else{
+      html += `<div style="margin-top:6px;"><b>Frequency:</b> once daily (renal adjustment)</div>`;
+    }
+
+    html += `<div class="small" style="margin-top:6px;color:#666;">
+      Rounding rule: values ≤5 mg above a multiple of 10 round <b>down</b>; >5 mg rounds <b>up</b>.
+    </div>`;
+  }
+  else if(type === 'px_40'){
+    html += `<div><b>Enoxaparin prophylaxis dose:</b> <b>40 mg</b> once daily</div>`;
+  }
+  else if(type === 'px_30'){
+    html += `<div><b>Enoxaparin prophylaxis dose:</b> <b>30 mg</b> once daily (renal adjustment)</div>`;
+  }
+
+  // Fondaparinux regimens
+  else if(type === 'fond_tx'){
+    let dose = 7.5;
+    if(wt < 50) dose = 5;
+    else if(wt > 100) dose = 10;
+
+    html += `<div><b>Fondaparinux treatment dose:</b> <b>${dose} mg</b> once daily</div>`;
+    html += `<div class="small" style="margin-top:4px;color:#666;">
+      5 mg if &lt;50 kg, 7.5 mg if 50–100 kg, 10 mg if &gt;100 kg.
+    </div>`;
+  }
+  else if(type === 'fond_px'){
+    html += `<div><b>Fondaparinux prophylaxis dose:</b> <b>2.5 mg</b> once daily</div>`;
+  }
+  else{
+    out.innerHTML = `<span style="color:#b00020;"><b>Select a valid regimen</b>.</span>`;
+    return;
+  }
+
+  // Write output
+  out.innerHTML = html;
+
+  // OPTIONAL: if you want this to instantly show inside Verbal Recommendation,
+  // uncomment the next line:
+  // if(hasReco) rec.innerHTML = (rec.innerHTML || '') + getBridgingBlockHTML();
+}
+
+function clearEnoxaparin(){
+  const out = document.getElementById('enoxOut');
+  const wEl = document.getElementById('enoxWeight');
+  if(wEl) wEl.value = '';
+  if(out) out.innerHTML = `<span class="small" style="color:#666;">Bridging not required.</span>`;
+}
 
 const weeksEl = document.getElementById('weeks');
 const calwrap = document.getElementById('calwrap');
