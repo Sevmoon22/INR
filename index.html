@@ -2447,6 +2447,16 @@ document.addEventListener('DOMContentLoaded', ()=>{
   });
 
   document.getElementById('getRec').addEventListener('click', ()=>{ reco(); saveState(); });
+// Bridging buttons (FIX)
+document.getElementById('calcEnox')?.addEventListener('click', ()=>{
+  calcEnoxaparinDose();
+  saveState();
+});
+
+document.getElementById('clearEnox')?.addEventListener('click', ()=>{
+  clearEnoxaparin();
+  saveState();
+});
 
   const recalcBtn = document.getElementById('recalcNow');
   if(recalcBtn){
