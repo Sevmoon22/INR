@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="format-detection" content="telephone=no" />
+<title>ThromboLogic INR</title>
+
+<style>
+  :root{
+    --blue:#eaf3ff; --blue-ring:rgba(13,110,253,.25);
+    --ylw:#fffef0; --man:#ffe79a; --man-b:#ffc857;
+    --card:#fafafa; --border:#e6e6e6; --muted:#666;
+    --ok:#1f7a1f; --warn:#a15a00; --bad:#b00020;
+  }
+  *{box-sizing:border-box}
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:16px;color:#111;background:#fff}
+  h1{font-size:19px;margin:0 0 8px}
+  h2{font-size:15px;margin:16px 0 6px}
+  .small{font-size:12px;color:var(--muted)}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+  .wrap{max-width:980px;margin:0 auto}
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+  .brand{display:flex;align-items:center;gap:10px}
+  .logo{
+    width:34px;height:34px;border-radius:10px;
+    background:linear-gradient(135deg,#0d6efd,#72a7ff);
+    box-shadow:0 6px 16px rgba(13,110,253,.22);
+    position:relative;overflow:hidden;
+  }
+  .logo:before{content:"";position:absolute;inset:-8px;opacity:.22;background:
+    radial-gradient(circle at 30% 30%, #fff 0 30%, transparent 31%),
+    radial-gradient(circle at 70% 70%, #fff 0 22%, transparent 23%);
+  }
+  .brand-title{line-height:1.05}
+  .brand-title b{display:block}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:6px 10px;border-radius:999px;background:var(--blue);border:1px solid #d7e7ff}
+  .grid{display:grid;grid-template-columns:1fr;gap:10px}
+  @media (min-width: 980px){ .grid{grid-template-columns: 1.1fr .9fr} }
+
+  .card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:12px;
+    box-shadow:0 10px 24px rgba(0,0,0,.05);
+  }
+
+  .row{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+  .field{display:flex;flex-direction:column;gap:4px}
+  .field label{font-size:12px;color:var(--muted)}
+  input, select, textarea, button{
+    font:inherit;
+    border-radius:10px;
+    border:1px solid var(--border);
+    padding:8px 10px;
+    background:#fff;
+    outline:none;
+  }
+  input:focus, select:focus, textarea:focus{
+    border-color:#0d6efd;
+    box-shadow:0 0 0 4px var(--blue-ring);
+  }
+  textarea{min-height:88px;resize:vertical}
+  .btn{
+    background:#0d6efd;color:#fff;border:1px solid #0b5ed7;
+    cursor:pointer;user-select:none
+  }
+  .btn:active{transform:translateY(1px)}
+  .btn.secondary{background:#fff;color:#0d6efd;border-color:#cfe2ff}
+  .btn.ghost{background:transparent;border-color:var(--border);color:#111}
+  .btn.danger{background:#b00020;border-color:#8d001a}
+  .btn.small{padding:6px 10px;border-radius:999px;font-size:12px}
+  .sep{height:1px;background:var(--border);margin:10px 0}
+  .tabs{display:flex;gap:8px;flex-wrap:wrap}
+  .tab{padding:7px 10px;border-radius:999px;border:1px solid var(--border);background:#fff;cursor:pointer;font-size:12px}
+  .tab.active{background:var(--blue);border-color:#cfe2ff;color:#0d6efd}
+  .hint{font-size:12px;color:var(--muted);margin-top:6px}
+
+  /* calendar */
+  .cal-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+  .cal-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-top:10px}
+  .dow{font-size:11px;color:var(--muted);text-align:center}
+  .day{
+    background:#fff;border:1px solid var(--border);border-radius:12px;
+    padding:8px;min-height:98px;display:flex;flex-direction:column;gap:6px;
+  }
+  .day .date{display:flex;justify-content:space-between;align-items:center;font-size:12px}
+  .badge{font-size:10px;padding:2px 6px;border-radius:999px;border:1px solid var(--border);color:#333;background:#f7f7f7}
+  .badge.today{background:var(--blue);border-color:#cfe2ff;color:#0d6efd}
+  .badge.repeat{background:var(--man);border-color:var(--man-b);color:#5c3b00}
+  .mini{display:grid;grid-template-columns:1fr;gap:6px}
+  .mini input{padding:6px 8px;font-size:12px;border-radius:10px}
+  .mini .lbl{font-size:10px;color:var(--muted);margin-top:-2px}
+  .band-ok{background:#f1fff1;border-color:#cfe9cf}
+  .band-warn{background:#fff7e6;border-color:#ffe2ad}
+  .band-bad{background:#fff0f2;border-color:#ffd0d7}
+  .kpi{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .kpi .box{background:#fff;border:1px solid var(--border);border-radius:12px;padding:10px}
+  .kpi .big{font-size:18px;font-weight:700}
+  .kpi .sub{font-size:12px;color:var(--muted)}
+  .kpi .tag{display:inline-flex;align-items:center;gap:6px;font-size:11px;margin-top:6px;color:#333}
+  .dot{width:8px;height:8px;border-radius:999px;background:#bbb;display:inline-block}
+  .dot.ok{background:var(--ok)} .dot.warn{background:var(--warn)} .dot.bad{background:var(--bad)}
+
+  /* modal */
+  .modal-backdrop{
+    position:fixed;inset:0;background:rgba(0,0,0,.35);
+    display:none;align-items:center;justify-content:center;padding:16px;z-index:9999;
+  }
+  .modal{max-width:520px;width:100%;background:#fff;border-radius:16px;border:1px solid var(--border);box-shadow:0 20px 60px rgba(0,0,0,.25);padding:14px}
+  .modal h3{margin:0 0 6px;font-size:15px}
+  .modal .actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}
+
+  /* print */
+  @media print{
+    body{margin:0}
+    .no-print{display:none !important}
+    .card{box-shadow:none}
+    .wrap{max-width:none}
+    .day{min-height:auto}
+    .cal-grid{gap:6px}
+  }
+</style>
+</head>
+
+<body>
+<div class="wrap">
+
+  <div class="topbar no-print">
+    <div class="brand">
+      <div class="logo" aria-hidden="true"></div>
+      <div class="brand-title">
+        <b>ThromboLogic INR</b>
+        <span class="small">INR 7.5.1 (baseline)</span>
+      </div>
+    </div>
+    <div class="row">
+      <button class="btn small secondary" id="btnDemo">Load demo history</button>
+      <button class="btn small ghost" id="btnClear">Clear all</button>
+      <button class="btn small" id="btnPrint">Print / PDF</button>
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- LEFT -->
+    <div class="card">
+      <h1>Patient & INR entry</h1>
+
+      <div class="row">
+        <div class="field" style="min-width:220px;flex:1">
+          <label>Patient name (optional)</label>
+          <input id="ptName" placeholder="e.g., Jane Doe" />
+        </div>
+        <div class="field" style="width:160px">
+          <label>DOB (MM/DD/YYYY)</label>
+          <input id="dob" inputmode="numeric" placeholder="MM/DD/YYYY" maxlength="10" />
+        </div>
+        <div class="field" style="width:140px">
+          <label>Weight (kg)</label>
+          <input id="wt" inputmode="decimal" placeholder="e.g., 72" />
+        </div>
+        <div class="field" style="width:140px">
+          <label>CrCl (mL/min)</label>
+          <input id="crcl" inputmode="decimal" placeholder="e.g., 55" />
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="tabs no-print" id="tabs">
+        <button class="tab active" data-tab="rec">Recommendation</button>
+        <button class="tab" data-tab="bridge">Bridging</button>
+        <button class="tab" data-tab="interact">Interactions</button>
+        <button class="tab" data-tab="notes">Provider notes</button>
+      </div>
+
+      <!-- Recommendation -->
+      <div id="tab-rec">
+        <div class="row">
+          <div class="field" style="width:170px">
+            <label>Target INR range</label>
+            <select id="targetRange">
+              <option value="2.0-3.0" selected>2.0–3.0 (default)</option>
+              <option value="2.5-3.5">2.5–3.5</option>
+              <option value="1.8-2.5">1.8–2.5</option>
+              <option value="custom">Custom…</option>
+            </select>
+          </div>
+          <div class="field" id="customRangeWrap" style="display:none;width:210px">
+            <label>Custom target (L–H)</label>
+            <div class="row" style="gap:8px">
+              <input id="customL" style="width:90px" inputmode="decimal" placeholder="L" />
+              <input id="customH" style="width:90px" inputmode="decimal" placeholder="H" />
+            </div>
+          </div>
+
+          <div class="field" style="min-width:260px;flex:1">
+            <label>Current INR (today)</label>
+            <input id="inrToday" inputmode="decimal" placeholder="e.g., 2.4" />
+          </div>
+
+          <div class="field" style="width:160px">
+            <label>Tablet strength</label>
+            <select id="tabStrength">
+              <option value="1">1 mg</option>
+              <option value="2">2 mg</option>
+              <option value="2.5">2.5 mg</option>
+              <option value="3">3 mg</option>
+              <option value="4">4 mg</option>
+              <option value="5" selected>5 mg</option>
+              <option value="6">6 mg</option>
+              <option value="7.5">7.5 mg</option>
+              <option value="10">10 mg</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="hint">
+          Dose history below drives the <b>7-day total</b> and <b>lag-weighted dose</b>. Edit any day’s dose/INR in the calendar.
+        </div>
+
+        <div class="sep"></div>
+
+        <div class="kpi">
+          <div class="box">
+            <div class="big" id="kpiWeekly">—</div>
+            <div class="sub">7-day total dose (mg)</div>
+            <div class="tag"><span class="dot" id="dotWeekly"></span><span id="kpiWeeklySub">—</span></div>
+          </div>
+          <div class="box">
+            <div class="big" id="kpiWeighted">—</div>
+            <div class="sub">Lag-weighted dose (mg)</div>
+            <div class="tag"><span class="dot" id="dotStreak"></span><span id="kpiStreak">Stability streak: —</span></div>
+          </div>
+        </div>
+
+        <div class="sep"></div>
+
+        <div class="card" style="background:#fff">
+          <h2 style="margin-top:0">Verbal recommendation</h2>
+          <div id="verbal" class="small" style="font-size:13px;color:#111;line-height:1.35"></div>
+          <div class="hint" id="repeatLine"></div>
+        </div>
+      </div>
+
+      <!-- Bridging -->
+      <div id="tab-bridge" style="display:none">
+        <h2 style="margin-top:10px">Bridging requirement</h2>
+        <div class="row">
+          <div class="field" style="min-width:260px;flex:1">
+            <label>Bridging</label>
+            <select id="bridgeNeed">
+              <option value="no" selected>No bridging</option>
+              <option value="yes">Bridging required</option>
+            </select>
+          </div>
+          <div class="field" style="min-width:260px;flex:1">
+            <label>Agent</label>
+            <select id="bridgeAgent" disabled>
+              <option value="enox" selected>Enoxaparin</option>
+              <option value="fonda">Fondaparinux</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="bridgeBox" style="display:none">
+          <div class="sep"></div>
+          <div class="row">
+            <div class="field" style="min-width:220px;flex:1">
+              <label>Indication note (optional)</label>
+              <input id="bridgeInd" placeholder="e.g., peri-procedural, mechanical valve, VTE..." />
+            </div>
+            <div class="field" style="width:220px">
+              <label>Dosing frequency (enox)</label>
+              <select id="enoxFreq">
+                <option value="q12" selected>1 mg/kg q12h</option>
+                <option value="daily">1.5 mg/kg daily</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="card" style="background:#fff;margin-top:10px">
+            <div id="bridgeText" style="font-size:13px;line-height:1.35"></div>
+            <div class="hint">Rounding rule: doses ending in <b>5 mg round down</b> to nearest 10; if ending >5, <b>round up</b> to nearest 10.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Interactions -->
+      <div id="tab-interact" style="display:none">
+        <h2 style="margin-top:10px">Warfarin interaction check</h2>
+        <div class="hint">Select any active or newly started meds. This can pull the repeat INR earlier.</div>
+
+        <div class="row" style="margin-top:8px">
+          <label class="pill"><input type="checkbox" class="intx" value="amio"> Amiodarone</label>
+          <label class="pill"><input type="checkbox" class="intx" value="tmp"> TMP-SMX</label>
+          <label class="pill"><input type="checkbox" class="intx" value="metro"> Metronidazole</label>
+          <label class="pill"><input type="checkbox" class="intx" value="fluc"> Fluconazole/azole</label>
+          <label class="pill"><input type="checkbox" class="intx" value="rif"> Rifampin</label>
+          <label class="pill"><input type="checkbox" class="intx" value="pheny"> Phenytoin</label>
+        </div>
+
+        <div class="card" style="background:#fff;margin-top:10px">
+          <div id="intxText" style="font-size:13px;line-height:1.35"></div>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div id="tab-notes" style="display:none">
+        <h2 style="margin-top:10px">Provider notes</h2>
+        <textarea id="providerNotes">Click here to type provider notes before printing.</textarea>
+        <div class="hint">Tip: This prints with the PDF. The placeholder clears on first typing.</div>
+      </div>
+
+      <div class="sep"></div>
+      <div class="small mono" id="versionStamp" style="text-align:right;opacity:.75">—</div>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="card">
+      <div class="cal-head">
+        <div>
+          <h1 style="margin:0">5-week dosing calendar</h1>
+          <div class="small">Edit doses and INR values directly in each day.</div>
+        </div>
+        <div class="cal-controls no-print">
+          <button class="btn small ghost" id="btnPrev">◀︎ Back</button>
+          <button class="btn small ghost" id="btnToday">Today</button>
+          <button class="btn small ghost" id="btnNext">Forward ▶︎</button>
+        </div>
+      </div>
+
+      <div class="cal-grid" style="margin-top:8px">
+        <div class="dow">Sun</div><div class="dow">Mon</div><div class="dow">Tue</div><div class="dow">Wed</div><div class="dow">Thu</div><div class="dow">Fri</div><div class="dow">Sat</div>
+      </div>
+      <div class="cal-grid" id="cal"></div>
+
+      <div class="sep"></div>
+      <div class="small">
+        <b>Lag-weighted dose</b> emphasizes recent days more than older days (last 7 days). It’s useful when a change was made mid-week.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-backdrop" id="modal">
+  <div class="modal">
+    <h3 id="modalTitle">Notice</h3>
+    <div id="modalBody" class="small" style="font-size:13px;color:#111;line-height:1.35"></div>
+    <div class="actions">
+      <button class="btn secondary" id="modalClose">Close</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================
+   ThromboLogic INR 7.5.1
+   Single-file baseline HTML
+   ========================= */
+
+const APP_KEY = "thrombologic_inr_7_5_1";
+const VERSION = "INR 7.5.1";
+const BUILD_STAMP = new Date();
+
+const $ = (id)=>document.getElementById(id);
+const modal = {
+  el: $("modal"),
+  title: $("modalTitle"),
+  body: $("modalBody"),
+  open(t,b){
+    this.title.textContent = t || "Notice";
+    this.body.innerHTML = b || "";
+    this.el.style.display = "flex";
+  },
+  close(){ this.el.style.display = "none"; }
+};
+$("modalClose").addEventListener("click", ()=>modal.close());
+$("modal").addEventListener("click", (e)=>{ if(e.target === $("modal")) modal.close(); });
+
+/* ---- dates ---- */
+function pad2(n){ return String(n).padStart(2,"0"); }
+function isoLocal(d){
+  // YYYY-MM-DD in local time
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  return `${x.getFullYear()}-${pad2(x.getMonth()+1)}-${pad2(x.getDate())}`;
+}
+function fromIso(iso){
+  const [y,m,dd] = iso.split("-").map(Number);
+  return new Date(y, m-1, dd);
+}
+function addDaysLocal(d, n){
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  x.setDate(x.getDate() + n);
+  return x;
+}
+function fmtMDY(d){
+  return `${pad2(d.getMonth()+1)}/${pad2(d.getDate())}/${d.getFullYear()}`;
+}
+function fmtShort(d){
+  return `${pad2(d.getMonth()+1)}/${pad2(d.getDate())}`;
+}
+function startOfWeekSun(d){
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const dow = x.getDay(); // 0 Sun
+  x.setDate(x.getDate() - dow);
+  return x;
+}
+
+/* ---- data model ---- */
+function blankState(){
+  const today = new Date();
+  return {
+    ptName: "",
+    dob: "",
+    wt: "",
+    crcl: "",
+    tabStrength: "5",
+    targetRange: "2.0-3.0",
+    customL: "",
+    customH: "",
+    inrToday: "",
+    providerNotes: "Click here to type provider notes before printing.",
+    bridgeNeed: "no",
+    bridgeAgent: "enox",
+    bridgeInd: "",
+    enoxFreq: "q12",
+    interactions: [],
+    anchorIso: isoLocal(today),      // calendar anchor (controls window)
+    days: {}                         // iso -> {dose, inr}
+  };
+}
+
+let state = loadState();
+
+/* ---- persistence ---- */
+function loadState(){
+  try{
+    const raw = localStorage.getItem(APP_KEY);
+    if(!raw) return blankState();
+    const parsed = JSON.parse(raw);
+    // light migration guard
+    return Object.assign(blankState(), parsed);
+  }catch{
+    return blankState();
+  }
+}
+function saveState(){
+  localStorage.setItem(APP_KEY, JSON.stringify(state));
+}
+
+/* ---- inputs binding ---- */
+function bindInputs(){
+  $("ptName").value = state.ptName || "";
+  $("dob").value = state.dob || "";
+  $("wt").value = state.wt || "";
+  $("crcl").value = state.crcl || "";
+  $("tabStrength").value = state.tabStrength || "5";
+  $("targetRange").value = state.targetRange || "2.0-3.0";
+  $("customL").value = state.customL || "";
+  $("customH").value = state.customH || "";
+  $("inrToday").value = state.inrToday || "";
+  $("providerNotes").value = state.providerNotes || "";
+  $("bridgeNeed").value = state.bridgeNeed || "no";
+  $("bridgeAgent").value = state.bridgeAgent || "enox";
+  $("bridgeInd").value = state.bridgeInd || "";
+  $("enoxFreq").value = state.enoxFreq || "q12";
+
+  // interactions checkboxes
+  document.querySelectorAll(".intx").forEach(cb=>{
+    cb.checked = (state.interactions || []).includes(cb.value);
+  });
+
+  // custom range display
+  $("customRangeWrap").style.display = (state.targetRange === "custom") ? "block" : "none";
+
+  // bridging enable/disable
+  const need = state.bridgeNeed === "yes";
+  $("bridgeAgent").disabled = !need;
+  $("bridgeBox").style.display = need ? "block" : "none";
+
+  // stamp
+  $("versionStamp").textContent = `${VERSION} • ${BUILD_STAMP.toLocaleString()}`;
+}
+
+function hookEvents(){
+  const sync = ()=>{
+    state.ptName = $("ptName").value.trim();
+    state.dob = $("dob").value.trim();
+    state.wt = $("wt").value.trim();
+    state.crcl = $("crcl").value.trim();
+    state.tabStrength = $("tabStrength").value;
+    state.targetRange = $("targetRange").value;
+    state.customL = $("customL").value.trim();
+    state.customH = $("customH").value.trim();
+    state.inrToday = $("inrToday").value.trim();
+    state.providerNotes = $("providerNotes").value;
+    state.bridgeNeed = $("bridgeNeed").value;
+    state.bridgeAgent = $("bridgeAgent").value;
+    state.bridgeInd = $("bridgeInd").value.trim();
+    state.enoxFreq = $("enoxFreq").value;
+
+    // interactions
+    const ints = [];
+    document.querySelectorAll(".intx").forEach(cb=>{ if(cb.checked) ints.push(cb.value); });
+    state.interactions = ints;
+
+    // UI toggles
+    $("customRangeWrap").style.display = (state.targetRange === "custom") ? "block" : "none";
+    const need = state.bridgeNeed === "yes";
+    $("bridgeAgent").disabled = !need;
+    $("bridgeBox").style.display = need ? "block" : "none";
+
+    saveState();
+    renderAll();
+  };
+
+  ["ptName","wt","crcl","tabStrength","targetRange","customL","customH","inrToday","bridgeNeed","bridgeAgent","bridgeInd","enoxFreq"]
+    .forEach(id => $(id).addEventListener("input", sync));
+
+  // DOB: auto-insert slashes, validate once entered
+  $("dob").addEventListener("input", (e)=>{
+    const v = e.target.value.replace(/[^\d]/g,"").slice(0,8); // MMDDYYYY
+    let out = "";
+    if(v.length<=2) out = v;
+    else if(v.length<=4) out = v.slice(0,2) + "/" + v.slice(2);
+    else out = v.slice(0,2) + "/" + v.slice(2,4) + "/" + v.slice(4);
+    e.target.value = out;
+    sync();
+  });
+  $("dob").addEventListener("blur", ()=>{
+    const v = $("dob").value.trim();
+    if(v && !isValidDOB(v)){
+      modal.open("DOB format",
+        `Please enter DOB as <b>MM/DD/YYYY</b> (example: 01/26/1970).`);
+    }
+  });
+
+  // Provider notes placeholder clear-on-type
+  $("providerNotes").addEventListener("focus", ()=>{
+    const ta = $("providerNotes");
+    if(ta.value.trim() === "Click here to type provider notes before printing."){
+      ta.value = "";
+      state.providerNotes = "";
+      saveState();
+    }
+  });
+  $("providerNotes").addEventListener("input", sync);
+
+  // Interactions
+  document.querySelectorAll(".intx").forEach(cb=>cb.addEventListener("change", sync));
+
+  // Tabs
+  $("tabs").addEventListener("click", (e)=>{
+    const btn = e.target.closest(".tab");
+    if(!btn) return;
+    document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+    btn.classList.add("active");
+    const tab = btn.dataset.tab;
+    $("tab-rec").style.display = tab==="rec" ? "block":"none";
+    $("tab-bridge").style.display = tab==="bridge" ? "block":"none";
+    $("tab-interact").style.display = tab==="interact" ? "block":"none";
+    $("tab-notes").style.display = tab==="notes" ? "block":"none";
+  });
+
+  // Calendar controls
+  $("btnPrev").addEventListener("click", ()=>{
+    state.anchorIso = isoLocal(addDaysLocal(fromIso(state.anchorIso), -35));
+    saveState(); renderAll();
+  });
+  $("btnNext").addEventListener("click", ()=>{
+    state.anchorIso = isoLocal(addDaysLocal(fromIso(state.anchorIso), +35));
+    saveState(); renderAll();
+  });
+  $("btnToday").addEventListener("click", ()=>{
+    state.anchorIso = isoLocal(new Date());
+    saveState(); renderAll();
+  });
+
+  // Demo
+  $("btnDemo").addEventListener("click", ()=>{
+    loadDemo();
+    saveState(); renderAll();
+  });
+
+  // Clear
+  $("btnClear").addEventListener("click", ()=>{
+    if(confirm("Clear all saved data for INR 7.5.1?")){
+      state = blankState();
+      saveState();
+      bindInputs();
+      renderAll();
+    }
+  });
+
+  // Print
+  $("btnPrint").addEventListener("click", ()=>{
+    // Recompute before printing
+    renderAll();
+    window.print();
+  });
+}
+
+/* ---- validation helpers ---- */
+function isValidDOB(mdy){
+  // MM/DD/YYYY basic check
+  if(!/^\d{2}\/\d{2}\/\d{4}$/.test(mdy)) return false;
+  const [mm,dd,yy] = mdy.split("/").map(Number);
+  if(mm<1||mm>12||dd<1||dd>31||yy<1900||yy>2100) return false;
+  const d = new Date(yy, mm-1, dd);
+  return d.getFullYear()===yy && (d.getMonth()+1)===mm && d.getDate()===dd;
+}
+function getAgeYears(){
+  if(!isValidDOB(state.dob)) return null;
+  const [mm,dd,yy] = state.dob.split("/").map(Number);
+  const dob = new Date(yy,mm-1,dd);
+  const today = new Date();
+  let age = today.getFullYear()-dob.getFullYear();
+  const m = today.getMonth()-dob.getMonth();
+  if(m<0 || (m===0 && today.getDate()<dob.getDate())) age--;
+  return age;
+}
+
+/* ---- calendar rendering + editing ---- */
+function getDay(iso){
+  if(!state.days) state.days = {};
+  if(!state.days[iso]) state.days[iso] = {dose:"", inr:""};
+  return state.days[iso];
+}
+function setDay(iso, patch){
+  const d = getDay(iso);
+  state.days[iso] = Object.assign({}, d, patch);
+  saveState();
+  renderAll();
+}
+
+function calendarWindow(){
+  // Show 5 weeks grid (35 days), starting from Sunday of anchor week's start (Sun)
+  const anchor = fromIso(state.anchorIso);
+  const start = startOfWeekSun(addDaysLocal(anchor, -28)); // go back 4 weeks, then start week
+  const days = [];
+  for(let i=0;i<35;i++){
+    const d = addDaysLocal(start, i);
+    days.push({date:d, iso:isoLocal(d)});
+  }
+  return {start, days};
+}
+
+function renderCalendar(){
+  const cal = $("cal");
+  cal.innerHTML = "";
+  const todayIso = isoLocal(new Date());
+  const {days} = calendarWindow();
+  const repeatIso = computeRepeatIso();
+
+  days.forEach(({date, iso})=>{
+    const cell = document.createElement("div");
+    cell.className = "day";
+    const isToday = iso === todayIso;
+    const isRepeat = repeatIso && iso === repeatIso;
+
+    const head = document.createElement("div");
+    head.className = "date";
+    head.innerHTML = `<span>${fmtShort(date)}</span>
+      <span style="display:flex;gap:6px;align-items:center">
+        ${isRepeat ? `<span class="badge repeat">Repeat INR</span>` : ``}
+        ${isToday ? `<span class="badge today">Today</span>` : `<span class="badge"> </span>`}
+      </span>`;
+
+    const mini = document.createElement("div");
+    mini.className = "mini";
+
+    const dayData = getDay(iso);
+
+    const dose = document.createElement("input");
+    dose.placeholder = "Dose (mg)";
+    dose.inputMode = "decimal";
+    dose.value = dayData.dose ?? "";
+    dose.addEventListener("input", ()=> setDay(iso, {dose: dose.value}));
+
+    const doseLbl = document.createElement("div");
+    doseLbl.className = "lbl";
+    doseLbl.textContent = "Warfarin dose";
+
+    const inr = document.createElement("input");
+    inr.placeholder = "INR";
+    inr.inputMode = "decimal";
+    inr.step = "0.1";
+    inr.value = dayData.inr ?? "";
+    inr.addEventListener("input", ()=> setDay(iso, {inr: inr.value}));
+
+    const inrLbl = document.createElement("div");
+    inrLbl.className = "lbl";
+    inrLbl.textContent = "INR (if checked)";
+
+    mini.appendChild(dose);
+    mini.appendChild(doseLbl);
+    mini.appendChild(inr);
+    mini.appendChild(inrLbl);
+
+    cell.appendChild(head);
+    cell.appendChild(mini);
+
+    // Color banding (based on INR today if present, else the day's INR)
+    const vToday = toNum(state.inrToday);
+    const v = isFinite(vToday) ? vToday : toNum(dayData.inr);
+    const {L,H} = getTargetRange();
+    if(isFinite(v)){
+      if(v>=L && v<=H) cell.classList.add("band-ok");
+      else if(v>H && v<=H+1.5) cell.classList.add("band-warn");
+      else if(v<L && v>=Math.max(0, L-0.7)) cell.classList.add("band-warn");
+      else cell.classList.add("band-bad");
+    }
+
+    cal.appendChild(cell);
+  });
+}
+
+/* ---- computations ---- */
+function toNum(x){
+  const v = parseFloat(String(x||"").replace(/[^0-9.\-]/g,""));
+  return isFinite(v) ? v : NaN;
+}
+function getTargetRange(){
+  if(state.targetRange === "custom"){
+    const L = toNum(state.customL);
+    const H = toNum(state.customH);
+    if(isFinite(L) && isFinite(H) && L>0 && H>L) return {L, H, label:`${L.toFixed(1)}–${H.toFixed(1)}`};
+    // fall back if invalid
+    return {L:2.0, H:3.0, label:"2.0–3.0"};
+  }
+  const [L,H] = state.targetRange.split("-").map(Number);
+  return {L, H, label:`${L.toFixed(1)}–${H.toFixed(1)}`};
+}
+function last7IsoList(){
+  // last 7 days ending today (local)
+  const today = new Date();
+  const arr = [];
+  for(let i=6;i>=0;i--){
+    arr.push(isoLocal(addDaysLocal(today, -i)));
+  }
+  return arr;
+}
+function sum7DayDose(){
+  const list = last7IsoList();
+  let sum = 0;
+  list.forEach(iso=>{
+    const v = toNum(getDay(iso).dose);
+    if(isFinite(v)) sum += v;
+  });
+  return sum;
+}
+function lagWeightedDose(){
+  // weights emphasize most recent days:
+  // Day -6 ... Day 0 weights: 0.15,0.20,0.30,0.45,0.65,0.85,1.00 (normalized)
+  const weights = [0.15,0.20,0.30,0.45,0.65,0.85,1.00];
+  const list = last7IsoList();
+  let wsum = 0, wtot = 0;
+  list.forEach((iso, idx)=>{
+    const dose = toNum(getDay(iso).dose);
+    if(isFinite(dose)){
+      wsum += dose * weights[idx];
+      wtot += weights[idx];
+    }
+  });
+  return wtot>0 ? (wsum / wtot) * 7 : 0; // scale back to "7-day-equivalent mg"
+}
+function stabilityStreak(){
+  // consecutive days (from yesterday backwards) where dose did not change > 0.5 mg
+  const today = new Date();
+  let streak = 0;
+  let prev = null;
+  for(let i=1;i<=21;i++){
+    const iso = isoLocal(addDaysLocal(today, -i));
+    const d = toNum(getDay(iso).dose);
+    if(!isFinite(d)) break;
+    if(prev === null){ prev = d; streak = 1; continue; }
+    if(Math.abs(d - prev) <= 0.5){ streak++; prev = d; }
+    else break;
+  }
+  return streak;
+}
+
+/* ---- recommendation logic ---- */
+function nearestTabletText(mg){
+  const tab = toNum(state.tabStrength);
+  if(!isFinite(tab) || tab<=0) return "";
+  const tabs = mg / tab;
+  const rounded = Math.round(tabs*2)/2; // nearest 0.5 tab
+  const mgOut = rounded * tab;
+  const parts = [];
+  if(rounded === 0) return "0 mg";
+  parts.push(`<b>${mgOut.toFixed(1).replace(/\.0$/,"")} mg</b>`);
+  parts.push(`(~${rounded} tab${rounded===1?"":"s"} of ${tab} mg)`);
+  return parts.join(" ");
+}
+function computeRecommendation(){
+  const {L,H,label} = getTargetRange();
+  const inr = toNum(state.inrToday);
+  const weekly = sum7DayDose();
+  const wtd = lagWeightedDose();
+
+  const age = getAgeYears();
+  const hasAge = isFinite(age);
+
+  let baseLine = "";
+  let plan = "";
+  let repeatDays = 7;
+  let holds = 0;
+  let pct = 0; // weekly % change (positive = increase)
+  let context = "";
+
+  if(isFinite(inr)){
+    if(inr < 1.5){
+      pct = +15; repeatDays = 3;
+      baseLine = `INR <b>${inr.toFixed(1)}</b> is <b>below</b> target (<b>${label}</b>).`;
+      plan = `Increase weekly dose by ~<b>${pct}%</b> and consider a one-time “boost” dose per protocol if appropriate.`;
+    } else if(inr < L){
+      pct = +10; repeatDays = 7;
+      baseLine = `INR <b>${inr.toFixed(1)}</b> is <b>below</b> target (<b>${label}</b>).`;
+      plan = `Increase weekly dose by ~<b>${pct}%</b>.`;
+    } else if(inr <= H){
+      pct = 0; repeatDays = 14;
+      baseLine = `INR <b>${inr.toFixed(1)}</b> is <b>in range</b> (<b>${label}</b>).`;
+      plan = `Continue current regimen.`;
+    } else if(inr <= 3.5){
+      pct = -10; repeatDays = 7;
+      baseLine = `INR <b>${inr.toFixed(1)}</b> is <b>above</b> target (<b>${label}</b>).`;
+      plan = `Decrease weekly dose by ~<b>${Math.abs(pct)}%</b>.`;
+    } else if(inr <= 4.5){
+      pct = -15; repeatDays = 3;
+      baseLine = `INR <b>${inr.toFixed(1)}</b> is <b>above</b> target (<b>${label}</b>).`;
+      plan = `Hold <b>1 dose</b> then decrease weekly dose by ~<b>${Math.abs(pct)}%</b>.`;
+      holds = 1;
+    } else {
+      pct = -20; repeatDays = 2;
+      baseLine = `INR <b>${inr.toFixed(1)}</b> is <b>significantly above</b> target (<b>${label}</b>).`;
+      plan = `Hold warfarin and follow high-INR protocol (consider vitamin K per clinical context). Recheck INR soon.`;
+      holds = 2;
+    }
+
+    // Age nudge (gentle)
+    if(hasAge && age >= 80 && repeatDays > 3) repeatDays = Math.max(3, repeatDays-2);
+    if(hasAge && age <= 3 && repeatDays > 3) repeatDays = Math.max(3, repeatDays-2);
+
+    context = `Target INR: <b>${label}</b>.`;
+  } else {
+    baseLine = `Enter today’s INR to generate a recommendation.`;
+    plan = `You can still use the calendar to record doses and prior INRs.`;
+    repeatDays = 7;
+  }
+
+  // Compute suggested weekly total based on pct using weekly dose (fallback to weighted if weekly is 0)
+  const currentWeekly = (weekly>0 ? weekly : (wtd>0 ? wtd : 0));
+  const suggestedWeekly = currentWeekly>0 ? (currentWeekly * (1 + pct/100)) : 0;
+
+  // Interactions can pull repeat earlier
+  const intxMinDays = interactionRepeatOverrideDays();
+  if(intxMinDays !== null) repeatDays = Math.min(repeatDays, intxMinDays);
+
+  // Predicted INR (simple directionally-correct model)
+  let predLine = "";
+  if(isFinite(inr) && currentWeekly>0 && suggestedWeekly>0 && pct !== 0){
+    const ratio = suggestedWeekly / currentWeekly;
+    const pred = clamp(inr * Math.pow(ratio, 0.6), 0.8, 7.5);
+    predLine = `Estimated INR after dose change (rough): <b>${pred.toFixed(1)}</b>.`;
+  }
+
+  const doseLine = currentWeekly>0
+    ? `Current 7-day total: <b>${round1(currentWeekly)}</b> mg. Lag-weighted (7-day-eq): <b>${round1(wtd)}</b> mg.`
+    : `No recent dose totals found in the last 7 days—fill in doses for better guidance.`;
+
+  const sugLine = (suggestedWeekly>0 && pct!==0)
+    ? `Suggested 7-day total after adjustment: <b>${round1(suggestedWeekly)}</b> mg (~${pct>0?"+":""}${pct}%).`
+    : "";
+
+  // Translate to "today dose suggestion" (optional, conservative):
+  // keep same daily pattern; just show per-day average as a guide
+  const avgNow = currentWeekly>0 ? (currentWeekly/7) : NaN;
+  const avgNew = suggestedWeekly>0 ? (suggestedWeekly/7) : NaN;
+  const avgLine = (isFinite(avgNow) && isFinite(avgNew) && pct!==0)
+    ? `Average daily dose guide: <b>${round1(avgNew)}</b> mg/day (was ${round1(avgNow)}). Example tablet approximation: ${nearestTabletText(avgNew)}.`
+    : "";
+
+  // Holds note
+  const holdLine = holds>0 ? `<b>Hold:</b> ${holds} dose${holds===1?"":"s"} (clinical discretion).` : "";
+
+  return {
+    baseLine, plan, context, doseLine, sugLine, avgLine, predLine,
+    repeatDays
+  };
+}
+
+function interactionRepeatOverrideDays(){
+  const ints = state.interactions || [];
+  if(!ints.length) return null;
+  // Strong INR-increasing: amio/tmp/metro/fluc => early check ~3 days
+  // Strong INR-decreasing: rif => early check ~5 days
+  if(ints.some(x=>["amio","tmp","metro","fluc"].includes(x))) return 3;
+  if(ints.includes("rif")) return 5;
+  if(ints.includes("pheny")) return 7;
+  return null;
+}
+function interactionNarrative(){
+  const ints = state.interactions || [];
+  if(!ints.length){
+    return `No interactions selected.`;
+  }
+  const items = [];
+  if(ints.includes("amio")) items.push(`<b>Amiodarone:</b> may increase INR—often needs dose reduction + closer INR monitoring.`);
+  if(ints.includes("tmp")) items.push(`<b>TMP-SMX:</b> can significantly increase INR—monitor closely; consider empiric reduction per protocol.`);
+  if(ints.includes("metro")) items.push(`<b>Metronidazole:</b> can increase INR—monitor closely; consider empiric reduction per protocol.`);
+  if(ints.includes("fluc")) items.push(`<b>Azoles (e.g., fluconazole):</b> can increase INR—monitor closely; consider empiric reduction per protocol.`);
+  if(ints.includes("rif")) items.push(`<b>Rifampin:</b> can lower INR—may require dose increases and frequent monitoring.`);
+  if(ints.includes("pheny")) items.push(`<b>Phenytoin:</b> complex interaction—monitor INR and phenytoin levels as appropriate.`);
+  const pulled = interactionRepeatOverrideDays();
+  const extra = pulled ? `<div class="sep"></div><b>Repeat INR suggestion:</b> pull to <b>${pulled} day(s)</b> due to interaction risk.` : "";
+  return items.join("<br>") + extra;
+}
+
+function computeRepeatIso(){
+  const r = computeRecommendation();
+  const rep = addDaysLocal(new Date(), r.repeatDays);
+  return isoLocal(rep);
+}
+
+function round1(x){
+  return (Math.round(x*10)/10).toFixed(1).replace(/\.0$/,"");
+}
+function clamp(x,a,b){ return Math.max(a, Math.min(b,x)); }
+
+/* ---- bridging logic ---- */
+function roundEnoxTo10(mg){
+  // rule: ending in 5 => down to nearest 10; above 5 => up; else nearest 10
+  const v = Math.round(mg); // nearest mg first
+  const mod = v % 10;
+  if(mod === 5) return v - 5;
+  if(mod > 5) return v + (10 - mod);
+  return v - mod; // round down to nearest 10 for 0-5
+}
+function renderBridging(){
+  const need = state.bridgeNeed === "yes";
+  $("bridgeText").innerHTML = need ? "—" : "";
+  if(!need) return;
+
+  const wt = toNum(state.wt);
+  const crcl = toNum(state.crcl);
+  const agent = state.bridgeAgent;
+
+  let html = "";
+  if(!isFinite(wt) || wt<=0){
+    html = `Enter <b>weight (kg)</b> to calculate bridging dosing.`;
+    $("bridgeText").innerHTML = html;
+    return;
+  }
+
+  if(agent === "enox"){
+    const renal = isFinite(crcl) ? crcl : null;
+    const isSevere = (renal !== null && renal < 30);
+    const freq = isSevere ? "daily" : state.enoxFreq;
+    const perKg = (freq === "q12") ? 1.0 : 1.5;
+    const raw = wt * perKg; // mg
+    const rounded = roundEnoxTo10(raw);
+    const sig = isSevere ? `<span style="color:var(--bad)"><b>CrCl < 30:</b> use 1 mg/kg daily</span>` : `<span class="small">CrCl ≥ 30 (or unknown): standard dosing</span>`;
+    html = `
+      <div><b>Enoxaparin bridging:</b> ${state.bridgeInd ? `(${escapeHtml(state.bridgeInd)})` : ""}</div>
+      <div class="sep"></div>
+      <div>Calculated dose: <b>${Math.round(raw)} mg</b> → rounded: <b>${rounded} mg</b></div>
+      <div>Frequency: <b>${(isSevere ? "1 mg/kg daily" : (freq==="q12" ? "1 mg/kg q12h" : "1.5 mg/kg daily"))}</b></div>
+      <div class="small" style="margin-top:6px">${sig}</div>
+    `;
+  } else {
+    // Fondaparinux
+    const renal = toNum(state.crcl);
+    if(isFinite(renal) && renal < 30){
+      html = `<div><b>Fondaparinux:</b> <span style="color:var(--bad)"><b>contraindicated if CrCl < 30</b></span>. Choose alternate bridging strategy.</div>`;
+    } else {
+      let dose = 7.5;
+      if(wt < 50) dose = 5;
+      else if(wt > 100) dose = 10;
+      html = `
+        <div><b>Fondaparinux bridging:</b> ${state.bridgeInd ? `(${escapeHtml(state.bridgeInd)})` : ""}</div>
+        <div class="sep"></div>
+        <div>Weight-based dose: <b>${dose} mg SC daily</b></div>
+        <div class="small" style="margin-top:6px">Avoid if CrCl < 30; monitor per institutional protocol.</div>
+      `;
+    }
+  }
+
+  $("bridgeText").innerHTML = html;
+}
+
+function escapeHtml(s){
+  return String(s||"").replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+}
+
+/* ---- KPI + verbal recommendation render ---- */
+function renderKPIs(){
+  const weekly = sum7DayDose();
+  const wtd = lagWeightedDose();
+  const streak = stabilityStreak();
+
+  $("kpiWeekly").textContent = weekly>0 ? `${round1(weekly)} mg` : "—";
+  $("kpiWeighted").textContent = wtd>0 ? `${round1(wtd)} mg` : "—";
+
+  // dots
+  const inr = toNum(state.inrToday);
+  const {L,H} = getTargetRange();
+  const dotWeekly = $("dotWeekly");
+  dotWeekly.className = "dot";
+  if(isFinite(inr)){
+    if(inr>=L && inr<=H) dotWeekly.classList.add("ok");
+    else if(inr>H && inr<=H+1.5) dotWeekly.classList.add("warn");
+    else if(inr<L && inr>=Math.max(0, L-0.7)) dotWeekly.classList.add("warn");
+    else dotWeekly.classList.add("bad");
+  }
+
+  const dotStreak = $("dotStreak");
+  dotStreak.className = "dot";
+  if(streak >= 10) dotStreak.classList.add("ok");
+  else if(streak >= 4) dotStreak.classList.add("warn");
+  else dotStreak.classList.add("bad");
+
+  $("kpiWeeklySub").textContent = isFinite(inr) ? `Current INR: ${inr.toFixed(1)}` : "Enter today’s INR";
+  $("kpiStreak").textContent = `Stability streak: ${streak} day${streak===1?"":"s"}`;
+}
+
+function renderVerbal(){
+  const r = computeRecommendation();
+  const repIso = computeRepeatIso();
+  const repDate = fromIso(repIso);
+
+  const pt = state.ptName ? `<b>${escapeHtml(state.ptName)}</b>: ` : "";
+  const age = getAgeYears();
+  const ageTxt = isFinite(age) ? ` Age: <b>${age}</b>.` : "";
+
+  let bridgeLine = "";
+  if(state.bridgeNeed === "yes"){
+    bridgeLine = ` Bridging: <b>required</b> (${state.bridgeAgent === "enox" ? "enoxaparin" : "fondaparinux"}).`;
+  }
+
+  let intxLine = "";
+  const pulled = interactionRepeatOverrideDays();
+  if((state.interactions||[]).length){
+    intxLine = ` Interaction risk present${pulled?` (repeat INR pulled to ≤ ${pulled} day(s))`:""}.`;
+  }
+
+  const holdLine = (r.plan.includes("Hold")) ? `<br>• ${r.plan}` : "";
+  const planLine = (!r.plan.includes("Hold")) ? `<br>• ${r.plan}` : "";
+
+  const body = `
+    ${pt}${r.baseLine} ${r.context}${ageTxt}${bridgeLine}${intxLine}
+    <div class="sep"></div>
+    • ${r.doseLine}
+    ${r.sugLine ? `<br>• ${r.sugLine}` : ``}
+    ${r.avgLine ? `<br>• ${r.avgLine}` : ``}
+    ${r.predLine ? `<br>• ${r.predLine}` : ``}
+    ${holdLine}${planLine}
+  `;
+
+  $("verbal").innerHTML = body;
+  $("repeatLine").innerHTML = `<b>Repeat INR:</b> <b>${fmtMDY(repDate)}</b> (in ${computeRecommendation().repeatDays} day${computeRecommendation().repeatDays===1?"":"s"}).`;
+}
+
+function renderInteractions(){
+  $("intxText").innerHTML = interactionNarrative();
+}
+
+/* ---- demo ---- */
+function loadDemo(){
+  const today = new Date();
+  state.ptName = "Demo Patient";
+  state.dob = "01/15/1950";
+  state.wt = "78";
+  state.crcl = "55";
+  state.tabStrength = "5";
+  state.targetRange = "2.0-3.0";
+  state.inrToday = "3.6";
+  state.bridgeNeed = "yes";
+  state.bridgeAgent = "enox";
+  state.bridgeInd = "Peri-procedural (demo)";
+  state.enoxFreq = "q12";
+  state.interactions = ["amio"];
+
+  // fill last 10 days doses
+  const doses = [7.5,7.5,7.5,7.5,7.5,7.5,7.5, 5,5,5];
+  for(let i=0;i<10;i++){
+    const iso = isoLocal(addDaysLocal(today, -i));
+    getDay(iso).dose = String(doses[i] ?? 7.5);
+  }
+  // prior INR checks
+  getDay(isoLocal(addDaysLocal(today, -7))).inr = "2.7";
+  getDay(isoLocal(addDaysLocal(today, -3))).inr = "3.1";
+  state.anchorIso = isoLocal(today);
+}
+
+/* ---- render all ---- */
+function renderAll(){
+  renderCalendar();
+  renderKPIs();
+  renderVerbal();
+  renderBridging();
+  renderInteractions();
+}
+
+/* ---- init ---- */
+bindInputs();
+hookEvents();
+renderAll();
+</script>
+</body>
+</html>
