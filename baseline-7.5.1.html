@@ -207,6 +207,24 @@
     box-shadow:0 0 0 4px rgba(255,159,10,.18) inset;
   }
 
+  /* ✅ Verbal "patient directions" emphasis */
+  .patientLead{
+    font-size:14px;
+    line-height:1.35;
+    margin:2px 0 8px;
+  }
+  .patientLead b{
+    font-weight:900;
+  }
+  .predLine{
+    margin-top:6px;
+    padding:8px 10px;
+    border-radius:12px;
+    border:1px solid var(--border);
+    background:#fff;
+    font-size:13px;
+  }
+
   /* modal */
   .modal-backdrop{
     position:fixed;inset:0;background:rgba(0,0,0,.35);
@@ -500,12 +518,11 @@
 <script>
 /* =========================
    ThromboLogic INR 7.5 (INR-ALT)
-   Fixes in this build:
-   ✅ (1) Recommendation populates calendar (regimen-pattern-aware + holds)
-   ✅ (2) Calendar values bold
-   ✅ (3) Today/Repeat cell colors much bolder
-   ✅ (4) Today INR entry is editable; format on BLUR only
-   ✅ (5) Weekly regimen forced to one line (scroll instead)
+   Updates in this build:
+   ✅ Verbal recommendation starts in lay terms: "Your INR X is..."
+   ✅ Patient directions are BOLD and straightforward (no % language)
+   ✅ Predicted INR shown immediately after directions
+   (All other behavior unchanged)
    ========================= */
 
 const VERSION = "INR 7.5 (INR-ALT)";
@@ -760,7 +777,7 @@ function initRegimen(){
       if(isFinite(v)) s.regimen[i] = v;
       else delete s.regimen[i];
       if(!p.isDraft) savePatients();
-      renderAll(); // ✅ so regimen changes can immediately re-apply recommendation schedule
+      renderAll();
     });
   }
 }
@@ -998,8 +1015,6 @@ function computeRecommendation(){
 
   const weekly = sum7DayDose();
   const wtd = lagWeightedDose();
-
-  /* ✅ if no dose history, fall back to regimen */
   const regWk = regimenWeeklyTotal();
   const currentWeekly = (weekly>0 ? weekly : (wtd>0 ? wtd : (regWk>0 ? regWk : 0)));
 
@@ -1009,22 +1024,22 @@ function computeRecommendation(){
   if(isFinite(inr)){
     if(inr < 1.5){ pct=+15; repeatDays=3;
       baseLine=`INR <b>${formatInrOneDecimal(inr)}</b> is <b>below</b> target (<b>${label}</b>).`;
-      plan=`Increase weekly dose by ~<b>${pct}%</b> and consider a one-time “boost” dose per protocol if appropriate.`;
+      plan=`Increase weekly dose and recheck INR soon.`;
     } else if(inr < L){ pct=+10; repeatDays=7;
       baseLine=`INR <b>${formatInrOneDecimal(inr)}</b> is <b>below</b> target (<b>${label}</b>).`;
-      plan=`Increase weekly dose by ~<b>${pct}%</b>.`;
+      plan=`Increase weekly dose and recheck INR.`;
     } else if(inr <= H){ pct=0; repeatDays=14;
       baseLine=`INR <b>${formatInrOneDecimal(inr)}</b> is <b>in range</b> (<b>${label}</b>).`;
       plan=`Continue current regimen.`;
     } else if(inr <= 3.5){ pct=-10; repeatDays=7;
       baseLine=`INR <b>${formatInrOneDecimal(inr)}</b> is <b>above</b> target (<b>${label}</b>).`;
-      plan=`Decrease weekly dose by ~<b>${Math.abs(pct)}%</b>.`;
+      plan=`Lower weekly dose and recheck INR.`;
     } else if(inr <= 4.5){ pct=-15; repeatDays=3; holds=1;
       baseLine=`INR <b>${formatInrOneDecimal(inr)}</b> is <b>above</b> target (<b>${label}</b>).`;
-      plan=`Hold <b>1 dose</b> then decrease weekly dose by ~<b>${Math.abs(pct)}%</b>.`;
+      plan=`Hold 1 dose, then lower weekly dose. Recheck INR soon.`;
     } else { pct=-20; repeatDays=2; holds=2;
       baseLine=`INR <b>${formatInrOneDecimal(inr)}</b> is <b>significantly above</b> target (<b>${label}</b>).`;
-      plan=`Hold warfarin and follow high-INR protocol (consider vitamin K per clinical context). Recheck INR soon.`;
+      plan=`Hold warfarin and follow high-INR plan per clinical context. Recheck INR soon.`;
     }
 
     const outOfRange = (inr < L || inr > H);
@@ -1079,7 +1094,7 @@ function ensureTodayINROnCalendar(){
   }
 }
 
-/* ✅ KEY FIX: apply recommendation to scheduled calendar */
+/* ✅ apply recommendation to scheduled calendar */
 function applyRecommendationToCalendar(){
   const p = activePatient(); if(!p) return;
   const s = p.state;
@@ -1097,20 +1112,15 @@ function applyRecommendationToCalendar(){
   if(isFinite(r.avgNew) && r.avgNew>0) fillFlat = r.avgNew;
   else if(isFinite(r.avgNow) && r.avgNow>0) fillFlat = r.avgNow;
 
-  // apply to today forward (visible window only)
   let idxForward = 0;
   for(const item of days){
     if(item.iso < todayIso) continue;
 
     const d = getDay(item.iso);
 
-    // do not override if actual is present
     if(String(d.actual||"").trim() !== "") { idxForward++; continue; }
-
-    // do not override if user locked this scheduled cell
     if(d.scheduledLocked) { idxForward++; continue; }
 
-    // holds first
     if(idxForward < holdN){
       d.scheduled = "0.0";
       s.days[item.iso] = d;
@@ -1118,7 +1128,6 @@ function applyRecommendationToCalendar(){
       continue;
     }
 
-    // if regimen exists, follow regimen-by-DOW and scale by pct
     const dow = item.date.getDay();
     const regDose = hasRegimen ? regimenDoseForDow(dow) : NaN;
     if(hasRegimen && isFinite(regDose)){
@@ -1128,7 +1137,6 @@ function applyRecommendationToCalendar(){
       continue;
     }
 
-    // otherwise use flat fill if available
     if(isFinite(fillFlat) && fillFlat>0){
       d.scheduled = round1(fillFlat);
       s.days[item.iso] = d;
@@ -1139,7 +1147,7 @@ function applyRecommendationToCalendar(){
   if(!p.isDraft) savePatients();
 }
 
-/* ---- render calendar ---- */
+/* ---- calendar ---- */
 function renderCalendar(){
   const cal = $("cal");
   cal.innerHTML = "";
@@ -1176,7 +1184,6 @@ function renderCalendar(){
     sched.placeholder = "Sched";
     sched.inputMode = "decimal";
     sched.value = dayData.scheduled ?? "";
-    // ✅ if user types here, LOCK this cell
     sched.addEventListener("input", ()=>{
       const cur = getDay(iso);
       cur.scheduledLocked = true;
@@ -1194,7 +1201,6 @@ function renderCalendar(){
     inr.inputMode = "decimal";
     inr.step = "0.1";
     inr.value = dayData.inr ?? "";
-
     inr.addEventListener("blur", ()=>{
       const fixed = formatInrOneDecimal(inr.value);
       if(fixed !== "") {
@@ -1211,7 +1217,6 @@ function renderCalendar(){
     cell.appendChild(head);
     cell.appendChild(mini);
 
-    // severity banding
     const vToday = toNum(activePatient().state.inrToday);
     const v = isToday && isFinite(vToday) ? vToday : toNum(dayData.inr);
     const klass = inrClass(v, L, H);
@@ -1221,13 +1226,104 @@ function renderCalendar(){
   });
 }
 
-/* ---- KPI + verbal ---- */
+/* ---- KPI ---- */
 function renderKPIs(){
   const weekly = sum7DayDose();
   const wtd = lagWeightedDose();
   $("kpiWeekly").textContent = weekly>0 ? `${round1(weekly)} mg` : "—";
   $("kpiWeighted").textContent = wtd>0 ? `${round1(wtd)} mg` : "—";
 }
+
+/* ✅ predicted INR (simple, transparent estimate) */
+function clamp(x,a,b){ return Math.max(a, Math.min(b,x)); }
+function predictedInrEstimate(r){
+  // Returns number or null
+  if(!r || !isFinite(r.inr)) return null;
+
+  // If no dosing baseline, don’t guess
+  if(!(r.currentWeekly>0)) return null;
+
+  // Effective first-week intensity:
+  // base = suggestedWeekly; subtract expected holds using avgNow (best available)
+  let eff = r.suggestedWeekly;
+  const avgNow = isFinite(r.avgNow) && r.avgNow>0 ? r.avgNow : (r.currentWeekly/7);
+  const holdN = Math.max(0, r.holds||0);
+  if(isFinite(avgNow) && avgNow>0 && holdN>0){
+    eff = Math.max(0, eff - (avgNow * holdN));
+  }
+
+  const ratio = (eff>0) ? (eff / r.currentWeekly) : 0;
+  // INR response isn’t perfectly linear; dampen the ratio a bit.
+  const expo = 0.70;
+  let pred = r.inr * Math.pow(Math.max(ratio, 0.10), expo);
+
+  // Keep it sane-ish
+  pred = clamp(pred, 0.8, 6.0);
+
+  // one decimal
+  return Math.round(pred*10)/10;
+}
+
+/* ✅ Lay-term patient directions (bold, straightforward) */
+function laySummaryHtml(r){
+  const {L,H,label} = r;
+  const inrTxt = isFinite(r.inr) ? formatInrOneDecimal(r.inr) : "";
+
+  if(!r.hasRec){
+    return {
+      lead: `<div class="patientLead"><b>Your INR:</b> — <span style="color:#666">Enter today’s INR to get directions.</span></div>`,
+      pred: ``,
+      clinician: ``
+    };
+  }
+
+  let status = "in range";
+  if(r.inr < L) status = "below range";
+  else if(r.inr > H) status = "above range";
+
+  // Directions
+  const holdN = Math.max(0, r.holds||0);
+  let dir = "";
+  if(holdN>0){
+    dir = `<b>Do NOT take warfarin for ${holdN} day${holdN===1?"":"s"}.</b> <b>Then follow the “Sched” doses shown in the calendar starting the next day.</b>`;
+  } else {
+    if(status === "in range"){
+      dir = `<b>Keep your warfarin dose the same.</b> <b>Follow the “Sched” doses shown in the calendar.</b>`;
+    } else if(status === "below range"){
+      dir = `<b>Your warfarin dose needs to go up.</b> <b>Follow the “Sched” doses shown in the calendar starting today.</b>`;
+    } else {
+      dir = `<b>Your warfarin dose needs to go down.</b> <b>Follow the “Sched” doses shown in the calendar starting today.</b>`;
+    }
+  }
+
+  const lead =
+    `<div class="patientLead">
+      <b>Your INR ${inrTxt} is ${status}</b> <span style="color:#666">(target ${label}).</span><br>
+      ${dir}
+    </div>`;
+
+  // Predicted INR line (immediately after directions)
+  const predVal = predictedInrEstimate(r);
+  const pred =
+    (predVal !== null)
+      ? `<div class="predLine"><b>Estimated next INR:</b> <b>${predVal.toFixed(1)}</b> <span style="color:#666">(estimate only)</span></div>`
+      : `<div class="predLine"><b>Estimated next INR:</b> <span style="color:#666">— (enter more dose history for a better estimate)</span></div>`;
+
+  // Optional helpful tablet suggestion (still patient-friendly)
+  const tabsLine = r.tabletLine ? `<div style="margin-top:8px">• ${r.tabletLine}</div>` : "";
+
+  // Clinician details (kept, but no % language)
+  const clinician =
+    `<div class="sep"></div>
+     <div class="small" style="color:#111">
+       • ${r.plan}
+       ${tabsLine}
+     </div>`;
+
+  return {lead, pred, clinician};
+}
+
+/* ---- verbal ---- */
 function renderVerbal(){
   const p = activePatient(); if(!p) return;
   const s = p.state;
@@ -1240,29 +1336,28 @@ function renderVerbal(){
 
   const pt = s.ptName ? `<b>${escapeHtml(s.ptName)}</b>: ` : "";
   const age = getAgeYearsFromDmy(s.dob);
-  const ageTxt = isFinite(age) ? ` Age: <b>${age}</b>.` : "";
+  const ageTxt = isFinite(age) ? ` <span class="small">Age: <b>${age}</b>.</span>` : "";
 
+  // Interaction note (kept, concise)
   let intxLine = "";
   const pulled = interactionRepeatOverrideDays();
   if((s.interactions||[]).length){
-    intxLine = ` Interaction risk present${pulled?` (repeat INR pulled to ≤ ${pulled} day(s))`:""}.`;
+    intxLine = ` <span class="small">Interaction risk present${pulled?` (repeat INR pulled to ≤ ${pulled} day(s))`:""}.</span>`;
   }
 
-  const base = `${pt}${r.baseLine} Target INR: <b>${r.label}</b>.${ageTxt}${intxLine}`;
+  const lay = laySummaryHtml(r);
 
-  const curLine = r.currentWeekly>0 ? `• Current 7-day total: <b>${round1(r.currentWeekly)}</b> mg.` : `• Fill in doses for better guidance.`;
-  const sugLine = (r.suggestedWeekly>0 && r.pct!==0) ? `<br>• Suggested 7-day total: <b>${round1(r.suggestedWeekly)}</b> mg (${r.pct>0?"+":""}${r.pct}%).` : "";
-  const avgLine = (isFinite(r.avgNew) && r.pct!==0) ? `<br>• Average daily guide: <b>${round1(r.avgNew)}</b> mg/day.` : "";
-  const tabsLine = r.tabletLine ? `<br>• ${r.tabletLine}` : "";
-
+  // Put patient-friendly summary FIRST (right after name)
   $("verbal").innerHTML = `
-    ${base}
-    <div class="sep"></div>
-    ${curLine}${sugLine}${avgLine}${tabsLine}
-    <br>• ${r.plan}
+    <div style="margin-bottom:6px">${pt}${ageTxt}${intxLine}</div>
+    ${lay.lead}
+    ${lay.pred}
+    ${lay.clinician}
   `;
+
   $("repeatLine").innerHTML = `<b>Repeat INR:</b> <b>${fmtMDY(repDate)}</b> (in ${r.repeatDays} day${r.repeatDays===1?"":"s"}).`;
 }
+
 function renderInteractions(){
   $("intxText").innerHTML = interactionNarrative();
 }
@@ -1431,7 +1526,7 @@ function copyRegimenToVisible(){
     if(!isFinite(mg)) continue;
     const day = getDay(item.iso);
     day.scheduled = String(mg);
-    day.scheduledLocked = false; // ✅ regimen copy should NOT lock cells
+    day.scheduledLocked = false;
     s.days[item.iso] = day;
   }
   if(!p.isDraft) savePatients();
@@ -1455,7 +1550,6 @@ function hookEvents(){
     s.customL = $("customL").value.trim();
     s.customH = $("customH").value.trim();
 
-    // ✅ DO NOT auto-format while typing (fixes cursor/backspace issues)
     s.inrToday = $("inrToday").value;
 
     s.providerNotes = $("providerNotes").value;
@@ -1480,7 +1574,6 @@ function hookEvents(){
   ["ptName","wt","crcl","mrn","targetRange","customL","customH","inrToday","bridgeNeed","bridgeAgent","bridgeInd","enoxFreq"]
     .forEach(id => $(id).addEventListener("input", sync));
 
-  // ✅ format today INR only on blur
   $("inrToday").addEventListener("blur", ()=>{
     const p = activePatient(); if(!p) return;
     const s = p.state;
@@ -1629,9 +1722,7 @@ function hookEvents(){
 
 /* ---- render all ---- */
 function renderAll(){
-  // ✅ apply recommendation to calendar FIRST
   applyRecommendationToCalendar();
-
   renderCalendar();
   renderKPIs();
   renderVerbal();
