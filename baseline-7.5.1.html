@@ -16,16 +16,15 @@
     --warn-bg:#fff7e6; --warn-b:#ffe2ad;
     --crit-bg:#fff0f2; --crit-b:#ffd0d7;
 
-    /* ✅ BOLDER today + repeat colors */
-    --today-bg-strong:#d7e7ff;
-    --today-b-strong:#9ec5fe;
+    /* ✅ BOLDER today + repeat (recommendation) emphasis */
+    --today-strong-bg:#cfe2ff;
+    --today-strong-b:#5aa2ff;
 
-    --repeat-bg-strong:#ffe08a;
-    --repeat-b-strong:#ffb300;
+    --repeat-strong-bg:#ffd66a;
+    --repeat-strong-b:#ff9f0a;
 
     --shadow:0 10px 24px rgba(0,0,0,.05);
   }
-
   *{box-sizing:border-box}
   html,body{height:100%}
   body{
@@ -43,19 +42,15 @@
 
   .topbar{
     flex:0 0 auto;
-    padding:8px 10px;
+    padding:10px 12px;
     border-bottom:1px solid var(--border);
     background:#fff;
     display:flex;
     align-items:flex-start;
     justify-content:space-between;
-    gap:10px;
-    min-width:0;
+    gap:12px;
   }
   .topbar .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-end}
-
-  .brand{display:flex;align-items:center;gap:12px;min-width:0}
-  .brandLogo{height:56px;width:auto;display:block;object-fit:contain}
 
   .btn{
     font:inherit;
@@ -81,17 +76,16 @@
     padding:10px;
     max-width:100vw;
     overflow:hidden;
-    min-width:0;
   }
   @media (min-width: 980px){
-    .main{grid-template-columns: 0.62fr 1.38fr;}
+    .main{grid-template-columns: 0.85fr 1.15fr;}
   }
 
   .card{
     background:var(--card);
     border:1px solid var(--border);
     border-radius:14px;
-    padding:8px;
+    padding:10px;
     box-shadow:var(--shadow);
     min-width:0;
     min-height:0;
@@ -109,7 +103,6 @@
     background:#fff;
     outline:none;
     min-width:0;
-    max-width:100%;
   }
   input:focus, select:focus, textarea:focus{
     border-color:#0d6efd;
@@ -131,10 +124,21 @@
   .kpi .big{font-size:16px;font-weight:800}
   .kpi .sub{font-size:12px;color:var(--muted)}
 
-  /* ✅ Regimen row forced to 1 line */
-  #regimenRow{flex-wrap:nowrap !important}
-  #regimenRow .field{min-width:68px}
+  /* ✅ Weekly regimen forced to 1 line (no wrapping), scroll instead */
+  #regimenRow{
+    flex-wrap:nowrap !important;
+    overflow-x:auto;
+    overflow-y:hidden;
+    padding-bottom:4px;
+    gap:6px !important;
+    -webkit-overflow-scrolling:touch;
+  }
+  #regimenRow .field{
+    flex:0 0 66px !important;
+    min-width:66px !important;
+  }
 
+  /* Calendar */
   .cal-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
   .cal-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 
@@ -145,61 +149,65 @@
     background:#fff;
     padding:8px;
     margin-top:8px;
-    max-height:calc(100vh - 220px);
-    min-width:0;
+    max-height:calc(100vh - 230px);
   }
 
   .cal-grid{
     display:grid;
-    grid-template-columns:repeat(7, minmax(76px, 1fr));
+    grid-template-columns:repeat(7, minmax(92px, 1fr));
     gap:6px;
-    min-width:0;
-    width:100%;
+    min-width:780px;
   }
 
   .dow{font-size:11px;color:var(--muted);text-align:center}
 
   .day{
     background:#fff;border:1px solid var(--border);border-radius:12px;
-    padding:5px;min-height:78px;display:flex;flex-direction:column;gap:5px;
-    min-width:0; overflow:hidden;
+    padding:6px;min-height:84px;display:flex;flex-direction:column;gap:5px;
+    overflow:hidden;
   }
 
   .day .date{display:flex;justify-content:space-between;align-items:center;font-size:11px}
   .badge{font-size:10px;padding:2px 6px;border-radius:999px;border:1px solid var(--border);color:#333;background:#f7f7f7}
-  .badge.today{background:var(--today-bg-strong);border-color:var(--today-b-strong);color:#0d6efd}
-  .badge.repeat{background:var(--repeat-bg-strong);border-color:var(--repeat-b-strong);color:#5c3b00}
 
-  .mini{display:grid;grid-template-columns:1fr;gap:4px;min-width:0}
+  /* badges bolder */
+  .badge.today{background:var(--today-strong-bg);border-color:var(--today-strong-b);color:#0b5ed7;font-weight:800}
+  .badge.repeat{background:var(--repeat-strong-bg);border-color:var(--repeat-strong-b);color:#5c3b00;font-weight:800}
+
+  .mini{display:grid;grid-template-columns:1fr;gap:5px}
   .mini input{
-    padding:4px 6px;
-    font-size:11px;
+    padding:5px 7px;
+    font-size:12px;
     border-radius:10px;
     width:100%;
-    min-width:0;
     max-width:100%;
 
-    /* ✅ all calendar numbers bold */
-    font-weight:800;
+    /* ✅ values bolder */
+    font-weight:900;
+    color:#000;
   }
 
+  /* theme banding */
   .band-warn{background:var(--warn-bg);border-color:var(--warn-b)}
   .band-crit{background:var(--crit-bg);border-color:var(--crit-b)}
 
-  /* ✅ bolder today cell */
+  /* ✅ Bold today cell */
   .todayCell{
-    background:var(--today-bg-strong) !important;
-    border-color:var(--today-b-strong) !important;
-    box-shadow:0 0 0 4px rgba(13,110,253,.18) inset;
+    background:var(--today-strong-bg) !important;
+    border-color:var(--today-strong-b) !important;
+    border-width:2px !important;
+    box-shadow:0 0 0 4px rgba(13,110,253,.16) inset;
   }
 
-  /* ✅ bolder repeat cell */
+  /* ✅ Bold repeat INR cell */
   .repeatCell{
-    background:var(--repeat-bg-strong) !important;
-    border-color:var(--repeat-b-strong) !important;
-    box-shadow:0 0 0 4px rgba(255,179,0,.18) inset;
+    background:var(--repeat-strong-bg) !important;
+    border-color:var(--repeat-strong-b) !important;
+    border-width:2px !important;
+    box-shadow:0 0 0 4px rgba(255,159,10,.18) inset;
   }
 
+  /* modal */
   .modal-backdrop{
     position:fixed;inset:0;background:rgba(0,0,0,.35);
     display:none;align-items:center;justify-content:center;padding:16px;z-index:9999;
@@ -221,12 +229,16 @@
 <body>
 <div class="app">
 
+  <!-- TOPBAR -->
   <div class="topbar no-print">
-    <div class="brand">
-      <img id="brandLogo" class="brandLogo" src="assets/logo.png" alt="ThromboLogic INR Logo" />
+    <!-- (Kept your block) -->
+    <div style="display:flex; align-items:center; gap:14px; margin:0 0 6px 0; min-width:0;">
+      <img src="ThromboLogic INR Logo Design.png"
+           alt="ThromboLogic INR Logo"
+           style="height:80px; width:auto;">
       <div style="display:flex; flex-direction:column; line-height:1.1; min-width:0;">
-        <span style="font-size:24px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">ThromboLogic</span>
-        <span style="font-size:15px; font-weight:600;">INR</span>
+        <span style="font-size:26px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">ThromboLogic</span>
+        <span style="font-size:16px; font-weight:600;">INR</span>
         <span class="small" style="margin-top:4px;">INR v7.5 (Target INR + weighted-dose-aware recommendation + 7-day what-if)</span>
       </div>
     </div>
@@ -240,11 +252,12 @@
 
   <div class="main">
 
+    <!-- LEFT -->
     <div class="card leftScroll">
       <h1>Patient & INR entry</h1>
 
       <div class="row no-print">
-        <div class="field" style="min-width:180px;flex:1">
+        <div class="field" style="min-width:220px;flex:1">
           <label>Search (name, DOB, phone, MRN)</label>
           <input id="ptSearch" placeholder="Type at least 2 characters…" autocomplete="off" />
         </div>
@@ -255,33 +268,33 @@
       <div class="results no-print" id="searchResults" style="display:none;margin-top:8px;border:1px solid var(--border);border-radius:12px;background:#fff;overflow:auto;max-height:220px"></div>
 
       <div class="row">
-        <div class="field" style="min-width:170px;flex:1">
+        <div class="field" style="min-width:180px;flex:1">
           <label>Patient name</label>
           <input id="ptName" placeholder="e.g., Jane Doe" autocomplete="off" />
         </div>
 
-        <div class="field" style="width:140px">
+        <div class="field" style="width:150px">
           <label>DOB (DD/MM/YYYY)</label>
           <input id="dob" inputmode="numeric" placeholder="DD/MM/YYYY" maxlength="10" autocomplete="off" />
         </div>
 
-        <div class="field" style="width:150px">
+        <div class="field" style="width:160px">
           <label>Phone</label>
           <input id="phone" inputmode="tel" placeholder="(###) ###-####" maxlength="14" autocomplete="off" />
         </div>
 
-        <div class="field" style="width:120px">
+        <div class="field" style="width:130px">
           <label>MRN</label>
           <input id="mrn" placeholder="MRN" autocomplete="off" />
         </div>
       </div>
 
       <div class="row">
-        <div class="field" style="width:120px">
+        <div class="field" style="width:130px">
           <label>Weight (kg)</label>
           <input id="wt" inputmode="decimal" placeholder="e.g., 72" />
         </div>
-        <div class="field" style="width:120px">
+        <div class="field" style="width:130px">
           <label>CrCl (mL/min)</label>
           <input id="crcl" inputmode="decimal" placeholder="e.g., 55" />
         </div>
@@ -306,9 +319,10 @@
         <button class="tab" data-tab="notes">Provider notes</button>
       </div>
 
+      <!-- Recommendation -->
       <div id="tab-rec">
         <div class="row">
-          <div class="field" style="width:150px">
+          <div class="field" style="width:160px">
             <label>Target INR range</label>
             <select id="targetRange">
               <option value="2.0-3.0" selected>2.0–3.0 (default)</option>
@@ -326,8 +340,9 @@
             </div>
           </div>
 
-          <div class="field" style="width:160px">
+          <div class="field" style="min-width:220px;flex:1">
             <label>Current INR (today)</label>
+            <!-- ✅ allow typing decimals naturally; we format on BLUR only -->
             <input id="inrToday" inputmode="decimal" placeholder="e.g., 2.0" />
           </div>
         </div>
@@ -360,6 +375,7 @@
         </div>
       </div>
 
+      <!-- Bridging -->
       <div id="tab-bridge" style="display:none">
         <h2 style="margin-top:10px">Bridging requirement</h2>
         <div class="row">
@@ -402,6 +418,7 @@
         </div>
       </div>
 
+      <!-- Interactions -->
       <div id="tab-interact" style="display:none">
         <h2 style="margin-top:10px">Warfarin interaction check</h2>
         <div class="hint">Interactions can pull the repeat INR earlier.</div>
@@ -430,6 +447,7 @@
         </div>
       </div>
 
+      <!-- Notes -->
       <div id="tab-notes" style="display:none">
         <h2 style="margin-top:10px">Provider notes</h2>
         <textarea id="providerNotes">Click here to type provider notes before printing.</textarea>
@@ -440,11 +458,12 @@
       <div class="small mono" id="versionStamp" style="text-align:right;opacity:.75">—</div>
     </div>
 
+    <!-- RIGHT -->
     <div class="card">
       <div class="cal-head">
         <div>
           <h1 style="margin:0">5-week dosing calendar</h1>
-          <div class="small">Today stays centered. Recommended schedule fills once you have a recommendation.</div>
+          <div class="small">Today stays centered. Recommendations populate scheduled doses (unless you manually lock a cell).</div>
         </div>
         <div class="cal-controls no-print">
           <button class="btn ghost" id="btnPrev">◀︎ Back</button>
@@ -469,6 +488,7 @@
   </div>
 </div>
 
+<!-- Modal -->
 <div class="modal-backdrop" id="modal">
   <div class="modal">
     <h3 id="modalTitle">Notice</h3>
@@ -478,6 +498,16 @@
 </div>
 
 <script>
+/* =========================
+   ThromboLogic INR 7.5 (INR-ALT)
+   Fixes in this build:
+   ✅ (1) Recommendation populates calendar (regimen-pattern-aware + holds)
+   ✅ (2) Calendar values bold
+   ✅ (3) Today/Repeat cell colors much bolder
+   ✅ (4) Today INR entry is editable; format on BLUR only
+   ✅ (5) Weekly regimen forced to one line (scroll instead)
+   ========================= */
+
 const VERSION = "INR 7.5 (INR-ALT)";
 const BUILD_STAMP = new Date();
 
@@ -489,25 +519,6 @@ const DB_KEYS = {
 
 const DRAFT_ID = "__DRAFT__";
 const $ = (id)=>document.getElementById(id);
-
-/* ---- logo fallback ---- */
-(function logoFallback(){
-  const img = $("brandLogo");
-  if(!img) return;
-  const candidates = [
-    "assets/logo.png",
-    "assets/ThromboLogic INR Logo Design.png",
-    "ThromboLogic INR Logo Design.png",
-    "assets/thrombologic-logo.png",
-    "assets/logo.svg",
-    "logo.png"
-  ];
-  let i = 0;
-  img.onerror = () => {
-    i++;
-    if(i < candidates.length) img.src = candidates[i];
-  };
-})();
 
 /* ---- modal ---- */
 const modal = {
@@ -738,8 +749,6 @@ function initRegimen(){
   for(let i=0;i<7;i++){
     const f = document.createElement("div");
     f.className = "field";
-    f.style.flex = "0 0 68px";
-    f.style.minWidth = "68px";
     f.innerHTML = `<label>${labels[i]}</label><input id="reg_${i}" placeholder="mg" inputmode="decimal" />`;
     row.appendChild(f);
 
@@ -751,6 +760,7 @@ function initRegimen(){
       if(isFinite(v)) s.regimen[i] = v;
       else delete s.regimen[i];
       if(!p.isDraft) savePatients();
+      renderAll(); // ✅ so regimen changes can immediately re-apply recommendation schedule
     });
   }
 }
@@ -834,6 +844,7 @@ function bindInputs(){
 
   const need = s.bridgeNeed === "yes";
   $("bridgeAgent").disabled = !need;
+  $("bridgeBox").style.display = need ? "block" : "none";
 
   $("versionStamp").textContent = `${VERSION} • ${BUILD_STAMP.toLocaleString()}`;
 
@@ -843,34 +854,26 @@ function bindInputs(){
 
 /* ---- day model ---- */
 function getDay(iso){
-  const p = activePatient(); if(!p) return {scheduled:"", actual:"", inr:"", scheduledAuto:false, scheduledLocked:false};
+  const p = activePatient(); if(!p) return {scheduled:"", actual:"", inr:"", scheduledLocked:false};
   const s = p.state;
   if(!s.days) s.days = {};
-  if(!s.days[iso]) s.days[iso] = {scheduled:"", actual:"", inr:"", scheduledAuto:false, scheduledLocked:false};
+  if(!s.days[iso]) s.days[iso] = {scheduled:"", actual:"", inr:"", scheduledLocked:false};
   const d = s.days[iso];
   if(d.actual === undefined) d.actual = "";
   if(d.inr === undefined) d.inr = "";
   if(d.scheduled === undefined) d.scheduled = "";
-  if(d.scheduledAuto === undefined) d.scheduledAuto = false;
   if(d.scheduledLocked === undefined) d.scheduledLocked = false;
   return d;
 }
 function setDay(iso, patch){
   const p = activePatient(); if(!p) return;
   const s = p.state;
-
-  /* ✅ if user edits scheduled, lock it */
-  if(Object.prototype.hasOwnProperty.call(patch, "scheduled")){
-    patch.scheduledAuto = false;
-    patch.scheduledLocked = true;
-  }
-
   s.days[iso] = Object.assign({}, getDay(iso), patch);
   if(!p.isDraft) savePatients();
   renderAll();
 }
 
-/* ---- calendar window ---- */
+/* ---- calendar window (today centered) ---- */
 function calendarWindow(){
   const p = activePatient(); if(!p) return {days:[]};
   const s = p.state;
@@ -943,6 +946,23 @@ function lagWeightedDose(){
   return wtot>0 ? (wsum/wtot)*7 : 0;
 }
 
+/* ✅ regimen weekly total (fallback when no history doses) */
+function regimenWeeklyTotal(){
+  const p = activePatient(); if(!p) return 0;
+  const reg = p.state.regimen || {};
+  let sum=0, any=false;
+  for(let i=0;i<7;i++){
+    const v = toNum(reg[i]);
+    if(isFinite(v)){ sum += v; any=true; }
+  }
+  return any ? sum : 0;
+}
+function regimenDoseForDow(dow){
+  const p = activePatient(); if(!p) return NaN;
+  const v = toNum((p.state.regimen||{})[dow]);
+  return isFinite(v) ? v : NaN;
+}
+
 /* ---- interactions ---- */
 function interactionRepeatOverrideDays(){
   const p = activePatient(); if(!p) return null;
@@ -952,6 +972,21 @@ function interactionRepeatOverrideDays(){
   if(ints.includes("rif")) return 5;
   if(ints.includes("pheny")) return 7;
   return null;
+}
+function interactionNarrative(){
+  const p = activePatient(); if(!p) return "—";
+  const ints = p.state.interactions || [];
+  if(!ints.length) return `No interactions selected.`;
+  const items = [];
+  if(ints.includes("amio")) items.push(`<b>Amiodarone:</b> may increase INR—often needs dose reduction + closer INR monitoring.`);
+  if(ints.includes("tmp")) items.push(`<b>TMP-SMX:</b> can significantly increase INR—monitor closely; consider empiric reduction per protocol.`);
+  if(ints.includes("metro")) items.push(`<b>Metronidazole:</b> can increase INR—monitor closely; consider empiric reduction per protocol.`);
+  if(ints.includes("fluc")) items.push(`<b>Azoles (e.g., fluconazole):</b> can increase INR—monitor closely; consider empiric reduction per protocol.`);
+  if(ints.includes("rif")) items.push(`<b>Rifampin:</b> can lower INR—may require dose increases and frequent monitoring.`);
+  if(ints.includes("pheny")) items.push(`<b>Phenytoin:</b> complex interaction—monitor INR and phenytoin levels as appropriate.`);
+  const pulled = interactionRepeatOverrideDays();
+  const extra = pulled ? `<div class="sep"></div><b>Repeat INR suggestion:</b> pull to <b>${pulled} day(s)</b> due to interaction risk.` : "";
+  return items.join("<br>") + extra;
 }
 
 /* ---- recommendation ---- */
@@ -963,7 +998,10 @@ function computeRecommendation(){
 
   const weekly = sum7DayDose();
   const wtd = lagWeightedDose();
-  const currentWeekly = (weekly>0 ? weekly : (wtd>0 ? wtd : 0));
+
+  /* ✅ if no dose history, fall back to regimen */
+  const regWk = regimenWeeklyTotal();
+  const currentWeekly = (weekly>0 ? weekly : (wtd>0 ? wtd : (regWk>0 ? regWk : 0)));
 
   let baseLine="", plan="", repeatDays=7, pct=0, holds=0;
   const hasRec = isFinite(inr);
@@ -1018,7 +1056,10 @@ function computeRecommendation(){
     tabletLine = `Select tablet strengths on hand to generate tablet-based suggestions.`;
   }
 
-  return {hasRec,L,H,label,inr,pct,holds,currentWeekly,suggestedWeekly,avgNow,avgNew,repeatDays,baseLine,plan,tabletLine};
+  return {
+    hasRec,L,H,label,inr,pct,holds,currentWeekly,suggestedWeekly,avgNow,avgNew,repeatDays,
+    baseLine,plan,tabletLine
+  };
 }
 function computeRepeatIso(){
   const r = computeRecommendation();
@@ -1038,45 +1079,64 @@ function ensureTodayINROnCalendar(){
   }
 }
 
-/* ✅ FIX: verbal recommendation ALWAYS populates future scheduled cells unless locked */
-function applyRecommendedScheduleToCalendar(){
+/* ✅ KEY FIX: apply recommendation to scheduled calendar */
+function applyRecommendationToCalendar(){
   const p = activePatient(); if(!p) return;
   const s = p.state;
   const r = computeRecommendation();
   if(!r.hasRec) return;
 
+  const mult = 1 + (r.pct||0)/100;
   const todayIso = isoLocal(new Date());
   const {days} = calendarWindow();
 
-  let perDay = NaN;
-  if(r.pct !== 0 && isFinite(r.avgNew) && r.avgNew>0) perDay = r.avgNew;
-  else if(isFinite(r.avgNow) && r.avgNow>0) perDay = r.avgNow;
+  const hasRegimen = regimenWeeklyTotal() > 0;
+  const holdN = Math.max(0, r.holds||0);
 
-  if(!isFinite(perDay) || perDay<=0) return;
+  let fillFlat = NaN;
+  if(isFinite(r.avgNew) && r.avgNew>0) fillFlat = r.avgNew;
+  else if(isFinite(r.avgNow) && r.avgNow>0) fillFlat = r.avgNow;
 
-  const fillDose = round1(perDay);
-  const holdCount = Math.max(0, r.holds || 0);
+  // apply to today forward (visible window only)
+  let idxForward = 0;
+  for(const item of days){
+    if(item.iso < todayIso) continue;
 
-  const future = days.filter(x => x.iso >= todayIso);
+    const d = getDay(item.iso);
 
-  for(let i=0;i<future.length;i++){
-    const iso = future[i].iso;
-    const d = getDay(iso);
+    // do not override if actual is present
+    if(String(d.actual||"").trim() !== "") { idxForward++; continue; }
 
-    const hasActual = String(d.actual||"").trim() !== "";
-    if(hasActual) continue;                 // don't override if actual exists
-    if(d.scheduledLocked) continue;         // don't override if user locked
+    // do not override if user locked this scheduled cell
+    if(d.scheduledLocked) { idxForward++; continue; }
 
-    if(i < holdCount){
+    // holds first
+    if(idxForward < holdN){
       d.scheduled = "0.0";
-      d.scheduledAuto = true;
-      s.days[iso] = d;
-    } else {
-      d.scheduled = fillDose;
-      d.scheduledAuto = true;
-      s.days[iso] = d;
+      s.days[item.iso] = d;
+      idxForward++;
+      continue;
     }
+
+    // if regimen exists, follow regimen-by-DOW and scale by pct
+    const dow = item.date.getDay();
+    const regDose = hasRegimen ? regimenDoseForDow(dow) : NaN;
+    if(hasRegimen && isFinite(regDose)){
+      d.scheduled = round1(regDose * mult);
+      s.days[item.iso] = d;
+      idxForward++;
+      continue;
+    }
+
+    // otherwise use flat fill if available
+    if(isFinite(fillFlat) && fillFlat>0){
+      d.scheduled = round1(fillFlat);
+      s.days[item.iso] = d;
+    }
+    idxForward++;
   }
+
+  if(!p.isDraft) savePatients();
 }
 
 /* ---- render calendar ---- */
@@ -1094,9 +1154,9 @@ function renderCalendar(){
     cell.className = "day";
 
     const isToday = iso === todayIso;
-    const isRepeat = repeatIso && iso === repeatIso;
-
     if(isToday) cell.classList.add("todayCell");
+
+    const isRepeat = repeatIso && iso === repeatIso;
     if(isRepeat) cell.classList.add("repeatCell");
 
     const head = document.createElement("div");
@@ -1116,21 +1176,18 @@ function renderCalendar(){
     sched.placeholder = "Sched";
     sched.inputMode = "decimal";
     sched.value = dayData.scheduled ?? "";
-    sched.addEventListener("input", ()=> setDay(iso, {scheduled: sched.value}));
+    // ✅ if user types here, LOCK this cell
+    sched.addEventListener("input", ()=>{
+      const cur = getDay(iso);
+      cur.scheduledLocked = true;
+      setDay(iso, {scheduled: sched.value, scheduledLocked:true});
+    });
 
     const actual = document.createElement("input");
     actual.placeholder = "Actual";
     actual.inputMode = "decimal";
     actual.value = dayData.actual ?? "";
-    actual.addEventListener("input", ()=> {
-      // actual entry doesn't lock scheduled; it just takes precedence in calculations
-      const p = activePatient(); if(!p) return;
-      const s = p.state;
-      const cur = getDay(iso);
-      s.days[iso] = Object.assign({}, cur, {actual: actual.value});
-      if(!p.isDraft) savePatients();
-      renderAll();
-    });
+    actual.addEventListener("input", ()=> setDay(iso, {actual: actual.value}));
 
     const inr = document.createElement("input");
     inr.placeholder = "INR";
@@ -1142,22 +1199,10 @@ function renderCalendar(){
       const fixed = formatInrOneDecimal(inr.value);
       if(fixed !== "") {
         inr.value = fixed;
-        const p = activePatient(); if(!p) return;
-        const s = p.state;
-        const cur = getDay(iso);
-        s.days[iso] = Object.assign({}, cur, {inr: fixed});
-        if(!p.isDraft) savePatients();
-        renderAll();
+        setDay(iso, {inr: fixed});
       }
     });
-    inr.addEventListener("input", ()=> {
-      const p = activePatient(); if(!p) return;
-      const s = p.state;
-      const cur = getDay(iso);
-      s.days[iso] = Object.assign({}, cur, {inr: inr.value});
-      if(!p.isDraft) savePatients();
-      renderAll();
-    });
+    inr.addEventListener("input", ()=> setDay(iso, {inr: inr.value}));
 
     mini.appendChild(sched);
     mini.appendChild(actual);
@@ -1166,6 +1211,7 @@ function renderCalendar(){
     cell.appendChild(head);
     cell.appendChild(mini);
 
+    // severity banding
     const vToday = toNum(activePatient().state.inrToday);
     const v = isToday && isFinite(vToday) ? vToday : toNum(dayData.inr);
     const klass = inrClass(v, L, H);
@@ -1217,11 +1263,162 @@ function renderVerbal(){
   `;
   $("repeatLine").innerHTML = `<b>Repeat INR:</b> <b>${fmtMDY(repDate)}</b> (in ${r.repeatDays} day${r.repeatDays===1?"":"s"}).`;
 }
+function renderInteractions(){
+  $("intxText").innerHTML = interactionNarrative();
+}
 
-/* ---- Save / Delete / Clear / Search (kept as-is in your prior version, not repeated here) ---- */
-/* For brevity: your existing save/search/clear/print handlers remain unchanged. */
+/* ---- bridging ---- */
+function roundEnoxTo10(mg){
+  const v = Math.round(mg);
+  const mod = v % 10;
+  if(mod === 5) return v - 5;
+  if(mod > 5) return v + (10 - mod);
+  return v - mod;
+}
+function renderBridging(){
+  const p = activePatient(); if(!p) return;
+  const s = p.state;
+  const need = s.bridgeNeed === "yes";
+  $("bridgeText").innerHTML = need ? "—" : "";
+  if(!need) return;
 
-/* ---- regimen copy ---- */
+  const wt = toNum(s.wt);
+  const crcl = toNum(s.crcl);
+  const agent = s.bridgeAgent;
+
+  let html = "";
+  if(!isFinite(wt) || wt<=0){
+    html = `Enter <b>weight (kg)</b> to calculate bridging dosing.`;
+    $("bridgeText").innerHTML = html;
+    return;
+  }
+
+  if(agent === "enox"){
+    const renal = isFinite(crcl) ? crcl : null;
+    const isSevere = (renal !== null && renal < 30);
+    const freq = isSevere ? "daily" : s.enoxFreq;
+    const perKg = (freq === "q12") ? 1.0 : 1.5;
+    const raw = wt * perKg;
+    const rounded = roundEnoxTo10(raw);
+    html = `
+      <div><b>Enoxaparin bridging:</b> ${s.bridgeInd ? `(${escapeHtml(s.bridgeInd)})` : ""}</div>
+      <div class="sep"></div>
+      <div>Calculated: <b>${Math.round(raw)} mg</b> → rounded: <b>${rounded} mg</b></div>
+      <div>Frequency: <b>${(isSevere ? "1 mg/kg daily" : (freq==="q12" ? "1 mg/kg q12h" : "1.5 mg/kg daily"))}</b></div>
+      ${isSevere ? `<div class="small" style="margin-top:6px;color:#b00020"><b>CrCl < 30:</b> use 1 mg/kg daily</div>` : ``}
+    `;
+  } else {
+    const renal = toNum(s.crcl);
+    if(isFinite(renal) && renal < 30){
+      html = `<div><b>Fondaparinux:</b> <span style="color:#b00020"><b>contraindicated if CrCl < 30</b></span>.</div>`;
+    } else {
+      let dose = 7.5;
+      if(wt < 50) dose = 5;
+      else if(wt > 100) dose = 10;
+      html = `
+        <div><b>Fondaparinux bridging:</b> ${s.bridgeInd ? `(${escapeHtml(s.bridgeInd)})` : ""}</div>
+        <div class="sep"></div>
+        <div>Weight-based dose: <b>${dose} mg SC daily</b></div>
+      `;
+    }
+  }
+  $("bridgeText").innerHTML = html;
+}
+
+/* ---- Save / Delete / Clear / Search ---- */
+function currentMetaFromUI(){
+  return {
+    ptName: $("ptName").value.trim(),
+    dob: $("dob").value.trim(),
+    phone: $("phone").value.trim(),
+    mrn: $("mrn").value.trim()
+  };
+}
+function saveFlow(){
+  const meta = currentMetaFromUI();
+  const p = activePatient(); if(!p) return;
+  const hasAny = !!(meta.ptName || meta.dob || meta.phone || meta.mrn);
+  if(!hasAny){
+    modal.open("Nothing to save","Enter at least a name, DOB, phone, or MRN before saving.",[
+      {label:"Close", cls:"btn secondary", onClick:()=>modal.close()}
+    ]);
+    return;
+  }
+
+  const mrn = (meta.mrn||"").trim();
+  if(mrn){
+    const targetId = `MRN:${mrn}`;
+    const exists = patients.find(x=>x.id === targetId);
+    const isCurrentSame = (!p.isDraft && p.id === targetId);
+    if(exists && !isCurrentSame){
+      modal.open(
+        "MRN already exists",
+        `A record with MRN <b>${escapeHtml(mrn)}</b> already exists.<br><br>
+         <b>${escapeHtml(exists.meta?.ptName || "(No name)")}</b><br>
+         <span class="small">${escapeHtml([exists.meta?.dob?`DOB ${exists.meta.dob}`:"", exists.meta?.phone||""].filter(Boolean).join(" • "))}</span>
+         <div class="hint" style="margin-top:10px">Choose what to do next.</div>`,
+        [
+          {label:"Open existing", cls:"btn secondary", onClick:()=>{ modal.close(); setActive(targetId); }},
+          {label:"Merge into existing", cls:"btn primary", onClick:()=>{
+            const cur = activePatient();
+            exists.meta = Object.assign({}, exists.meta, meta);
+            exists.state = Object.assign({}, exists.state, cur.state);
+            savePatients();
+            modal.close();
+            setActive(targetId);
+          }},
+          {label:"Cancel", cls:"btn ghost", onClick:()=>modal.close()}
+        ]
+      );
+      return;
+    }
+  }
+
+  const id = makePatientId(meta);
+  const cur = activePatient();
+  const idx = patients.findIndex(x=>x.id===id);
+  if(idx>=0){
+    patients[idx].meta = Object.assign({}, patients[idx].meta, meta);
+    patients[idx].state = Object.assign({}, patients[idx].state, cur.state);
+  }else{
+    patients.push({id, meta, state: cur.state});
+  }
+  savePatients();
+  setActive(id);
+  modal.open("Saved","Patient record saved.",[{label:"OK", cls:"btn secondary", onClick:()=>modal.close()}]);
+}
+function deleteFlow(){
+  const p = activePatient(); if(!p) return;
+  if(p.isDraft){
+    modal.open("Delete","This is an unsaved entry. Use <b>Clear all</b> to reset the screen.",[
+      {label:"OK", cls:"btn secondary", onClick:()=>modal.close()}
+    ]);
+    return;
+  }
+  const name = p.meta?.ptName || p.id;
+  if(!confirm(`Delete patient "${name}"? This cannot be undone.`)) return;
+  patients = patients.filter(x=>x.id !== p.id);
+  savePatients();
+  draftState = blankState();
+  setActive(DRAFT_ID);
+  $("ptSearch").value = "";
+  $("searchResults").style.display="none";
+}
+function clearScreenFlow(){
+  draftState = blankState();
+  setActive(DRAFT_ID);
+  $("ptSearch").value = "";
+  $("searchResults").style.display="none";
+
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  document.querySelector('.tab[data-tab="rec"]').classList.add("active");
+  $("tab-rec").style.display="block";
+  $("tab-bridge").style.display="none";
+  $("tab-interact").style.display="none";
+  $("tab-notes").style.display="none";
+}
+
+/* ---- regimen copy to ALL visible weeks (35 days) ---- */
 function copyRegimenToVisible(){
   const p = activePatient(); if(!p) return;
   const s = p.state;
@@ -1234,8 +1431,7 @@ function copyRegimenToVisible(){
     if(!isFinite(mg)) continue;
     const day = getDay(item.iso);
     day.scheduled = String(mg);
-    day.scheduledAuto = false;
-    day.scheduledLocked = false; // regimen copy is not a manual lock
+    day.scheduledLocked = false; // ✅ regimen copy should NOT lock cells
     s.days[item.iso] = day;
   }
   if(!p.isDraft) savePatients();
@@ -1243,7 +1439,6 @@ function copyRegimenToVisible(){
 }
 
 /* ---- events + sync ---- */
-/* NOTE: this is identical to your prior version except it calls renderAll() which now applies schedule */
 function hookEvents(){
   const sync = ()=>{
     const p = activePatient(); if(!p) return;
@@ -1259,21 +1454,45 @@ function hookEvents(){
     s.targetRange = $("targetRange").value;
     s.customL = $("customL").value.trim();
     s.customH = $("customH").value.trim();
-    s.inrToday = $("inrToday").value.trim();
 
-    if(s.inrToday.trim() !== ""){
-      const fixed = formatInrOneDecimal(s.inrToday);
-      if(fixed) s.inrToday = fixed;
-      $("inrToday").value = s.inrToday;
-    }
-    ensureTodayINROnCalendar();
+    // ✅ DO NOT auto-format while typing (fixes cursor/backspace issues)
+    s.inrToday = $("inrToday").value;
+
+    s.providerNotes = $("providerNotes").value;
+    s.bridgeNeed = $("bridgeNeed").value;
+    s.bridgeAgent = $("bridgeAgent").value;
+    s.bridgeInd = $("bridgeInd").value.trim();
+    s.enoxFreq = $("enoxFreq").value;
+
+    const ints = [];
+    document.querySelectorAll(".intx").forEach(cb=>{ if(cb.checked) ints.push(cb.value); });
+    s.interactions = ints;
+
+    $("customRangeWrap").style.display = (s.targetRange === "custom") ? "block" : "none";
+    const need = s.bridgeNeed === "yes";
+    $("bridgeAgent").disabled = !need;
+    $("bridgeBox").style.display = need ? "block" : "none";
 
     if(!p.isDraft) savePatients();
     renderAll();
   };
 
-  ["ptName","wt","crcl","mrn","targetRange","customL","customH","inrToday"]
+  ["ptName","wt","crcl","mrn","targetRange","customL","customH","inrToday","bridgeNeed","bridgeAgent","bridgeInd","enoxFreq"]
     .forEach(id => $(id).addEventListener("input", sync));
+
+  // ✅ format today INR only on blur
+  $("inrToday").addEventListener("blur", ()=>{
+    const p = activePatient(); if(!p) return;
+    const s = p.state;
+    const fixed = formatInrOneDecimal($("inrToday").value);
+    if(fixed !== ""){
+      $("inrToday").value = fixed;
+      s.inrToday = fixed;
+      ensureTodayINROnCalendar();
+      if(!p.isDraft) savePatients();
+      renderAll();
+    }
+  });
 
   $("phone").addEventListener("input", (e)=>{ e.target.value = formatPhone(e.target.value); sync(); });
   $("dob").addEventListener("input", (e)=>{ e.target.value = formatDOB_DDMMYYYY(e.target.value); sync(); });
@@ -1286,7 +1505,19 @@ function hookEvents(){
     }
   });
 
-  // tab switching
+  $("providerNotes").addEventListener("focus", ()=>{
+    const ta = $("providerNotes");
+    const p = activePatient(); if(!p) return;
+    if(ta.value.trim() === "Click here to type provider notes before printing."){
+      ta.value = "";
+      p.state.providerNotes = "";
+      if(!p.isDraft) savePatients();
+    }
+  });
+  $("providerNotes").addEventListener("input", sync);
+
+  document.querySelectorAll(".intx").forEach(cb=>cb.addEventListener("change", sync));
+
   $("tabs").addEventListener("click", (e)=>{
     const btn = e.target.closest(".tab");
     if(!btn) return;
@@ -1299,7 +1530,6 @@ function hookEvents(){
     $("tab-notes").style.display = tab==="notes" ? "block":"none";
   });
 
-  // nav
   $("btnPrev").addEventListener("click", ()=>{
     const p = activePatient(); if(!p) return;
     p.state.navOffsetWeeks = (p.state.navOffsetWeeks || 0) - 1;
@@ -1319,24 +1549,94 @@ function hookEvents(){
     renderAll();
   });
 
+  $("btnSearch").addEventListener("click", ()=>{
+    const q = $("ptSearch").value.trim();
+    if(q.length < 2){ $("searchResults").style.display="none"; return; }
+    showSearchResults(patients.filter(p=>matchesPatient(p,q)));
+  });
+  $("ptSearch").addEventListener("input", ()=>{
+    const q = $("ptSearch").value.trim();
+    if(q.length < 2){ $("searchResults").style.display="none"; return; }
+    showSearchResults(patients.filter(p=>matchesPatient(p,q)));
+  });
+
+  $("btnSavePt").addEventListener("click", saveFlow);
+  $("btnDeletePt").addEventListener("click", deleteFlow);
+
+  $("btnClear").addEventListener("click", ()=>{
+    modal.open(
+      "Clear all",
+      "This clears the current screen (inputs + calendar) and prepares for the next search.<br><b>Saved patients will not be deleted.</b>",
+      [
+        {label:"Clear screen", cls:"btn primary", onClick:()=>{ modal.close(); clearScreenFlow(); }},
+        {label:"Cancel", cls:"btn secondary", onClick:()=>modal.close()}
+      ]
+    );
+  });
+
   $("btnPrint").addEventListener("click", ()=>{ renderAll(); window.print(); });
 
+  $("btnClearRegimen").addEventListener("click", ()=>{
+    const p = activePatient(); if(!p) return;
+    p.state.regimen = {};
+    if(!p.isDraft) savePatients();
+    syncRegimenUI();
+    renderAll();
+  });
   $("btnCopyRegimen").addEventListener("click", copyRegimenToVisible);
+
+  $("btnDemo").addEventListener("click", ()=>{
+    draftState = blankState();
+    setActive(DRAFT_ID);
+    const p = activePatient();
+    const s = p.state;
+
+    s.ptName = "Demo Patient";
+    s.dob = "15/01/1950";
+    s.phone = "(818) 555-1234";
+    s.mrn = "123456";
+    s.wt = "78";
+    s.crcl = "55";
+    s.tablets = [2.5,5];
+    s.targetRange = "2.0-3.0";
+    s.inrToday = "3.6";
+    s.bridgeNeed = "yes";
+    s.bridgeAgent = "enox";
+    s.bridgeInd = "Peri-procedural (demo)";
+    s.enoxFreq = "q12";
+    s.interactions = ["amio"];
+    s.navOffsetWeeks = 0;
+
+    s.regimen = {0:7.5,1:7.5,2:7.5,3:7.5,4:7.5,5:7.5,6:7.5};
+
+    const today = new Date();
+    const doses = [7.5,7.5,7.5,7.5,7.5,7.5,7.5, 5,5,5];
+    for(let i=0;i<10;i++){
+      const iso = isoLocal(addDaysLocal(today, -i));
+      const d = getDay(iso);
+      d.scheduled = String(doses[i] ?? 7.5);
+      d.scheduledLocked = false;
+      s.days[iso] = d;
+    }
+    getDay(isoLocal(addDaysLocal(today, -7))).inr = "2.7";
+    getDay(isoLocal(addDaysLocal(today, -3))).inr = "3.1";
+    ensureTodayINROnCalendar();
+
+    bindInputs();
+    renderAll();
+  });
 }
 
-/* ---- minimal pieces from your previous version needed to run (patients + actions) ---- */
-let patients = loadPatients();
-let activeId = localStorage.getItem(DB_KEYS.ACTIVE) || DRAFT_ID;
-let draftState = blankState();
+/* ---- render all ---- */
+function renderAll(){
+  // ✅ apply recommendation to calendar FIRST
+  applyRecommendationToCalendar();
 
-function savePatients(){ localStorage.setItem(DB_KEYS.PATIENTS, JSON.stringify(patients)); }
-
-function loadPatients(){
-  try{
-    const raw = localStorage.getItem(DB_KEYS.PATIENTS);
-    const arr = raw ? JSON.parse(raw) : [];
-    return Array.isArray(arr) ? arr : [];
-  }catch{ return []; }
+  renderCalendar();
+  renderKPIs();
+  renderVerbal();
+  renderBridging();
+  renderInteractions();
 }
 
 /* ---- init ---- */
@@ -1345,14 +1645,6 @@ initPills();
 bindInputs();
 hookEvents();
 renderAll();
-
-/* ---- render all ---- */
-function renderAll(){
-  applyRecommendedScheduleToCalendar();  // ✅ this is the key fix
-  renderCalendar();
-  renderKPIs();
-  renderVerbal();
-}
 </script>
 </body>
 </html>
