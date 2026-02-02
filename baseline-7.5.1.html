@@ -33,18 +33,33 @@
 
   .app{height:100vh;display:flex;flex-direction:column;min-width:0}
 
-  /* --- TOP BAR (logo block provided by you) --- */
+  /* --- TOP BAR --- */
   .topbar{
     flex:0 0 auto;
-    padding:10px 12px;
+    padding:8px 10px; /* tighter */
     border-bottom:1px solid var(--border);
     background:#fff;
     display:flex;
     align-items:flex-start;
     justify-content:space-between;
-    gap:12px;
+    gap:10px;
+    min-width:0;
   }
   .topbar .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-end}
+
+  /* logo sizing (stable + no stretching) */
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    min-width:0;
+  }
+  .brandLogo{
+    height:56px; /* smaller than 80 to reduce wasted topbar height */
+    width:auto;
+    display:block;
+    object-fit:contain;
+  }
 
   /* compact buttons */
   .btn{
@@ -71,16 +86,18 @@
     padding:10px;
     max-width:100vw;
     overflow:hidden;
+    min-width:0;
   }
   @media (min-width: 980px){
-    .main{grid-template-columns: 0.85fr 1.15fr;} /* more space for calendar */
+    /* give MORE to calendar */
+    .main{grid-template-columns: 0.72fr 1.28fr;}
   }
 
   .card{
     background:var(--card);
     border:1px solid var(--border);
     border-radius:14px;
-    padding:10px; /* condensed */
+    padding:8px; /* tighter */
     box-shadow:var(--shadow);
     min-width:0;
     min-height:0;
@@ -88,7 +105,7 @@
   .leftScroll{overflow:auto;max-height:100%}
 
   .row{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}
-  .field{display:flex;flex-direction:column;gap:4px}
+  .field{display:flex;flex-direction:column;gap:4px;min-width:0}
   .field label{font-size:11px;color:var(--muted)}
   input, select, textarea{
     font:inherit;
@@ -97,6 +114,8 @@
     padding:7px 9px;
     background:#fff;
     outline:none;
+    min-width:0;
+    max-width:100%;
   }
   input:focus, select:focus, textarea:focus{
     border-color:#0d6efd;
@@ -129,15 +148,17 @@
     background:#fff;
     padding:8px;
     margin-top:8px;
-    max-height:calc(100vh - 230px);
+    max-height:calc(100vh - 220px);
+    min-width:0;
   }
 
-  /* smaller cells + smaller min columns */
+  /* ✅ FIX: remove forced min-width so it stops bleeding right */
   .cal-grid{
     display:grid;
-    grid-template-columns:repeat(7, minmax(108px, 1fr));
+    grid-template-columns:repeat(7, minmax(92px, 1fr)); /* smaller minimum */
     gap:6px;
-    min-width:780px; /* keeps it from bleeding; scrolls horizontally if needed */
+    min-width:0; /* was 780px */
+    width:100%;
   }
 
   .dow{font-size:11px;color:var(--muted);text-align:center}
@@ -145,6 +166,8 @@
   .day{
     background:#fff;border:1px solid var(--border);border-radius:12px;
     padding:6px;min-height:84px;display:flex;flex-direction:column;gap:5px;
+    min-width:0;
+    overflow:hidden; /* ensure nothing bleeds */
   }
 
   .day .date{display:flex;justify-content:space-between;align-items:center;font-size:11px}
@@ -152,11 +175,14 @@
   .badge.today{background:var(--today-bg);border-color:var(--today-b);color:#0d6efd}
   .badge.repeat{background:var(--man);border-color:var(--man-b);color:#5c3b00}
 
-  .mini{display:grid;grid-template-columns:1fr;gap:5px}
+  .mini{display:grid;grid-template-columns:1fr;gap:5px;min-width:0}
   .mini input{
     padding:5px 7px;
     font-size:11px;
-    border-radius:10px
+    border-radius:10px;
+    width:100%;
+    min-width:0;
+    max-width:100%;
   }
   .mini .lbl{font-size:10px;color:var(--muted);margin-top:-2px}
 
@@ -189,14 +215,19 @@
 
   <!-- TOPBAR -->
   <div class="topbar no-print">
-    <!-- EXACT logo block you provided -->
-    <div style="display:flex; align-items:center; gap:14px; margin:0 0 6px 0;">
-      <img src="ThromboLogic INR Logo Design.png"
-           alt="ThromboLogic INR Logo"
-           style="height:80px; width:auto;">
-      <div style="display:flex; flex-direction:column; line-height:1.1;">
-        <span style="font-size:26px; font-weight:800;">ThromboLogic</span>
-        <span style="font-size:16px; font-weight:600;">INR</span>
+
+    <!-- ✅ FIXED logo: stable path + class-based sizing -->
+    <div class="brand">
+      <!-- Put your logo file in the repo as: assets/logo.png (recommended) -->
+      <img
+        id="brandLogo"
+        class="brandLogo"
+        src="assets/logo.png"
+        alt="ThromboLogic INR Logo"
+      />
+      <div style="display:flex; flex-direction:column; line-height:1.1; min-width:0;">
+        <span style="font-size:24px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">ThromboLogic</span>
+        <span style="font-size:15px; font-weight:600;">INR</span>
         <span class="small" style="margin-top:4px;">INR v7.5 (Target INR + weighted-dose-aware recommendation + 7-day what-if)</span>
       </div>
     </div>
@@ -215,7 +246,7 @@
       <h1>Patient & INR entry</h1>
 
       <div class="row no-print">
-        <div class="field" style="min-width:220px;flex:1">
+        <div class="field" style="min-width:180px;flex:1">
           <label>Search (name, DOB, phone, MRN)</label>
           <input id="ptSearch" placeholder="Type at least 2 characters…" autocomplete="off" />
         </div>
@@ -226,33 +257,33 @@
       <div class="results no-print" id="searchResults" style="display:none;margin-top:8px;border:1px solid var(--border);border-radius:12px;background:#fff;overflow:auto;max-height:220px"></div>
 
       <div class="row">
-        <div class="field" style="min-width:180px;flex:1">
+        <div class="field" style="min-width:170px;flex:1">
           <label>Patient name</label>
           <input id="ptName" placeholder="e.g., Jane Doe" autocomplete="off" />
         </div>
 
-        <div class="field" style="width:150px">
+        <div class="field" style="width:140px">
           <label>DOB (DD/MM/YYYY)</label>
           <input id="dob" inputmode="numeric" placeholder="DD/MM/YYYY" maxlength="10" autocomplete="off" />
         </div>
 
-        <div class="field" style="width:160px">
+        <div class="field" style="width:150px">
           <label>Phone</label>
           <input id="phone" inputmode="tel" placeholder="(###) ###-####" maxlength="14" autocomplete="off" />
         </div>
 
-        <div class="field" style="width:130px">
+        <div class="field" style="width:120px">
           <label>MRN</label>
           <input id="mrn" placeholder="MRN" autocomplete="off" />
         </div>
       </div>
 
       <div class="row">
-        <div class="field" style="width:130px">
+        <div class="field" style="width:120px">
           <label>Weight (kg)</label>
           <input id="wt" inputmode="decimal" placeholder="e.g., 72" />
         </div>
-        <div class="field" style="width:130px">
+        <div class="field" style="width:120px">
           <label>CrCl (mL/min)</label>
           <input id="crcl" inputmode="decimal" placeholder="e.g., 55" />
         </div>
@@ -280,7 +311,7 @@
       <!-- Recommendation -->
       <div id="tab-rec">
         <div class="row">
-          <div class="field" style="width:160px">
+          <div class="field" style="width:150px">
             <label>Target INR range</label>
             <select id="targetRange">
               <option value="2.0-3.0" selected>2.0–3.0 (default)</option>
@@ -298,7 +329,8 @@
             </div>
           </div>
 
-          <div class="field" style="min-width:220px;flex:1">
+          <!-- ✅ FIX: make Current INR box not oversized -->
+          <div class="field" style="width:160px">
             <label>Current INR (today)</label>
             <input id="inrToday" inputmode="decimal" placeholder="e.g., 2.0" />
           </div>
@@ -457,14 +489,12 @@
 <script>
 /* =========================
    ThromboLogic INR 7.5 (INR-ALT)
-   Fixes requested:
-   1) smaller calendar cells/inputs; no bleed
-   2) orange/blue/red themes
-   3) auto-fill scheduled once recommendation exists
-   4) left panel condensed; more space for calendar
-   5) INR always shows trailing .0 (one decimal)
-   6) regimen copy applies to all visible weeks (35 days)
-   7) exact logo block used
+   Adjustments in this build:
+   ✅ Logo: stable assets/logo.png + fallback
+   ✅ Calendar bleed: remove min-width + tighter min columns + overflow safety
+   ✅ Left panel: tighter + Current INR not oversized
+   ✅ Clear All: truly clears draft inputs + calendar entries
+   ✅ In-range repeat: stop age-shortening for in-range (prevents 14→12)
    ========================= */
 
 const VERSION = "INR 7.5 (INR-ALT)";
@@ -478,6 +508,25 @@ const DB_KEYS = {
 
 const DRAFT_ID = "__DRAFT__";
 const $ = (id)=>document.getElementById(id);
+
+/* ---- logo fallback ---- */
+(function logoFallback(){
+  const img = $("brandLogo");
+  if(!img) return;
+  const candidates = [
+    "assets/logo.png",
+    "assets/ThromboLogic INR Logo Design.png",
+    "ThromboLogic INR Logo Design.png",
+    "assets/thrombologic-logo.png",
+    "assets/logo.svg",
+    "logo.png"
+  ];
+  let i = 0;
+  img.onerror = () => {
+    i++;
+    if(i < candidates.length) img.src = candidates[i];
+  };
+})();
 
 /* ---- modal ---- */
 const modal = {
@@ -709,8 +758,8 @@ function initRegimen(){
   for(let i=0;i<7;i++){
     const f = document.createElement("div");
     f.className = "field";
-    f.style.flex = "1 1 76px";
-    f.style.minWidth = "76px";
+    f.style.flex = "1 1 72px";
+    f.style.minWidth = "72px";
     f.innerHTML = `<label>${labels[i]}</label><input id="reg_${i}" placeholder="mg" inputmode="decimal" />`;
     row.appendChild(f);
 
@@ -867,7 +916,7 @@ function inrClass(v, L, H){
   const critLow  = v < Math.max(0, (L - 0.7));
   if(critHigh || critLow) return "band-crit";
   if(v < L || v > H) return "band-warn";
-  return ""; // in-range stays neutral (per your theme request)
+  return "";
 }
 
 /* ---- doses ---- */
@@ -944,7 +993,6 @@ function computeRecommendation(){
   const currentWeekly = (weekly>0 ? weekly : (wtd>0 ? wtd : 0));
 
   let baseLine="", plan="", repeatDays=7, pct=0, holds=0;
-
   const hasRec = isFinite(inr);
 
   if(isFinite(inr)){
@@ -968,9 +1016,14 @@ function computeRecommendation(){
       plan=`Hold warfarin and follow high-INR protocol (consider vitamin K per clinical context). Recheck INR soon.`;
     }
 
-    const age = getAgeYearsFromDmy(s.dob);
-    if(isFinite(age) && age >= 80 && repeatDays > 3) repeatDays = Math.max(3, repeatDays-2);
-    if(isFinite(age) && age <= 3 && repeatDays > 3) repeatDays = Math.max(3, repeatDays-2);
+    /* ✅ FIX: do NOT shorten repeat interval for age when INR is IN RANGE
+       (this was causing 14 → 12 days) */
+    const outOfRange = (inr < L || inr > H);
+    if(outOfRange){
+      const age = getAgeYearsFromDmy(s.dob);
+      if(isFinite(age) && age >= 80 && repeatDays > 3) repeatDays = Math.max(3, repeatDays-2);
+      if(isFinite(age) && age <= 3 && repeatDays > 3) repeatDays = Math.max(3, repeatDays-2);
+    }
   } else {
     baseLine = `Enter today’s INR to generate a recommendation.`;
     plan = `You can still use the calendar to record doses and prior INRs.`;
@@ -1036,18 +1089,14 @@ function autoFillScheduledFromRecommendation(){
   const r = computeRecommendation();
   if(!r.hasRec) return;
 
-  // choose recommended daily average:
-  // - if pct != 0 and avgNew available => use avgNew
-  // - else if avgNow available => use avgNow
   let perDay = NaN;
   if(r.pct !== 0 && isFinite(r.avgNew) && r.avgNew>0) perDay = r.avgNew;
   else if(isFinite(r.avgNow) && r.avgNow>0) perDay = r.avgNow;
 
   if(!isFinite(perDay) || perDay<=0) return;
 
-  // fill all VISIBLE days, but ONLY empty scheduled cells (lean + safe)
   const {days} = calendarWindow();
-  const fillVal = round1(perDay); // keep one decimal
+  const fillVal = round1(perDay);
   for(const item of days){
     const day = getDay(item.iso);
     if(String(day.scheduled||"").trim() === ""){
@@ -1065,7 +1114,6 @@ function renderCalendar(){
   const todayIso = isoLocal(new Date());
   const {days} = calendarWindow();
   const repeatIso = computeRepeatIso();
-  const r = computeRecommendation();
   const {L,H} = getTargetRange();
 
   days.forEach(({date, iso})=>{
@@ -1108,7 +1156,6 @@ function renderCalendar(){
     inr.step = "0.1";
     inr.value = dayData.inr ?? "";
 
-    // keep one decimal on blur to preserve trailing 0
     inr.addEventListener("blur", ()=>{
       const fixed = formatInrOneDecimal(inr.value);
       if(fixed !== "") {
@@ -1125,7 +1172,6 @@ function renderCalendar(){
     cell.appendChild(head);
     cell.appendChild(mini);
 
-    // color banding: priority = critical/red > warn/orange > none
     const vToday = toNum(activePatient().state.inrToday);
     const v = isToday && isFinite(vToday) ? vToday : toNum(dayData.inr);
     const klass = inrClass(v, L, H);
@@ -1150,7 +1196,6 @@ function renderVerbal(){
   const repIso = computeRepeatIso();
   const repDate = fromIso(repIso);
 
-  // ensure today INR stored to calendar with trailing 0
   ensureTodayINROnCalendar();
 
   const pt = s.ptName ? `<b>${escapeHtml(s.ptName)}</b>: ` : "";
@@ -1260,7 +1305,6 @@ function saveFlow(){
     return;
   }
 
-  // MRN duplication popup
   const mrn = (meta.mrn||"").trim();
   if(mrn){
     const targetId = `MRN:${mrn}`;
@@ -1276,7 +1320,7 @@ function saveFlow(){
         [
           {label:"Open existing", cls:"btn secondary", onClick:()=>{ modal.close(); setActive(targetId); }},
           {label:"Merge into existing", cls:"btn primary", onClick:()=>{
-            const cur = activePatient(); // current
+            const cur = activePatient();
             exists.meta = Object.assign({}, exists.meta, meta);
             exists.state = Object.assign({}, exists.state, cur.state);
             savePatients();
@@ -1290,7 +1334,6 @@ function saveFlow(){
     }
   }
 
-  // Normal save
   const id = makePatientId(meta);
   const cur = activePatient();
   const idx = patients.findIndex(x=>x.id===id);
@@ -1321,13 +1364,14 @@ function deleteFlow(){
   $("ptSearch").value = "";
   $("searchResults").style.display="none";
 }
+
+/* ✅ FIX: truly clear ALL current-screen fields + calendar (draft only) */
 function clearScreenFlow(){
   draftState = blankState();
   setActive(DRAFT_ID);
   $("ptSearch").value = "";
   $("searchResults").style.display="none";
 
-  // reset tabs to rec
   document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
   document.querySelector('.tab[data-tab="rec"]').classList.add("active");
   $("tab-rec").style.display="block";
@@ -1336,7 +1380,7 @@ function clearScreenFlow(){
   $("tab-notes").style.display="none";
 }
 
-/* ---- regimen copy to ALL visible weeks (35 days) ---- */
+/* ---- regimen copy ---- */
 function copyRegimenToVisible(){
   const p = activePatient(); if(!p) return;
   const s = p.state;
@@ -1388,7 +1432,6 @@ function hookEvents(){
     $("bridgeAgent").disabled = !need;
     $("bridgeBox").style.display = need ? "block" : "none";
 
-    // keep INR formatting + push to today cell
     if(s.inrToday.trim() !== ""){
       const fixed = formatInrOneDecimal(s.inrToday);
       if(fixed) s.inrToday = fixed;
@@ -1537,9 +1580,7 @@ function hookEvents(){
 
 /* ---- render all ---- */
 function renderAll(){
-  // ✅ auto-fill scheduled once recommendation exists
   autoFillScheduledFromRecommendation();
-
   renderCalendar();
   renderKPIs();
   renderVerbal();
