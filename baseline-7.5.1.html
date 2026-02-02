@@ -181,8 +181,6 @@
     border-radius:10px;
     width:100%;
     max-width:100%;
-
-    /* ✅ values bolder */
     font-weight:900;
     color:#000;
   }
@@ -213,9 +211,7 @@
     line-height:1.35;
     margin:2px 0 8px;
   }
-  .patientLead b{
-    font-weight:900;
-  }
+  .patientLead b{font-weight:900}
   .predLine{
     margin-top:6px;
     padding:8px 10px;
@@ -224,6 +220,11 @@
     background:#fff;
     font-size:13px;
   }
+
+  /* pdf-only helpers */
+  .pdf-only{display:none}
+  .planTable td, .planTable th{border:1px solid var(--border);padding:6px 8px}
+  .planTable{border-collapse:collapse;width:100%;background:#fff;font-size:13px}
 
   /* modal */
   .modal-backdrop{
@@ -234,12 +235,18 @@
   .modal h3{margin:0 0 6px;font-size:15px}
   .modal .actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px;flex-wrap:wrap}
 
+  /* ✅ PRINT/PDF RULES:
+     - Hide the calendar entirely
+     - Print: Verbal recommendation + dosing chart + bridging + interactions (+ provider notes)
+  */
   @media print{
     body{margin:0;overflow:visible}
     .no-print{display:none !important}
     .card{box-shadow:none}
-    .cal-scroll{max-height:none; overflow:visible; border:none; padding:0}
-    .cal-grid{min-width:0; grid-template-columns:repeat(7, 1fr)}
+    .main{grid-template-columns:1fr !important}
+    #rightPanel{display:none !important}
+    .leftScroll{overflow:visible !important;max-height:none !important}
+    .pdf-only{display:block !important}
   }
 </style>
 </head>
@@ -249,7 +256,6 @@
 
   <!-- TOPBAR -->
   <div class="topbar no-print">
-    <!-- (Kept your block) -->
     <div style="display:flex; align-items:center; gap:14px; margin:0 0 6px 0; min-width:0;">
       <img src="ThromboLogic INR Logo Design.png"
            alt="ThromboLogic INR Logo"
@@ -360,7 +366,6 @@
 
           <div class="field" style="min-width:220px;flex:1">
             <label>Current INR (today)</label>
-            <!-- ✅ allow typing decimals naturally; we format on BLUR only -->
             <input id="inrToday" inputmode="decimal" placeholder="e.g., 2.0" />
           </div>
         </div>
@@ -390,6 +395,30 @@
           <h2 style="margin-top:0">Verbal recommendation</h2>
           <div id="verbal" class="small" style="font-size:13px;color:#111;line-height:1.35"></div>
           <div class="hint" id="repeatLine"></div>
+
+          <!-- ✅ PDF-only summary + chart (calendar is not printed) -->
+          <div class="card pdf-only" style="margin-top:10px;background:#fff">
+            <h2 style="margin-top:0">PDF dosing plan (chart)</h2>
+            <div id="pdfPlan"></div>
+
+            <div id="pdfBridgeWrap" style="margin-top:10px;display:none">
+              <div class="sep"></div>
+              <h2 style="margin:0 0 6px">Bridging</h2>
+              <div id="pdfBridge" style="font-size:13px;line-height:1.35"></div>
+            </div>
+
+            <div id="pdfIntxWrap" style="margin-top:10px;display:none">
+              <div class="sep"></div>
+              <h2 style="margin:0 0 6px">Drug interactions</h2>
+              <div id="pdfIntx" style="font-size:13px;line-height:1.35"></div>
+            </div>
+
+            <div id="pdfNotesWrap" style="margin-top:10px;display:none">
+              <div class="sep"></div>
+              <h2 style="margin:0 0 6px">Provider notes</h2>
+              <div id="pdfNotes" style="white-space:pre-wrap;font-size:13px;line-height:1.35"></div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -477,7 +506,7 @@
     </div>
 
     <!-- RIGHT -->
-    <div class="card">
+    <div class="card" id="rightPanel">
       <div class="cal-head">
         <div>
           <h1 style="margin:0">5-week dosing calendar</h1>
@@ -519,9 +548,11 @@
 /* =========================
    ThromboLogic INR 7.5 (INR-ALT)
    Updates in this build:
-   ✅ Tablet strengths default to NONE selected
-   ✅ Scheduled dosing snaps to achievable doses based on selected tablet strengths (½ tabs allowed)
-   ✅ Avoid impossible decimals like 6.8 mg
+   ✅ PDF: calendar NOT printed; prints verbal + dosing chart + bridging + interactions (+ notes)
+   ✅ Verbal recommendation: lay terms + explicit 7-day dosing plan (not "refer to calendar")
+   ✅ Dose snapping ALWAYS enforced:
+      - if tablets selected => snap to selected strengths (½ tabs allowed)
+      - if none selected => snap to standard warfarin strengths (DEFAULT_TABLETS)
    ========================= */
 
 const VERSION = "INR 7.5 (INR-ALT)";
@@ -644,6 +675,13 @@ function formatInrOneDecimal(valOrStr){
 /* ---- Tablets ---- */
 const DEFAULT_TABLETS = [0.5,1,2,2.5,3,4,5,6,7.5,10];
 
+/* effective tablets: selected OR standard strengths (ensures we NEVER output impossible doses) */
+function effectiveTablets(){
+  const p = activePatient(); if(!p) return DEFAULT_TABLETS.slice();
+  const tabs = (p.state.tablets||[]).map(Number).filter(x=>isFinite(x)&&x>0);
+  return tabs.length ? tabs : DEFAULT_TABLETS.slice();
+}
+
 /* exact-combo helper (used for text examples) */
 function suggestCombo(targetMg, tablets){
   const goal = Math.round(targetMg*100)/100;
@@ -691,28 +729,23 @@ function suggestCombo(targetMg, tablets){
   return {ok:true, msg: lines.join(", ")};
 }
 
-/* ✅ NEW: snap a target daily dose to the closest ACHIEVABLE dose using selected tablets (+ halves)
-   - ties: fewer pieces wins
-   - bounded search to keep it fast
-*/
+/* snap a target daily dose to the closest ACHIEVABLE dose using tablets (+ halves) */
 function snapDoseToTablets(targetMg, tablets){
   const goal = Math.round(Number(targetMg)*100)/100;
   const tabs = (tablets||[]).map(Number).filter(x=>isFinite(x)&&x>0);
-  if(!isFinite(goal) || goal<=0) return { ok:false, dose: NaN, label:"" };
+  if(!isFinite(goal) || goal<0) return { ok:false, dose: NaN, label:"" };
+  if(goal === 0) return { ok:true, dose: 0, label:"0" };
   if(!tabs.length) return { ok:false, dose: NaN, label:"" };
 
-  // Build unique piece sizes (whole + halves)
   const pieces = [];
   for(const t of tabs){ pieces.push(t); pieces.push(t/2); }
   const uniq = Array.from(new Set(pieces.map(x=>Math.round(x*100)/100)))
     .filter(x=>x>0)
     .sort((a,b)=>b-a);
 
-  // Hard bounds (keeps search small but clinically reasonable)
-  const maxPieces = 10;                 // max number of pieces (whole/half tablets)
-  const maxDose = Math.max(20, goal*2); // cap to avoid crazy sums
+  const maxPieces = 10;
+  const maxDose = Math.max(20, goal*2);
 
-  // Enumerate achievable sums (rounded to 0.01)
   const sums = new Map(); // sum -> minPieces
   function addSum(sum, used){
     const k = Math.round(sum*100)/100;
@@ -732,7 +765,6 @@ function snapDoseToTablets(targetMg, tablets){
       maxPieces - used
     );
 
-    // Try more first to reduce branching depth
     for(let n=maxN; n>=0; n--){
       const newSum = sum + n*v;
       const newUsed = used + n;
@@ -742,13 +774,12 @@ function snapDoseToTablets(targetMg, tablets){
   }
   dfs(0, maxDose, 0, 0);
 
-  // Choose closest to goal (ties => fewer pieces)
   let bestDose = null;
   let bestDiff = Infinity;
   let bestPieces = Infinity;
 
   for(const [dose, piecesUsed] of sums.entries()){
-    if(dose <= 0) continue;
+    if(dose < 0) continue;
     const diff = Math.abs(dose - goal);
     if(diff < bestDiff - 1e-9 || (Math.abs(diff - bestDiff) <= 1e-9 && piecesUsed < bestPieces)){
       bestDiff = diff;
@@ -759,6 +790,17 @@ function snapDoseToTablets(targetMg, tablets){
 
   if(bestDose === null) return { ok:false, dose: NaN, label:"" };
   return { ok:true, dose: bestDose, label: fmtDose(bestDose) };
+}
+
+/* choose dose string that is ALWAYS achievable (selected tablets or standard strengths) */
+function chooseDoseStr(target){
+  const t = toNum(target);
+  if(!(isFinite(t) && t>=0)) return "";
+  const tabs = effectiveTablets();
+  const snapped = snapDoseToTablets(t, tabs);
+  if(snapped.ok) return snapped.dose===0 ? "0" : fmtDose(snapped.dose);
+  // fallback (should be rare)
+  return round1(t);
 }
 
 /* ---- Patient DB ---- */
@@ -796,7 +838,7 @@ function blankState(){
     bridgeNeed:"no", bridgeAgent:"enox", bridgeInd:"", enoxFreq:"q12",
     interactions:[],
     regimen:{},
-    tablets:[],           /* ✅ CHANGED: no default tablet selected */
+    tablets:[],           /* ✅ no default tablet selected */
     navOffsetWeeks:0,
     days:{}
   };
@@ -1042,7 +1084,7 @@ function lagWeightedDose(){
   return wtot>0 ? (wsum/wtot)*7 : 0;
 }
 
-/* ✅ regimen weekly total (fallback when no history doses) */
+/* regimen weekly total (fallback when no history doses) */
 function regimenWeeklyTotal(){
   const p = activePatient(); if(!p) return 0;
   const reg = p.state.regimen || {};
@@ -1139,18 +1181,18 @@ function computeRecommendation(){
   const intxMinDays = interactionRepeatOverrideDays();
   if(intxMinDays !== null) repeatDays = Math.min(repeatDays, intxMinDays);
 
+  // Tablet suggestion line: only show an "example tablets" line if user selected tablets
   let tabletLine = "";
-  const tabs = (s.tablets || []).map(Number).filter(x=>isFinite(x)&&x>0);
-  if(isFinite(avgNew) && avgNew>0 && tabs.length){
-    // Show tablet example using snapped daily target for realism
-    const snapped = snapDoseToTablets(avgNew, tabs);
+  const userTabs = (s.tablets || []).map(Number).filter(x=>isFinite(x)&&x>0);
+  if(isFinite(avgNew) && avgNew>0 && userTabs.length){
+    const snapped = snapDoseToTablets(avgNew, userTabs);
     const showTarget = snapped.ok ? snapped.dose : avgNew;
-    const res = suggestCombo(showTarget, tabs);
+    const res = suggestCombo(showTarget, userTabs);
     tabletLine = res.ok
       ? `Example tablets for ~${fmtDose(showTarget)} mg/day: <b>${escapeHtml(res.msg)}</b>.`
       : `Example tablets: <b>no match</b> using current strengths — consider a new Rx strength.`;
-  } else if(isFinite(avgNew) && avgNew>0 && !tabs.length){
-    tabletLine = `Select tablet strengths on hand to generate tablet-based suggestions.`;
+  } else if(isFinite(avgNew) && avgNew>0 && !userTabs.length){
+    tabletLine = `Tablet strengths not selected. Doses are still constrained to standard warfarin strengths.`;
   }
 
   return {
@@ -1176,7 +1218,75 @@ function ensureTodayINROnCalendar(){
   }
 }
 
-/* ✅ apply recommendation to scheduled calendar (now tablet-achievable) */
+/* ✅ build explicit 7-day plan (this drives the verbal directions + PDF chart) */
+function build7DayPlan(){
+  const p = activePatient(); if(!p) return [];
+  const s = p.state;
+  const r = computeRecommendation();
+  if(!r.hasRec) return [];
+
+  const today = new Date();
+  const holdN = Math.max(0, r.holds||0);
+  const mult = 1 + (r.pct||0)/100;
+
+  const hasRegimen = regimenWeeklyTotal() > 0;
+  let fillFlat = NaN;
+  if(isFinite(r.avgNew) && r.avgNew>0) fillFlat = r.avgNew;
+  else if(isFinite(r.avgNow) && r.avgNow>0) fillFlat = r.avgNow;
+
+  const plan = [];
+  for(let i=0;i<7;i++){
+    const d = addDaysLocal(today, i);
+    const iso = isoLocal(d);
+
+    let dose = 0;
+    if(i < holdN){
+      dose = 0;
+    } else {
+      if(hasRegimen){
+        const regDose = regimenDoseForDow(d.getDay());
+        if(isFinite(regDose)){
+          dose = regDose * mult;
+        } else if(isFinite(fillFlat)) {
+          dose = fillFlat;
+        } else {
+          dose = 0;
+        }
+      } else {
+        dose = isFinite(fillFlat) ? fillFlat : 0;
+      }
+    }
+
+    const doseStr = chooseDoseStr(dose);
+    plan.push({date:d, iso, doseStr});
+  }
+  return plan;
+}
+
+function renderPlanTable(plan){
+  if(!plan.length){
+    return `<div class="small">Enter today’s INR to generate a 7-day dosing plan.</div>`;
+  }
+  const rows = plan.map(p=>`
+    <tr>
+      <td>${escapeHtml(fmtMDY(p.date))}</td>
+      <td style="font-weight:900">${escapeHtml(p.doseStr)} mg</td>
+    </tr>
+  `).join("");
+  return `
+    <table class="planTable">
+      <thead>
+        <tr>
+          <th style="text-align:left">Date</th>
+          <th style="text-align:left">Warfarin dose</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+
+/* ✅ apply recommendation to scheduled calendar (now ALWAYS tablet-achievable) */
 function applyRecommendationToCalendar(){
   const p = activePatient(); if(!p) return;
   const s = p.state;
@@ -1193,18 +1303,6 @@ function applyRecommendationToCalendar(){
   let fillFlat = NaN;
   if(isFinite(r.avgNew) && r.avgNew>0) fillFlat = r.avgNew;
   else if(isFinite(r.avgNow) && r.avgNow>0) fillFlat = r.avgNow;
-
-  const tabs = (s.tablets || []).map(Number).filter(x=>isFinite(x)&&x>0);
-
-  function chooseSchedDose(target){
-    if(!(isFinite(target) && target>0)) return "";
-    if(tabs.length){
-      const snapped = snapDoseToTablets(target, tabs);
-      if(snapped.ok) return fmtDose(snapped.dose);
-    }
-    // fallback if no tablets selected
-    return round1(target);
-  }
 
   let idxForward = 0;
   for(const item of days){
@@ -1224,16 +1322,16 @@ function applyRecommendationToCalendar(){
 
     const dow = item.date.getDay();
     const regDose = hasRegimen ? regimenDoseForDow(dow) : NaN;
+
     if(hasRegimen && isFinite(regDose)){
-      const target = regDose * mult;
-      d.scheduled = chooseSchedDose(target);
+      d.scheduled = chooseDoseStr(regDose * mult);
       s.days[item.iso] = d;
       idxForward++;
       continue;
     }
 
-    if(isFinite(fillFlat) && fillFlat>0){
-      d.scheduled = chooseSchedDose(fillFlat);
+    if(isFinite(fillFlat) && fillFlat>=0){
+      d.scheduled = chooseDoseStr(fillFlat);
       s.days[item.iso] = d;
     }
     idxForward++;
@@ -1329,7 +1427,7 @@ function renderKPIs(){
   $("kpiWeighted").textContent = wtd>0 ? `${fmtDose(wtd)} mg` : "—";
 }
 
-/* ✅ predicted INR (simple, transparent estimate) */
+/* predicted INR (simple estimate) */
 function clamp(x,a,b){ return Math.max(a, Math.min(b,x)); }
 function predictedInrEstimate(r){
   if(!r || !isFinite(r.inr)) return null;
@@ -1345,13 +1443,12 @@ function predictedInrEstimate(r){
   const ratio = (eff>0) ? (eff / r.currentWeekly) : 0;
   const expo = 0.70;
   let pred = r.inr * Math.pow(Math.max(ratio, 0.10), expo);
-
   pred = clamp(pred, 0.8, 6.0);
   return Math.round(pred*10)/10;
 }
 
-/* ✅ Lay-term patient directions (bold, straightforward) */
-function laySummaryHtml(r){
+/* ✅ Lay-term patient directions (explicit doses, not "see calendar") */
+function laySummaryHtml(r, plan7){
   const {L,H,label} = r;
   const inrTxt = isFinite(r.inr) ? formatInrOneDecimal(r.inr) : "";
 
@@ -1368,23 +1465,25 @@ function laySummaryHtml(r){
   else if(r.inr > H) status = "above range";
 
   const holdN = Math.max(0, r.holds||0);
+  const todayDose = plan7?.[0]?.doseStr ?? "—";
+  const tomorrowDose = plan7?.[1]?.doseStr ?? "—";
+
   let dir = "";
   if(holdN>0){
-    dir = `<b>Do NOT take warfarin for ${holdN} day${holdN===1?"":"s"}.</b> <b>Then follow the “Sched” doses shown in the calendar starting the next day.</b>`;
+    dir = `<b>Do NOT take warfarin today.</b> (Hold ${holdN} day${holdN===1?"":"s"} total.)`;
   } else {
-    if(status === "in range"){
-      dir = `<b>Keep your warfarin dose the same.</b> <b>Follow the “Sched” doses shown in the calendar.</b>`;
-    } else if(status === "below range"){
-      dir = `<b>Your warfarin dose needs to go up.</b> <b>Follow the “Sched” doses shown in the calendar starting today.</b>`;
-    } else {
-      dir = `<b>Your warfarin dose needs to go down.</b> <b>Follow the “Sched” doses shown in the calendar starting today.</b>`;
-    }
+    dir = `<b>Take warfarin today: ${escapeHtml(todayDose)} mg.</b>`;
   }
+
+  const nextLine = (plan7 && plan7.length>=2)
+    ? `<div style="margin-top:6px"><b>Tomorrow:</b> ${escapeHtml(tomorrowDose)} mg. <span style="color:#666">See the 7-day plan below.</span></div>`
+    : ``;
 
   const lead =
     `<div class="patientLead">
       <b>Your INR ${inrTxt} is ${status}</b> <span style="color:#666">(target ${label}).</span><br>
       ${dir}
+      ${nextLine}
     </div>`;
 
   const predVal = predictedInrEstimate(r);
@@ -1405,7 +1504,7 @@ function laySummaryHtml(r){
   return {lead, pred, clinician};
 }
 
-/* ---- verbal ---- */
+/* ---- verbal + PDF summary ---- */
 function renderVerbal(){
   const p = activePatient(); if(!p) return;
   const s = p.state;
@@ -1426,16 +1525,49 @@ function renderVerbal(){
     intxLine = ` <span class="small">Interaction risk present${pulled?` (repeat INR pulled to ≤ ${pulled} day(s))`:""}.</span>`;
   }
 
-  const lay = laySummaryHtml(r);
+  const plan7 = build7DayPlan();
+  const lay = laySummaryHtml(r, plan7);
+  const planHtml = renderPlanTable(plan7);
 
   $("verbal").innerHTML = `
     <div style="margin-bottom:6px">${pt}${ageTxt}${intxLine}</div>
     ${lay.lead}
     ${lay.pred}
+    <div style="margin-top:10px"><b>7-day dosing plan:</b></div>
+    <div style="margin-top:6px">${planHtml}</div>
     ${lay.clinician}
   `;
 
   $("repeatLine").innerHTML = `<b>Repeat INR:</b> <b>${fmtMDY(repDate)}</b> (in ${r.repeatDays} day${r.repeatDays===1?"":"s"}).`;
+
+  // --- PDF-only content ---
+  const pdfPlan = $("pdfPlan");
+  if(pdfPlan) pdfPlan.innerHTML = planHtml;
+
+  const needBridge = (s.bridgeNeed === "yes");
+  const pdfBridgeWrap = $("pdfBridgeWrap");
+  const pdfBridge = $("pdfBridge");
+  if(pdfBridgeWrap && pdfBridge){
+    pdfBridgeWrap.style.display = needBridge ? "block" : "none";
+    if(needBridge) pdfBridge.innerHTML = $("bridgeText").innerHTML || "";
+  }
+
+  const hasIntx = (s.interactions || []).length > 0;
+  const pdfIntxWrap = $("pdfIntxWrap");
+  const pdfIntx = $("pdfIntx");
+  if(pdfIntxWrap && pdfIntx){
+    pdfIntxWrap.style.display = hasIntx ? "block" : "none";
+    if(hasIntx) pdfIntx.innerHTML = interactionNarrative();
+  }
+
+  const notes = (s.providerNotes || "").trim();
+  const pdfNotesWrap = $("pdfNotesWrap");
+  const pdfNotes = $("pdfNotes");
+  if(pdfNotesWrap && pdfNotes){
+    const showNotes = !!notes && notes !== "Click here to type provider notes before printing.";
+    pdfNotesWrap.style.display = showNotes ? "block" : "none";
+    if(showNotes) pdfNotes.textContent = notes;
+  }
 }
 
 function renderInteractions(){
@@ -1605,7 +1737,7 @@ function copyRegimenToVisible(){
     const mg = toNum(s.regimen[dow]);
     if(!isFinite(mg)) continue;
     const day = getDay(item.iso);
-    day.scheduled = String(mg);
+    day.scheduled = chooseDoseStr(mg);  // ✅ also achievable
     day.scheduledLocked = false;
     s.days[item.iso] = day;
   }
@@ -1787,7 +1919,7 @@ function hookEvents(){
     for(let i=0;i<10;i++){
       const iso = isoLocal(addDaysLocal(today, -i));
       const d = getDay(iso);
-      d.scheduled = String(doses[i] ?? 7.5);
+      d.scheduled = chooseDoseStr(doses[i] ?? 7.5);
       d.scheduledLocked = false;
       s.days[iso] = d;
     }
@@ -1805,9 +1937,9 @@ function renderAll(){
   applyRecommendationToCalendar();
   renderCalendar();
   renderKPIs();
-  renderVerbal();
   renderBridging();
   renderInteractions();
+  renderVerbal(); // last (so PDF wrappers pick up latest bridge/intx HTML)
 }
 
 /* ---- init ---- */
