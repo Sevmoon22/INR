@@ -390,12 +390,12 @@
 
         <div class="sep"></div>
 
-        <!-- NEW: scope toggle -->
+        <!-- Scope toggle (repurposed): today only vs today+tomorrow -->
         <label class="no-print" style="display:flex;align-items:center;gap:8px;font-size:12px;color:#111">
           <input type="checkbox" id="applyBeyondRepeat">
-          Apply beyond repeat INR (update entire visible calendar)
+          Also adjust <b>tomorrow</b> (max scope = today + tomorrow)
         </label>
-        <div class="hint no-print">Default OFF: recommendation fills doses only from today through the day before the next INR check date.</div>
+        <div class="hint no-print">Default OFF: recommendation only changes <b>today</b>. Holds (if any) may also set <b>tomorrow</b> to 0.</div>
 
         <div class="sep"></div>
 
@@ -513,7 +513,7 @@
       <div class="cal-head">
         <div>
           <h1 style="margin:0">5-week dosing calendar</h1>
-          <div class="small">Today stays centered. Recommendations populate scheduled doses (unless you manually lock a cell).</div>
+          <div class="small">Today stays centered. Recommendations only change <b>today</b> (and optionally <b>tomorrow</b>).</div>
         </div>
         <div class="cal-controls no-print">
           <button class="btn ghost" id="btnPrev">◀︎ Back</button>
@@ -561,6 +561,15 @@
    + Always snap doses to achievable tablet strengths:
        - if patient selected tablets => use those (+ halves)
        - if none selected => assume standard warfarin strengths (0.5–10 mg, halves allowed)
+
+   ✅ FIXES (per request):
+   1) Recommendation dose adjustments do NOT propagate through the week.
+      - Only applies to TODAY, and optionally TOMORROW (max).
+      - Holds may also set tomorrow to 0 if hold=2.
+   2) Recommendation always updates to the latest INR entry:
+      - Changing INR in "Current INR (today)" OR editing today's INR on the calendar
+        immediately updates the recommendation and today's/tomorrow's scheduled doses.
+      - Old recommendation-applied doses are cleared and recalculated.
    ========================= */
 
 const VERSION = "INR 7.5 (INR-ALT • UCLA algo)";
@@ -823,7 +832,7 @@ function blankState(){
     wt:"", crcl:"",
     targetRange:"2.0-3.0", customL:"", customH:"",
     inrToday:"",
-    applyBeyondRepeat:false, /* NEW */
+    applyBeyondRepeat:false, /* repurposed: adjustTomorrow toggle */
     providerNotes:"Click here to type provider notes before printing.",
     bridgeNeed:"no", bridgeAgent:"enox", bridgeInd:"", enoxFreq:"q12",
     interactions:[],
@@ -957,7 +966,7 @@ function bindInputs(){
   $("customH").value = s.customH || "";
 
   $("inrToday").value = s.inrToday || "";
-  $("applyBeyondRepeat").checked = !!s.applyBeyondRepeat; /* NEW */
+  $("applyBeyondRepeat").checked = !!s.applyBeyondRepeat; /* now = adjustTomorrow */
 
   $("providerNotes").value = s.providerNotes || "";
   $("bridgeNeed").value = s.bridgeNeed || "no";
@@ -983,15 +992,16 @@ function bindInputs(){
 
 /* ---- day model ---- */
 function getDay(iso){
-  const p = activePatient(); if(!p) return {scheduled:"", actual:"", inr:"", scheduledLocked:false};
+  const p = activePatient(); if(!p) return {scheduled:"", actual:"", inr:"", scheduledLocked:false, scheduledSource:""};
   const s = p.state;
   if(!s.days) s.days = {};
-  if(!s.days[iso]) s.days[iso] = {scheduled:"", actual:"", inr:"", scheduledLocked:false};
+  if(!s.days[iso]) s.days[iso] = {scheduled:"", actual:"", inr:"", scheduledLocked:false, scheduledSource:""};
   const d = s.days[iso];
   if(d.actual === undefined) d.actual = "";
   if(d.inr === undefined) d.inr = "";
   if(d.scheduled === undefined) d.scheduled = "";
   if(d.scheduledLocked === undefined) d.scheduledLocked = false;
+  if(d.scheduledSource === undefined) d.scheduledSource = "";
   return d;
 }
 function setDay(iso, patch){
@@ -1322,7 +1332,7 @@ function computeRepeatIso(){
   return isoLocal(addDaysLocal(new Date(), r.repeatDays));
 }
 
-/* ---- auto: current INR -> today cell ---- */
+/* ---- auto: current INR -> today cell (one-way, but we also do reverse-link in calendar input) ---- */
 function ensureTodayINROnCalendar(){
   const p = activePatient(); if(!p) return;
   const s = p.state;
@@ -1336,214 +1346,119 @@ function ensureTodayINROnCalendar(){
 }
 
 /* =========================
-   NEW: week-aware + repeat-limited calendar fill
-   - Default: fill only until day BEFORE repeat INR
-   - Toggle: applyBeyondRepeat fills entire visible window
-   - Week-aware adjustment to force % changes to show even after tablet snapping
+   Recommendation application (FIXED SCOPE)
+   - ONLY adjusts TODAY, and optionally TOMORROW (max).
+   - Clears prior recommendation-applied scheduled doses before reapplying,
+     so changes always reflect the CURRENT INR.
    ========================= */
 
-function buildAchievableDailyDoses(tablets, maxDose=20, maxPieces=8){
-  const tabs = (tablets||[]).map(Number).filter(x=>isFinite(x)&&x>0);
-  if(!tabs.length) return [];
-  const pieces = [];
-  for(const t of tabs){ pieces.push(t); pieces.push(t/2); }
-  const uniqPieces = Array.from(new Set(pieces.map(x=>Math.round(x*100)/100))).filter(x=>x>0).sort((a,b)=>a-b);
-
-  const sums = new Set();
-  function dfs(i, used, sum){
-    const s = Math.round(sum*100)/100;
-    if(s>0 && s<=maxDose) sums.add(s);
-    if(i>=uniqPieces.length) return;
-    if(used>=maxPieces) return;
-
-    const v = uniqPieces[i];
-    const maxN = Math.min(Math.floor((maxDose - sum + 1e-9)/v), maxPieces-used);
-    for(let n=0;n<=maxN;n++){
-      dfs(i+1, used+n, sum + n*v);
-    }
-  }
-  dfs(0,0,0);
-  return Array.from(sums).sort((a,b)=>a-b);
+function isEditableForAuto(iso){
+  const d = getDay(iso);
+  if(String(d.actual||"").trim() !== "") return false;
+  if(!!d.scheduledLocked) return false;
+  return true;
 }
 
-function nearestIndex(sortedArr, x){
-  let lo=0, hi=sortedArr.length-1;
-  while(lo<hi){
-    const mid = (lo+hi)>>1;
-    if(sortedArr[mid] < x) lo = mid+1;
-    else hi = mid;
-  }
-  return lo;
+function baselineScheduledForIso(iso){
+  const p = activePatient(); if(!p) return "";
+  const s = p.state;
+  const date = fromIso(iso);
+  const dow = date.getDay();
+
+  const regDose = regimenDoseForDow(dow);
+  if(isFinite(regDose)) return fmtDose(regDose);
+
+  // If no regimen, leave as-is (do not invent doses)
+  return "";
 }
 
-function adjustWeekToTarget(snapped, targets, weekTarget, achievable){
-  let cur = snapped.slice();
-  const sum = (a)=>a.reduce((x,y)=>x+y,0);
-  const clampIdx = (i)=>Math.max(0, Math.min(achievable.length-1, i));
-
-  let curSum = sum(cur);
-  let diff = weekTarget - curSum;
-
-  for(let iter=0; iter<60 && Math.abs(diff) > 0.05; iter++){
-    const needUp = diff > 0;
-    let best = null;
-
-    for(let d=0; d<cur.length; d++){
-      const curDose = cur[d];
-      const t = targets[d];
-
-      const idx = nearestIndex(achievable, curDose);
-      let curIdx = idx;
-      if(achievable[curIdx] !== curDose){
-        const a = achievable[Math.min(curIdx, achievable.length-1)];
-        const b = achievable[Math.max(0, curIdx-1)];
-        if(curIdx>0 && Math.abs(b-curDose) <= Math.abs(a-curDose)) curIdx = curIdx-1;
-      }
-
-      const nextIdx = clampIdx(curIdx + (needUp ? 1 : -1));
-      if(nextIdx === curIdx) continue;
-
-      const nextDose = achievable[nextIdx];
-      const delta = nextDose - curDose;
-      if(needUp && delta<=0) continue;
-      if(!needUp && delta>=0) continue;
-
-      const newDiff = diff - delta;
-      const weeklyGain = Math.abs(diff) - Math.abs(newDiff);
-
-      const beforeDev = Math.abs(curDose - t);
-      const afterDev  = Math.abs(nextDose - t);
-      const devCost = afterDev - beforeDev;
-
-      const score = (weeklyGain * 10) - (devCost * 1.5);
-
-      if(best === null || score > best.score){
-        best = {day:d, nextDose, delta, score};
-      }
-    }
-
-    if(!best) break;
-    cur[best.day] = best.nextDose;
-    curSum += best.delta;
-    diff = weekTarget - curSum;
-  }
-
-  return cur;
+function snapDailyDose(mg){
+  const p = activePatient(); if(!p) return mg;
+  const s = p.state;
+  const selectedTabs = (s.tablets || []).map(Number).filter(x=>isFinite(x)&&x>0);
+  const tabs = selectedTabs.length ? selectedTabs : DEFAULT_TABLETS;
+  const snapped = snapDoseToTablets(mg, tabs);
+  return snapped.ok ? snapped.dose : mg;
 }
 
-/* Apply recommendation to calendar (repeat-limited by default) */
+function clearOldRecoScheduledInWindow(){
+  const p = activePatient(); if(!p) return;
+  const s = p.state;
+  const {days} = calendarWindow();
+
+  for(const item of days){
+    const d = getDay(item.iso);
+    if(d.scheduledSource !== "reco") continue;
+    if(String(d.actual||"").trim() !== "") continue;
+    if(!!d.scheduledLocked) continue;
+
+    // revert to baseline (regimen if available, else blank)
+    d.scheduled = baselineScheduledForIso(item.iso);
+    d.scheduledSource = "";
+    s.days[item.iso] = d;
+  }
+}
+
 function applyRecommendationToCalendar(){
   const p = activePatient(); if(!p) return;
   const s = p.state;
   const r = computeRecommendation();
   if(!r.hasRec) return;
 
+  // 1) Clear any prior auto-reco scheduled doses (prevents "sticking")
+  clearOldRecoScheduledInWindow();
+
   const todayIso = isoLocal(new Date());
-  const {days} = calendarWindow();
+  const tomorrowIso = isoLocal(addDaysLocal(new Date(), 1));
 
-  const repeatIso = computeRepeatIso();
-  const endDefault = isoLocal(addDaysLocal(fromIso(repeatIso), -1)); // day before INR test
-  const applyBeyond = !!s.applyBeyondRepeat;
-
-  const applyEndIso = applyBeyond
-    ? days[days.length-1].iso
-    : (endDefault < todayIso ? todayIso : endDefault);
-
-  const mult = 1 + (r.pctChosen||0)/100;
+  const wantTomorrow = !!s.applyBeyondRepeat; // repurposed UI toggle
   const holdN = Math.max(0, r.holdsChosen||0);
-  const hasRegimen = regimenWeeklyTotal() > 0;
 
-  const selectedTabs = (s.tablets || []).map(Number).filter(x=>isFinite(x)&&x>0);
-  const tabs = selectedTabs.length ? selectedTabs : DEFAULT_TABLETS;
-  const achievable = buildAchievableDailyDoses(tabs, 20, 8);
+  // Enforce your "max tomorrow" rule:
+  // - If hold=2, tomorrow must be included.
+  // - Otherwise, only if user checked "Also adjust tomorrow".
+  const includeTomorrow = (holdN >= 2) ? true : wantTomorrow;
 
-  function snapNearest(x){
-    if(!(isFinite(x)&&x>0) || !achievable.length) return x;
-    const i = nearestIndex(achievable, x);
-    const a = achievable[Math.min(i, achievable.length-1)];
-    const b = achievable[Math.max(0, i-1)];
-    return (Math.abs(b-x) <= Math.abs(a-x)) ? b : a;
-  }
+  const targets = [todayIso].concat(includeTomorrow ? [tomorrowIso] : []);
 
-  const dayIndex = new Map(days.map((d,i)=>[d.iso,i]));
-  const startIdx = dayIndex.get(todayIso);
-  if(startIdx === undefined) return;
+  // Determine adjustment multiplier from UCLA band
+  const mult = 1 + (r.pctChosen||0)/100;
 
-  /* holds first */
-  let held = 0;
-  for(const item of days){
-    if(item.iso < todayIso) continue;
-    if(item.iso > applyEndIso) break;
+  // Apply in order so holds apply first
+  let holdsApplied = 0;
+  for(const iso of targets){
+    if(!isEditableForAuto(iso)) continue;
+    const d = getDay(iso);
 
-    const d = getDay(item.iso);
-    if(String(d.actual||"").trim() !== "") continue;
-    if(d.scheduledLocked) continue;
-
-    if(held < holdN){
+    if(holdsApplied < holdN){
       d.scheduled = "0";
-      s.days[item.iso] = d;
-      held++;
+      d.scheduledSource = "reco";
+      d.scheduledLocked = false;
+      s.days[iso] = d;
+      holdsApplied++;
+      continue;
     }
-  }
 
-  const baseWeekly = (r.currentWeekly>0 ? r.currentWeekly : (regimenWeeklyTotal()||0));
-  const weekTarget = baseWeekly>0 ? (baseWeekly * mult) : 0;
+    // Base = regimen dose for that day if present, else existing scheduled if numeric, else do nothing
+    const date = fromIso(iso);
+    const dow = date.getDay();
 
-  for(let blockStart = startIdx; blockStart < days.length; blockStart += 7){
-    const block = days.slice(blockStart, blockStart+7);
-    if(!block.length) break;
-    if(block[0].iso > applyEndIso) break;
-
-    let targets = block.map(({date})=>{
-      const dow = date.getDay();
-      if(hasRegimen){
-        const rd = regimenDoseForDow(dow);
-        if(isFinite(rd)) return rd * mult;
-      }
-      const flat = (isFinite(r.avgNew) && r.avgNew>0) ? r.avgNew : ((isFinite(r.avgNow)&&r.avgNow>0) ? r.avgNow : NaN);
-      return isFinite(flat) ? flat : NaN;
-    });
-
-    if(!targets.some(x=>isFinite(x)&&x>0)) continue;
-
-    const allowedIdx = [];
-    for(let i=0;i<block.length;i++){
-      const iso = block[i].iso;
-      if(iso > applyEndIso) continue;
-      const d = getDay(iso);
-      if(String(d.actual||"").trim() !== "") continue;
-      if(d.scheduledLocked) continue;
-      if(String(d.scheduled||"").trim() === "0") continue; // already held
-      allowedIdx.push(i);
+    let base = regimenDoseForDow(dow);
+    if(!isFinite(base)){
+      const existing = toNum(d.scheduled);
+      if(isFinite(existing)) base = existing;
     }
-    if(!allowedIdx.length) continue;
+    if(!isFinite(base) || base < 0) continue;
 
-    let snapped = targets.map(t=>{
-      if(!(isFinite(t)&&t>0)) return NaN;
-      const n = snapNearest(t);
-      return isFinite(n)&&n>0 ? n : t;
-    });
+    let dose = base;
+    if((r.pctChosen||0) !== 0) dose = base * mult;
 
-    const targetSumAll = targets.reduce((a,b)=>a+(isFinite(b)?b:0),0);
-    const targetSumEditable = allowedIdx.reduce((a,i)=>a+(isFinite(targets[i])?targets[i]:0),0);
-    const scale = (targetSumAll>0 && targetSumEditable>0) ? (weekTarget / targetSumAll) : 1;
-    const desiredEditableSum = targetSumEditable * scale;
+    dose = snapDailyDose(dose);
 
-    const curEditable = allowedIdx.map(i=>isFinite(snapped[i])?snapped[i]:0);
-    const tgtEditable = allowedIdx.map(i=>isFinite(targets[i])?targets[i]:0);
-
-    const adjustedEditable = adjustWeekToTarget(curEditable, tgtEditable, desiredEditableSum, achievable);
-
-    allowedIdx.forEach((i, k)=>{
-      const iso = block[i].iso;
-      const dose = adjustedEditable[k];
-      if(isFinite(dose) && dose>0){
-        const d = getDay(iso);
-        d.scheduled = fmtDose(dose);
-        d.scheduledLocked = false;
-        s.days[iso] = d;
-      }
-    });
+    d.scheduled = fmtDose(dose);
+    d.scheduledSource = "reco";
+    d.scheduledLocked = false;
+    s.days[iso] = d;
   }
 
   if(!p.isDraft) savePatients();
@@ -1587,7 +1502,8 @@ function renderCalendar(){
     sched.inputMode = "decimal";
     sched.value = dayData.scheduled ?? "";
     sched.addEventListener("input", ()=>{
-      setDay(iso, {scheduled: sched.value, scheduledLocked:true});
+      // manual schedule entry locks cell and clears reco source
+      setDay(iso, {scheduled: sched.value, scheduledLocked:true, scheduledSource:"manual"});
     });
 
     const actual = document.createElement("input");
@@ -1601,14 +1517,36 @@ function renderCalendar(){
     inr.inputMode = "decimal";
     inr.step = "0.1";
     inr.value = dayData.inr ?? "";
+
+    // Two-way link: editing TODAY's INR on calendar updates the "Current INR (today)" field + recomputes immediately.
+    const syncTodayFromCalendarINR = (val)=>{
+      if(iso !== todayIso) return;
+      const p = activePatient(); if(!p) return;
+      p.state.inrToday = val;
+      $("inrToday").value = val;
+      if(!p.isDraft) savePatients();
+      renderAll();
+    };
+
     inr.addEventListener("blur", ()=>{
       const fixed = formatInrOneDecimal(inr.value);
       if(fixed !== "") {
         inr.value = fixed;
         setDay(iso, {inr: fixed});
+        syncTodayFromCalendarINR(fixed);
+      } else {
+        // allow clearing
+        setDay(iso, {inr: ""});
+        syncTodayFromCalendarINR("");
       }
     });
-    inr.addEventListener("input", ()=> setDay(iso, {inr: inr.value}));
+    inr.addEventListener("input", ()=>{
+      setDay(iso, {inr: inr.value});
+      if(iso === todayIso){
+        // live update while typing (so recommendation doesn't "stick")
+        syncTodayFromCalendarINR(inr.value);
+      }
+    });
 
     mini.appendChild(sched);
     mini.appendChild(actual);
@@ -1703,13 +1641,13 @@ function laySummaryHtml(r){
   if(r.consult){
     dir = `<b>High INR:</b> follow the high-INR pathway and consult Medical Director / provider as needed.`;
   } else if(holdN>0){
-    dir = `<b>Do NOT take warfarin for ${holdN} day${holdN===1?"":"s"}.</b> Then follow the 7-day plan below.`;
+    dir = `<b>Do NOT take warfarin for ${holdN} day${holdN===1?"":"s"}.</b> (This tool applies holds only to <b>today</b> and <b>tomorrow</b>.) Then follow the 7-day plan below.`;
   } else if(r.pctChosen === 0){
-    dir = `<b>Keep your warfarin dose the same.</b> Follow the 7-day plan below.`;
+    dir = `<b>Keep your warfarin dose the same.</b> (This tool only adjusts <b>today</b> and optional <b>tomorrow</b>.) Follow the 7-day plan below.`;
   } else if(r.pctChosen > 0){
-    dir = `<b>Your warfarin dose needs to go up.</b> Follow the 7-day plan below.`;
+    dir = `<b>Your warfarin dose needs to go up.</b> (This tool only adjusts <b>today</b> and optional <b>tomorrow</b>.) Follow the 7-day plan below.`;
   } else {
-    dir = `<b>Your warfarin dose needs to go down.</b> Follow the 7-day plan below.`;
+    dir = `<b>Your warfarin dose needs to go down.</b> (This tool only adjusts <b>today</b> and optional <b>tomorrow</b>.) Follow the 7-day plan below.`;
   }
 
   const lead =
@@ -1724,12 +1662,13 @@ function laySummaryHtml(r){
       ? `<div class="predLine"><b>Estimated next INR:</b> <b>${predVal.toFixed(1)}</b> <span style="color:#666">(estimate only)</span></div>`
       : `<div class="predLine"><b>Estimated next INR:</b> <span style="color:#666">— (enter more dose history for a better estimate)</span></div>`;
 
+  const scopeTxt = activePatient().state.applyBeyondRepeat ? "Today + tomorrow (max)" : "Today only";
   const algoLine =
     `<div class="pillNote">
       <b>Algorithm used:</b> ${escapeHtml(r.algoUsed)}.
       ${r.algoUsed==="UCLA" ? `This matches the UCLA table bands for goals 2.0–3.0 and 2.5–3.5.` : `Fallback logic used for non-UCLA goal ranges.`}
       <br><b>Dose achievability:</b> scheduled doses are snapped to achievable tablet combinations (½ tablets allowed).
-      <br><b>Scope:</b> ${activePatient().state.applyBeyondRepeat ? "Applies beyond repeat INR (entire visible window)." : "Applies only until repeat INR (default)."}
+      <br><b>Scope:</b> ${escapeHtml(scopeTxt)}.
     </div>`;
 
   const clinician =
@@ -1890,6 +1829,8 @@ function renderPrintPack(){
     ? `<b>UCLA band:</b> ${escapeHtml(String(r.plan||""))}`
     : `<b>Algorithm:</b> ${escapeHtml(r.algoUsed)} (fallback)`;
 
+  const scopeTxt = s.applyBeyondRepeat ? "Today + tomorrow (max)" : "Today only";
+
   $("printPack").innerHTML = `
     <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
       <div>
@@ -1931,7 +1872,7 @@ function renderPrintPack(){
         <div>${r.baseLine || ""}</div>
         <div style="margin-top:6px">${uclaBandTxt}</div>
         <div style="margin-top:6px"><b>Repeat INR:</b> ${escapeHtml(fmtMDY(repDate))} (in ${escapeHtml(String(r.repeatDays||""))} day${r.repeatDays===1?"":"s"})</div>
-        <div style="margin-top:6px"><b>Scope:</b> ${escapeHtml(s.applyBeyondRepeat ? "Beyond repeat INR (entire visible calendar)" : "Until repeat INR only (default)")}</div>
+        <div style="margin-top:6px"><b>Scope:</b> ${escapeHtml(scopeTxt)}</div>
       </div>
     </div>
 
@@ -2054,6 +1995,7 @@ function copyRegimenToVisible(){
     const day = getDay(item.iso);
     day.scheduled = String(mg);
     day.scheduledLocked = false;
+    day.scheduledSource = ""; // regimen becomes baseline; clear any reco marker
     s.days[item.iso] = day;
   }
   if(!p.isDraft) savePatients();
@@ -2078,7 +2020,7 @@ function hookEvents(){
     s.customH = $("customH").value.trim();
 
     s.inrToday = $("inrToday").value;
-    s.applyBeyondRepeat = $("applyBeyondRepeat").checked; /* NEW */
+    s.applyBeyondRepeat = $("applyBeyondRepeat").checked; /* now = adjustTomorrow */
 
     s.providerNotes = $("providerNotes").value;
     s.bridgeNeed = $("bridgeNeed").value;
@@ -2102,7 +2044,7 @@ function hookEvents(){
   ["ptName","wt","crcl","mrn","targetRange","customL","customH","inrToday","bridgeNeed","bridgeAgent","bridgeInd","enoxFreq"]
     .forEach(id => $(id).addEventListener("input", sync));
 
-  $("applyBeyondRepeat").addEventListener("change", sync); /* NEW */
+  $("applyBeyondRepeat").addEventListener("change", sync);
 
   $("inrToday").addEventListener("blur", ()=>{
     const p = activePatient(); if(!p) return;
@@ -2226,8 +2168,8 @@ function hookEvents(){
     s.crcl = "55";
     s.tablets = [2.5,5];
     s.targetRange = "2.0-3.0";
-    s.inrToday = "3.6"; // demo: decrease band should now visibly change doses
-    s.applyBeyondRepeat = false;
+    s.inrToday = "3.6";
+    s.applyBeyondRepeat = false; // today only by default
     s.bridgeNeed = "yes";
     s.bridgeAgent = "enox";
     s.bridgeInd = "Peri-procedural (demo)";
@@ -2244,6 +2186,7 @@ function hookEvents(){
       const d = getDay(iso);
       d.scheduled = String(doses[i] ?? 7.5);
       d.scheduledLocked = false;
+      d.scheduledSource = "";
       s.days[iso] = d;
     }
     getDay(isoLocal(addDaysLocal(today, -7))).inr = "2.7";
@@ -2257,7 +2200,7 @@ function hookEvents(){
 
 /* ---- render all ---- */
 function renderAll(){
-  applyRecommendationToCalendar();
+  applyRecommendationToCalendar();   // now only today (+ optional tomorrow)
   renderCalendar();
   renderKPIs();
   renderVerbal();
