@@ -539,9 +539,7 @@
 </div>
 
 <!-- PRINT PACK (PDF output) -->
-<div class="print-only" id="printPack" style="padding:14px">
-  <!-- filled by JS -->
-</div>
+<div class="print-only" id="printPack" style="padding:14px"></div>
 
 <!-- Modal -->
 <div class="modal-backdrop" id="modal">
@@ -558,21 +556,16 @@
    UCLA-prioritized algorithm (goal 2.0–3.0 and 2.5–3.5)
    + Lay-language 7-day plan
    + Print/PDF WITHOUT calendar (prints Recommendation Pack)
-   + Always snap doses to achievable tablet strengths:
-       - if patient selected tablets => use those (+ halves)
-       - if none selected => assume standard warfarin strengths (0.5–10 mg, halves allowed)
+   + Tablet-achievable dosing (combo-based, ½ tablets allowed)
 
-   ✅ FIXES (per request):
-   1) Recommendation dose adjustments do NOT propagate through the week.
-      - Only applies to TODAY, and optionally TOMORROW (max).
-      - Holds may also set tomorrow to 0 if hold=2.
-   2) Recommendation always updates to the latest INR entry:
-      - Changing INR in "Current INR (today)" OR editing today's INR on the calendar
-        immediately updates the recommendation and today's/tomorrow's scheduled doses.
-      - Old recommendation-applied doses are cleared and recalculated.
+   ✅ FIXES (this build):
+   - True tablet feasibility (combos, not "step rounding")
+   - Direction-aware snap (high INR biases downward; low INR biases upward)
+   - Optional today+tomorrow split when needed for feasibility/approximation
+   - Recompute immediately when tablets change
    ========================= */
 
-const VERSION = "INR 7.5 (INR-ALT • UCLA algo)";
+const VERSION = "INR 7.5 (INR-ALT • UCLA algo • tablet-feasible v2)";
 const BUILD_STAMP = new Date();
 
 const DB_KEYS = {
@@ -639,7 +632,6 @@ function toNum(x){
   const v = parseFloat(String(x||"").replace(/[^0-9.\-]/g,""));
   return isFinite(v) ? v : NaN;
 }
-function round1(x){ return (Math.round(x*10)/10).toFixed(1); }
 function normalizeForSearch(s){ return (s||"").toLowerCase().replace(/\s+/g," ").trim(); }
 function fmtDose(x){
   const n = Number(x);
@@ -647,6 +639,12 @@ function fmtDose(x){
   const v = Math.round(n*100)/100;
   return v.toFixed(2).replace(/\.?0+$/,"");
 }
+function formatInrOneDecimal(valOrStr){
+  const n = toNum(valOrStr);
+  if(!isFinite(n)) return "";
+  return (Math.round(n*10)/10).toFixed(1);
+}
+function clamp(x,a,b){ return Math.max(a, Math.min(b,x)); }
 
 /* ---- formatting (DOB + phone) ---- */
 function formatDOB_DDMMYYYY(raw){
@@ -680,125 +678,210 @@ function formatPhone(raw){
   return "(" + v.slice(0,3) + ") " + v.slice(3,6) + "-" + v.slice(6);
 }
 
-/* ---- INR formatting ---- */
-function formatInrOneDecimal(valOrStr){
-  const n = toNum(valOrStr);
-  if(!isFinite(n)) return "";
-  return (Math.round(n*10)/10).toFixed(1);
-}
-
 /* ---- Tablets ---- */
 const DEFAULT_TABLETS = [0.5,1,2,2.5,3,4,5,6,7.5,10];
 
-/* exact-combo helper (used for text examples) */
-function suggestCombo(targetMg, tablets){
-  const goal = Math.round(targetMg*100)/100;
-  if(!isFinite(goal) || goal<=0) return {ok:false, msg:"Enter a valid dose."};
-  const tabs = (tablets||[]).map(Number).filter(x=>isFinite(x)&&x>0);
-  if(!tabs.length) return {ok:false, msg:"No tablet strengths selected."};
+/* =========================
+   TABLET FEASIBILITY ENGINE (v2)
+   - Uses actual combinations of selected tablets + halves
+   - Prefers direction-aware snaps (down for high INR, up for low INR)
+   - Can return combo text for printing/UX
+   ========================= */
 
+function tabletsWithHalves(tablets){
+  const tabs = (tablets||[]).map(Number).filter(x=>isFinite(x)&&x>0);
   const pieces = [];
   for(const t of tabs){ pieces.push(t); pieces.push(t/2); }
-  const uniq = Array.from(new Set(pieces.map(x=>Math.round(x*100)/100))).sort((a,b)=>b-a);
+  const uniq = Array.from(new Set(pieces.map(x=>Math.round(x*100)/100))).filter(x=>x>0).sort((a,b)=>a-b);
+  return uniq;
+}
 
-  let best = null;
-  function dfs(i, remaining, combo, used){
-    remaining = Math.round(remaining*100)/100;
-    if(remaining < -0.001) return;
-    if(used > 12) return;
-    if(Math.abs(remaining) <= 0.01){
-      if(!best || used < best.used) best = {used, combo:[...combo]};
-      return;
-    }
-    if(i >= uniq.length) return;
-    const v = uniq[i];
-    const maxN = Math.floor((remaining + 0.001)/v);
-    for(let n=maxN; n>=0; n--){
-      if(best && used+n >= best.used) continue;
-      if(n>0) combo.push({mg:v, n});
-      dfs(i+1, remaining - n*v, combo, used+n);
-      if(n>0) combo.pop();
+/* DP build: achievable sums (in 0.25 mg ticks) with min-piece + predecessor (for combo reconstruction) */
+function buildAchievableDP(tablets, maxPieces=12, maxDose=20){
+  const pieces = tabletsWithHalves(tablets);
+  if(!pieces.length) return {ok:false, step:0.25, maxTick:0, best:null, prev:null, pieceTick:null, pieces:[]};
+
+  // tick = 0.25 mg to support half of 0.5 mg tablets (0.25)
+  const step = 0.25;
+  const maxTick = Math.round(maxDose/step);
+
+  const pieceTick = pieces.map(p=>Math.round(p/step));
+  const best = new Array(maxTick+1).fill(Infinity);
+  const prev = new Array(maxTick+1).fill(null);
+
+  best[0]=0;
+
+  for(let used=0; used<maxPieces; used++){
+    // unbounded knap with piece count control
+    for(let t=0; t<=maxTick; t++){
+      if(best[t] !== used) continue;
+      for(let i=0;i<pieceTick.length;i++){
+        const nt = t + pieceTick[i];
+        if(nt>maxTick) continue;
+        if(best[nt] > used+1){
+          best[nt] = used+1;
+          prev[nt] = {from:t, pi:i};
+        }
+      }
     }
   }
-  dfs(0, goal, [], 0);
 
-  if(!best) return {ok:false, msg:"No match using selected tablets (even halves). Consider new Rx strength."};
+  return {ok:true, step, maxTick, best, prev, pieceTick, pieces};
+}
 
-  const lines = [];
-  for(const item of best.combo){
-    const mg = item.mg, n = item.n;
+function reconstructCombo(dp, tick){
+  const {prev, pieces, step} = dp;
+  const counts = new Map();
+  let t = tick;
+  while(t>0){
+    const p = prev[t];
+    if(!p) break;
+    const mg = pieces[p.pi];
+    counts.set(mg, (counts.get(mg)||0) + 1);
+    t = p.from;
+  }
+  const combo = Array.from(counts.entries()).sort((a,b)=>b[0]-a[0]).map(([mg,n])=>({mg, n}));
+  const dose = Math.round(tick*step*100)/100;
+  return {dose, combo};
+}
+
+function comboToText(combo, tablets){
+  const tabs = (tablets||[]).map(Number).filter(x=>isFinite(x)&&x>0);
+  const parts = [];
+  for(const item of combo){
+    const mg = item.mg, n=item.n;
     let label = `${mg} mg`;
     const whole = tabs.find(t => Math.abs(t - mg) < 0.001);
     const half = tabs.find(t => Math.abs(t/2 - mg) < 0.001);
     if(whole) label = `${whole} mg`;
     else if(half) label = `½ of ${half} mg`;
-    lines.push(`${n} × ${label}`);
+    parts.push(`${n} × ${label}`);
   }
-  return {ok:true, msg: lines.join(", ")};
+  return parts.join(", ");
 }
 
-/* snap target to closest achievable using selected tablets (+ halves)
-   ties => fewer pieces
-*/
-function snapDoseToTablets(targetMg, tablets){
-  const goal = Math.round(Number(targetMg)*100)/100;
+/* direction: "down"|"up"|"" */
+function snapDoseFeasible(targetMg, tablets, direction){
+  const goal = Number(targetMg);
   const tabs = (tablets||[]).map(Number).filter(x=>isFinite(x)&&x>0);
-  if(!isFinite(goal) || goal<=0) return { ok:false, dose: NaN, label:"" };
-  if(!tabs.length) return { ok:false, dose: NaN, label:"" };
+  if(!isFinite(goal) || goal<=0) return {ok:false, dose:NaN, comboText:""};
+  if(!tabs.length) return {ok:false, dose:NaN, comboText:""};
 
-  const pieces = [];
-  for(const t of tabs){ pieces.push(t); pieces.push(t/2); }
-  const uniq = Array.from(new Set(pieces.map(x=>Math.round(x*100)/100)))
-    .filter(x=>x>0)
-    .sort((a,b)=>b-a);
+  // dynamic maxDose: allow a bit above target
+  const maxDose = Math.max(20, Math.ceil(goal*2));
+  const dp = buildAchievableDP(tabs, 12, maxDose);
+  if(!dp.ok) return {ok:false, dose:NaN, comboText:""};
 
-  const maxPieces = 10;
-  const maxDose = Math.max(20, goal*2);
-
-  const sums = new Map(); // sum -> minPieces
-  function addSum(sum, used){
-    const k = Math.round(sum*100)/100;
-    if(k<0 || k>maxDose) return;
-    const prev = sums.get(k);
-    if(prev === undefined || used < prev) sums.set(k, used);
-  }
-
-  function dfs(i, remainingDoseCap, used, sum){
-    addSum(sum, used);
-    if(i >= uniq.length) return;
-    if(used >= maxPieces) return;
-
-    const v = uniq[i];
-    const maxN = Math.min(
-      Math.floor((remainingDoseCap + 0.0001)/v),
-      maxPieces - used
-    );
-
-    for(let n=maxN; n>=0; n--){
-      const newSum = sum + n*v;
-      const newUsed = used + n;
-      if(newUsed > maxPieces) continue;
-      dfs(i+1, remainingDoseCap - n*v, newUsed, newSum);
-    }
-  }
-  dfs(0, maxDose, 0, 0);
-
-  let bestDose = null;
+  const goalTick = Math.round(goal/dp.step);
+  let bestTick = null;
   let bestDiff = Infinity;
   let bestPieces = Infinity;
 
-  for(const [dose, piecesUsed] of sums.entries()){
-    if(dose <= 0) continue;
-    const diff = Math.abs(dose - goal);
-    if(diff < bestDiff - 1e-9 || (Math.abs(diff - bestDiff) <= 1e-9 && piecesUsed < bestPieces)){
-      bestDiff = diff;
-      bestPieces = piecesUsed;
-      bestDose = dose;
+  function consider(tick){
+    if(tick<=0 || tick>dp.maxTick) return;
+    const pieces = dp.best[tick];
+    if(!isFinite(pieces)) return;
+    const dose = tick*dp.step;
+    const diff = Math.abs(dose-goal);
+    if(diff < bestDiff - 1e-9 || (Math.abs(diff-bestDiff)<=1e-9 && pieces < bestPieces)){
+      bestDiff=diff; bestPieces=pieces; bestTick=tick;
     }
   }
 
-  if(bestDose === null) return { ok:false, dose: NaN, label:"" };
-  return { ok:true, dose: bestDose, label: fmtDose(bestDose) };
+  // direction-aware scan: prefer <=goal if down, >=goal if up
+  if(direction === "down"){
+    for(let t=goalTick; t>=1; t--) consider(t);
+    if(bestTick===null){ for(let t=goalTick+1; t<=dp.maxTick; t++) consider(t); }
+  } else if(direction === "up"){
+    for(let t=goalTick; t<=dp.maxTick; t++) consider(t);
+    if(bestTick===null){ for(let t=goalTick-1; t>=1; t--) consider(t); }
+  } else {
+    // symmetric search around goal
+    for(let k=0;k<=dp.maxTick;k++){
+      consider(goalTick-k);
+      consider(goalTick+k);
+      if(bestTick!==null && bestDiff<=0.0001) break;
+    }
+  }
+
+  if(bestTick===null) return {ok:false, dose:NaN, comboText:""};
+  const rec = reconstructCombo(dp, bestTick);
+  return {ok:true, dose:rec.dose, comboText: comboToText(rec.combo, tabs)};
+}
+
+/* optional split across today+tomorrow to approximate an unachievable target */
+function bestSplitTwoDays(targetMg, tablets, direction){
+  const tabs = (tablets||[]).map(Number).filter(x=>isFinite(x)&&x>0);
+  const goal = Number(targetMg);
+  if(!isFinite(goal) || goal<=0 || !tabs.length) return null;
+
+  const maxDose = Math.max(20, Math.ceil(goal*2));
+  const dp = buildAchievableDP(tabs, 12, maxDose);
+  if(!dp.ok) return null;
+
+  // build list of achievable ticks (limited)
+  const ticks = [];
+  for(let t=1;t<=dp.maxTick;t++){
+    if(isFinite(dp.best[t])) ticks.push(t);
+  }
+  if(!ticks.length) return null;
+
+  const goalTick = Math.round(goal/dp.step);
+
+  let best=null;
+
+  // score: average close to target; direction-aware preference on each day
+  function scorePair(t1,t2){
+    const d1 = t1*dp.step, d2 = t2*dp.step;
+    const avg = (d1+d2)/2;
+    let sc = Math.abs(avg-goal);
+
+    if(direction==="down"){
+      if(d1>goal) sc += 0.15*(d1-goal);
+      if(d2>goal) sc += 0.15*(d2-goal);
+    } else if(direction==="up"){
+      if(d1<goal) sc += 0.15*(goal-d1);
+      if(d2<goal) sc += 0.15*(goal-d2);
+    }
+
+    // fewer pieces total
+    sc += 0.01*(dp.best[t1]+dp.best[t2]);
+    return sc;
+  }
+
+  // search around goalTick for manageable speed
+  const window = 120; // ticks ~ 30mg if step 0.25, but maxDose caps it
+  const cand = ticks.filter(t=>Math.abs(t-goalTick)<=window);
+  const list = cand.length ? cand : ticks;
+
+  for(let i=0;i<list.length;i++){
+    const t1=list[i];
+    // ideal t2 to hit avg target: t2 ~= 2*goal - t1
+    const ideal = 2*goalTick - t1;
+    // check a small neighborhood around ideal
+    for(let dt=-10; dt<=10; dt++){
+      const t2 = ideal + dt;
+      if(t2<1 || t2>dp.maxTick) continue;
+      if(!isFinite(dp.best[t2])) continue;
+      const sc = scorePair(t1,t2);
+      if(!best || sc < best.sc){
+        best = {t1,t2, sc, d1:t1*dp.step, d2:t2*dp.step};
+      }
+    }
+  }
+
+  if(!best) return null;
+
+  const c1 = reconstructCombo(dp, best.t1);
+  const c2 = reconstructCombo(dp, best.t2);
+
+  return {
+    todayDose: c1.dose,
+    tomorrowDose: c2.dose,
+    todayComboText: comboToText(c1.combo, tabs),
+    tomorrowComboText: comboToText(c2.combo, tabs),
+    avg: Math.round(((c1.dose+c2.dose)/2)*100)/100
+  };
 }
 
 /* ---- Patient DB ---- */
@@ -832,7 +915,7 @@ function blankState(){
     wt:"", crcl:"",
     targetRange:"2.0-3.0", customL:"", customH:"",
     inrToday:"",
-    applyBeyondRepeat:false, /* repurposed: adjustTomorrow toggle */
+    applyBeyondRepeat:false,
     providerNotes:"Click here to type provider notes before printing.",
     bridgeNeed:"no", bridgeAgent:"enox", bridgeInd:"", enoxFreq:"q12",
     interactions:[],
@@ -937,7 +1020,7 @@ function initPills(){
       .filter(x=>isFinite(x));
     p.state.tablets = sels;
     if(!p.isDraft) savePatients();
-    renderAll();
+    renderAll(); // recompute immediately
   });
 }
 function syncTabletUI(){
@@ -966,7 +1049,7 @@ function bindInputs(){
   $("customH").value = s.customH || "";
 
   $("inrToday").value = s.inrToday || "";
-  $("applyBeyondRepeat").checked = !!s.applyBeyondRepeat; /* now = adjustTomorrow */
+  $("applyBeyondRepeat").checked = !!s.applyBeyondRepeat;
 
   $("providerNotes").value = s.providerNotes || "";
   $("bridgeNeed").value = s.bridgeNeed || "no";
@@ -1295,21 +1378,23 @@ function computeRecommendation(){
   const intxMinDays = interactionRepeatOverrideDays();
   if(intxMinDays !== null) repeatDays = Math.min(repeatDays, intxMinDays);
 
+  // direction for feasibility bias
+  const direction = (!hasRec) ? "" : (inr > H ? "down" : (inr < L ? "up" : ""));
+
   let tabletLine = "";
   const selectedTabs = (s.tablets || []).map(Number).filter(x=>isFinite(x)&&x>0);
   const tabsForAchievability = selectedTabs.length ? selectedTabs : DEFAULT_TABLETS;
 
   if(isFinite(avgNew) && avgNew>0){
-    const snapped = snapDoseToTablets(avgNew, tabsForAchievability);
+    const snapped = snapDoseFeasible(avgNew, tabsForAchievability, direction);
     const showTarget = snapped.ok ? snapped.dose : avgNew;
-    const combo = selectedTabs.length ? suggestCombo(showTarget, selectedTabs) : null;
 
     if(selectedTabs.length){
-      tabletLine = combo && combo.ok
-        ? `Example tablets for ~${fmtDose(showTarget)} mg/day: <b>${escapeHtml(combo.msg)}</b>.`
+      tabletLine = snapped.ok
+        ? `Example tablets for ~${fmtDose(showTarget)} mg/day: <b>${escapeHtml(snapped.comboText)}</b>.`
         : `Example tablets: <b>no match</b> using selected strengths — consider different strength.`;
     } else {
-      tabletLine = `No tablets selected — dosing is snapped assuming standard warfarin strengths (0.5–10 mg) with half tablets to avoid impossible doses.`;
+      tabletLine = `No tablets selected — dosing snaps assuming standard warfarin strengths (0.5–10 mg) with ½ tablets to avoid impossible doses.`;
     }
   } else if(hasRec && (!currentWeekly || currentWeekly<=0)){
     tabletLine = `Enter recent dosing history or regimen to compute a dose-adjusted plan (INR-based guidance still shown).`;
@@ -1323,7 +1408,8 @@ function computeRecommendation(){
     consult,
     currentWeekly, suggestedWeekly, avgNow, avgNew,
     repeatDays,
-    baseLine, plan, tabletLine
+    baseLine, plan, tabletLine,
+    direction
   };
 }
 
@@ -1332,7 +1418,7 @@ function computeRepeatIso(){
   return isoLocal(addDaysLocal(new Date(), r.repeatDays));
 }
 
-/* ---- auto: current INR -> today cell (one-way, but we also do reverse-link in calendar input) ---- */
+/* ---- auto: current INR -> today cell ---- */
 function ensureTodayINROnCalendar(){
   const p = activePatient(); if(!p) return;
   const s = p.state;
@@ -1346,10 +1432,10 @@ function ensureTodayINROnCalendar(){
 }
 
 /* =========================
-   Recommendation application (FIXED SCOPE)
-   - ONLY adjusts TODAY, and optionally TOMORROW (max).
-   - Clears prior recommendation-applied scheduled doses before reapplying,
-     so changes always reflect the CURRENT INR.
+   Recommendation application (SCOPE: today, optional tomorrow)
+   - Feasible doses only
+   - Direction-aware snap
+   - Optional split today+tomorrow to better approximate target if needed
    ========================= */
 
 function isEditableForAuto(iso){
@@ -1360,25 +1446,11 @@ function isEditableForAuto(iso){
 }
 
 function baselineScheduledForIso(iso){
-  const p = activePatient(); if(!p) return "";
-  const s = p.state;
   const date = fromIso(iso);
   const dow = date.getDay();
-
   const regDose = regimenDoseForDow(dow);
   if(isFinite(regDose)) return fmtDose(regDose);
-
-  // If no regimen, leave as-is (do not invent doses)
   return "";
-}
-
-function snapDailyDose(mg){
-  const p = activePatient(); if(!p) return mg;
-  const s = p.state;
-  const selectedTabs = (s.tablets || []).map(Number).filter(x=>isFinite(x)&&x>0);
-  const tabs = selectedTabs.length ? selectedTabs : DEFAULT_TABLETS;
-  const snapped = snapDoseToTablets(mg, tabs);
-  return snapped.ok ? snapped.dose : mg;
 }
 
 function clearOldRecoScheduledInWindow(){
@@ -1392,11 +1464,22 @@ function clearOldRecoScheduledInWindow(){
     if(String(d.actual||"").trim() !== "") continue;
     if(!!d.scheduledLocked) continue;
 
-    // revert to baseline (regimen if available, else blank)
     d.scheduled = baselineScheduledForIso(item.iso);
     d.scheduledSource = "";
     s.days[item.iso] = d;
   }
+}
+
+function feasibleTabsForPatient(){
+  const p = activePatient(); if(!p) return DEFAULT_TABLETS;
+  const selected = (p.state.tablets || []).map(Number).filter(x=>isFinite(x)&&x>0);
+  return selected.length ? selected : DEFAULT_TABLETS;
+}
+
+function snapDailyDoseFeasible(targetMg, direction){
+  const tabs = feasibleTabsForPatient();
+  const snapped = snapDoseFeasible(targetMg, tabs, direction||"");
+  return snapped.ok ? snapped.dose : targetMg;
 }
 
 function applyRecommendationToCalendar(){
@@ -1405,26 +1488,20 @@ function applyRecommendationToCalendar(){
   const r = computeRecommendation();
   if(!r.hasRec) return;
 
-  // 1) Clear any prior auto-reco scheduled doses (prevents "sticking")
   clearOldRecoScheduledInWindow();
 
   const todayIso = isoLocal(new Date());
   const tomorrowIso = isoLocal(addDaysLocal(new Date(), 1));
 
-  const wantTomorrow = !!s.applyBeyondRepeat; // repurposed UI toggle
+  const wantTomorrow = !!s.applyBeyondRepeat;
   const holdN = Math.max(0, r.holdsChosen||0);
-
-  // Enforce your "max tomorrow" rule:
-  // - If hold=2, tomorrow must be included.
-  // - Otherwise, only if user checked "Also adjust tomorrow".
   const includeTomorrow = (holdN >= 2) ? true : wantTomorrow;
 
   const targets = [todayIso].concat(includeTomorrow ? [tomorrowIso] : []);
-
-  // Determine adjustment multiplier from UCLA band
   const mult = 1 + (r.pctChosen||0)/100;
+  const direction = r.direction || "";
 
-  // Apply in order so holds apply first
+  // Apply holds first
   let holdsApplied = 0;
   for(const iso of targets){
     if(!isEditableForAuto(iso)) continue;
@@ -1436,13 +1513,65 @@ function applyRecommendationToCalendar(){
       d.scheduledLocked = false;
       s.days[iso] = d;
       holdsApplied++;
-      continue;
     }
+  }
 
-    // Base = regimen dose for that day if present, else existing scheduled if numeric, else do nothing
+  // Now apply % adjustment to remaining (today/tomorrow) doses
+  // If includeTomorrow and no holds and % change exists, allow split optimization
+  const canSplit = includeTomorrow && holdN===0 && (r.pctChosen||0)!==0 && isEditableForAuto(todayIso) && isEditableForAuto(tomorrowIso);
+
+  if(canSplit){
+    // baseline per-day targets
+    const baseToday = (isFinite(regimenDoseForDow(fromIso(todayIso).getDay())) ? regimenDoseForDow(fromIso(todayIso).getDay()) : toNum(getDay(todayIso).scheduled));
+    const baseTomorrow = (isFinite(regimenDoseForDow(fromIso(tomorrowIso).getDay())) ? regimenDoseForDow(fromIso(tomorrowIso).getDay()) : toNum(getDay(tomorrowIso).scheduled));
+
+    const bt = isFinite(baseToday) ? baseToday : NaN;
+    const bm = isFinite(baseTomorrow) ? baseTomorrow : NaN;
+
+    if(isFinite(bt) && isFinite(bm) && bt>=0 && bm>=0){
+      const targetToday = bt * mult;
+      const targetTomorrow = bm * mult;
+
+      // If the independent snaps would yield "no change" (or very poor match), try split around average target
+      const independentToday = snapDailyDoseFeasible(targetToday, direction);
+      const independentTomorrow = snapDailyDoseFeasible(targetTomorrow, direction);
+
+      const poorMatch =
+        Math.abs(independentToday - targetToday) > 0.25 ||
+        Math.abs(independentTomorrow - targetTomorrow) > 0.25 ||
+        (Math.abs(independentToday - bt) < 0.001 && Math.abs(independentTomorrow - bm) < 0.001);
+
+      if(poorMatch){
+        const avgTarget = (targetToday + targetTomorrow)/2;
+        const split = bestSplitTwoDays(avgTarget, feasibleTabsForPatient(), direction);
+        if(split){
+          const d1 = getDay(todayIso);
+          const d2 = getDay(tomorrowIso);
+          d1.scheduled = fmtDose(split.todayDose);
+          d1.scheduledSource = "reco";
+          d1.scheduledLocked = false;
+          s.days[todayIso] = d1;
+
+          d2.scheduled = fmtDose(split.tomorrowDose);
+          d2.scheduledSource = "reco";
+          d2.scheduledLocked = false;
+          s.days[tomorrowIso] = d2;
+
+          if(!p.isDraft) savePatients();
+          return;
+        }
+      }
+    }
+  }
+
+  // Default: independent feasible snap per day
+  for(const iso of targets){
+    if(!isEditableForAuto(iso)) continue;
+    const d = getDay(iso);
+    if(d.scheduledSource==="reco" && String(d.scheduled)==="0") continue; // already held
+
     const date = fromIso(iso);
     const dow = date.getDay();
-
     let base = regimenDoseForDow(dow);
     if(!isFinite(base)){
       const existing = toNum(d.scheduled);
@@ -1453,7 +1582,7 @@ function applyRecommendationToCalendar(){
     let dose = base;
     if((r.pctChosen||0) !== 0) dose = base * mult;
 
-    dose = snapDailyDose(dose);
+    dose = snapDailyDoseFeasible(dose, direction);
 
     d.scheduled = fmtDose(dose);
     d.scheduledSource = "reco";
@@ -1502,7 +1631,6 @@ function renderCalendar(){
     sched.inputMode = "decimal";
     sched.value = dayData.scheduled ?? "";
     sched.addEventListener("input", ()=>{
-      // manual schedule entry locks cell and clears reco source
       setDay(iso, {scheduled: sched.value, scheduledLocked:true, scheduledSource:"manual"});
     });
 
@@ -1518,7 +1646,6 @@ function renderCalendar(){
     inr.step = "0.1";
     inr.value = dayData.inr ?? "";
 
-    // Two-way link: editing TODAY's INR on calendar updates the "Current INR (today)" field + recomputes immediately.
     const syncTodayFromCalendarINR = (val)=>{
       if(iso !== todayIso) return;
       const p = activePatient(); if(!p) return;
@@ -1535,7 +1662,6 @@ function renderCalendar(){
         setDay(iso, {inr: fixed});
         syncTodayFromCalendarINR(fixed);
       } else {
-        // allow clearing
         setDay(iso, {inr: ""});
         syncTodayFromCalendarINR("");
       }
@@ -1543,7 +1669,6 @@ function renderCalendar(){
     inr.addEventListener("input", ()=>{
       setDay(iso, {inr: inr.value});
       if(iso === todayIso){
-        // live update while typing (so recommendation doesn't "stick")
         syncTodayFromCalendarINR(inr.value);
       }
     });
@@ -1573,7 +1698,6 @@ function renderKPIs(){
 }
 
 /* predicted INR estimate */
-function clamp(x,a,b){ return Math.max(a, Math.min(b,x)); }
 function predictedInrEstimate(r){
   if(!r || !isFinite(r.inr)) return null;
   if(!(r.currentWeekly>0)) return null;
@@ -1605,7 +1729,6 @@ function next7PlanRows(){
   }
   return rows;
 }
-
 function buildPlanTableHtml(rows){
   const trs = rows.map(r=>{
     const doseTxt = (String(r.dose||"").trim()==="") ? "—" : `${escapeHtml(r.dose)} mg`;
@@ -1623,12 +1746,7 @@ function buildPlanTableHtml(rows){
 function laySummaryHtml(r){
   const {L,H,label} = r;
   if(!r.hasRec){
-    return {
-      lead: `<div class="patientLead"><b>Your INR:</b> — <span style="color:#666">Enter today’s INR to get directions.</span></div>`,
-      pred: ``,
-      clinician: ``,
-      plan7: ``
-    };
+    return {lead:`<div class="patientLead"><b>Your INR:</b> — <span style="color:#666">Enter today’s INR to get directions.</span></div>`, pred:``, clinician:``, plan7:``, algoLine:``};
   }
 
   const inrTxt = formatInrOneDecimal(r.inr);
@@ -1720,9 +1838,7 @@ function renderVerbal(){
 }
 
 /* ---- interactions ---- */
-function renderInteractions(){
-  $("intxText").innerHTML = interactionNarrative();
-}
+function renderInteractions(){ $("intxText").innerHTML = interactionNarrative(); }
 
 /* ---- bridging ---- */
 function roundEnoxTo10(mg){
@@ -1879,7 +1995,7 @@ function renderPrintPack(){
     <div style="margin-top:10px">
       <h2 style="margin:0 0 6px">7-day dosing chart</h2>
       ${planTable}
-      <div class="small" style="margin-top:6px">Doses are snapped to achievable tablet strengths (½ tablets allowed). If no tablets were selected, standard warfarin strengths (0.5–10 mg) are assumed.</div>
+      <div class="small" style="margin-top:6px">Doses are snapped to achievable tablet combinations (½ tablets allowed). If no tablets were selected, standard warfarin strengths (0.5–10 mg) are assumed.</div>
     </div>
 
     ${bridgeBlock}
@@ -1890,12 +2006,7 @@ function renderPrintPack(){
 
 /* ---- Save / Delete / Clear / Search ---- */
 function currentMetaFromUI(){
-  return {
-    ptName: $("ptName").value.trim(),
-    dob: $("dob").value.trim(),
-    phone: $("phone").value.trim(),
-    mrn: $("mrn").value.trim()
-  };
+  return { ptName: $("ptName").value.trim(), dob: $("dob").value.trim(), phone: $("phone").value.trim(), mrn: $("mrn").value.trim() };
 }
 function saveFlow(){
   const meta = currentMetaFromUI();
@@ -1995,7 +2106,7 @@ function copyRegimenToVisible(){
     const day = getDay(item.iso);
     day.scheduled = String(mg);
     day.scheduledLocked = false;
-    day.scheduledSource = ""; // regimen becomes baseline; clear any reco marker
+    day.scheduledSource = "";
     s.days[item.iso] = day;
   }
   if(!p.isDraft) savePatients();
@@ -2020,7 +2131,7 @@ function hookEvents(){
     s.customH = $("customH").value.trim();
 
     s.inrToday = $("inrToday").value;
-    s.applyBeyondRepeat = $("applyBeyondRepeat").checked; /* now = adjustTomorrow */
+    s.applyBeyondRepeat = $("applyBeyondRepeat").checked;
 
     s.providerNotes = $("providerNotes").value;
     s.bridgeNeed = $("bridgeNeed").value;
@@ -2169,7 +2280,7 @@ function hookEvents(){
     s.tablets = [2.5,5];
     s.targetRange = "2.0-3.0";
     s.inrToday = "3.6";
-    s.applyBeyondRepeat = false; // today only by default
+    s.applyBeyondRepeat = false;
     s.bridgeNeed = "yes";
     s.bridgeAgent = "enox";
     s.bridgeInd = "Peri-procedural (demo)";
@@ -2200,7 +2311,7 @@ function hookEvents(){
 
 /* ---- render all ---- */
 function renderAll(){
-  applyRecommendationToCalendar();   // now only today (+ optional tomorrow)
+  applyRecommendationToCalendar();
   renderCalendar();
   renderKPIs();
   renderVerbal();
