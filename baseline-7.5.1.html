@@ -1863,32 +1863,31 @@ function renderBridging(){
   if(!need) return;
 
   const wt = toNum(s.wt);
+  const bmi = toNum(s.bmi);
   const crcl = toNum(s.crcl);
   const agent = s.bridgeAgent;
 
-  let html = "";
   if(!isFinite(wt) || wt<=0){
-    html = `Enter <b>weight (kg)</b> to calculate bridging dosing.`;
-    $("bridgeText").innerHTML = html;
+    $("bridgeText").innerHTML = `Enter <b>weight (kg)</b> to calculate bridging dosing.`;
+    return;
+  }
+  if(!isFinite(crcl) || crcl<=0){
+    $("bridgeText").innerHTML = `Enter <b>CrCl (mL/min)</b> to apply the renal-specific bridging protocol.`;
     return;
   }
 
-  if(agent === "enox"){
-    const renal = isFinite(crcl) ? crcl : null;
-    const isSevere = (renal !== null && renal < 30);
+  const bmiKnown = isFinite(bmi) && bmi>0;
+  const obese40 = bmiKnown ? (bmi >= 40) : false; // default to <40 if not provided
 
-    // If CrCl < 30, force 1 mg/kg DAILY (not 1.5 mg/kg)
-    let perKg, freqLabel, freqText;
-    if(isSevere){
-      perKg = 1.0;
-      freqLabel = "daily";
-      freqText = "1 mg/kg daily";
-    } else {
-      const freq = s.enoxFreq; // "q12" or "daily" (1.5 mg/kg daily)
-      perKg = (freq === "q12") ? 1.0 : 1.5;
-      freqLabel = freq;
-      freqText = (freq === "q12") ? "1 mg/kg q12h" : "1.5 mg/kg daily";
-    }
+  let html = "";
+
+  if(agent === "enox"){
+    const renalLow = crcl < 30;
+
+    // ✅ Protocol-based perKg and frequency determined by CrCl + BMI
+    const perKg = obese40 ? 0.8 : 1.0;
+    const freqText = renalLow ? "SC daily" : "SC BID";
+    const freqDetail = renalLow ? "once daily" : "twice daily";
 
     const raw = wt * perKg;
     const rounded = roundEnoxTo10(raw);
@@ -1896,25 +1895,45 @@ function renderBridging(){
     html = `
       <div><b>Enoxaparin bridging:</b> ${s.bridgeInd ? `(${escapeHtml(s.bridgeInd)})` : ""}</div>
       <div class="sep"></div>
-      <div>Calculated: <b>${Math.round(raw)} mg</b> → rounded: <b>${rounded} mg</b></div>
-      <div>Frequency: <b>${freqText}</b></div>
-      ${isSevere ? `<div class="small" style="margin-top:6px;color:#b00020"><b>CrCl &lt; 30:</b> use 1 mg/kg daily</div>` : ``}
+
+      <div><b>Criteria:</b>
+        CrCl <b>${escapeHtml(String(crcl))}</b> mL/min •
+        BMI ${bmiKnown ? `<b>${escapeHtml(String(bmi))}</b>` : `<b>—</b>`}
+        ${bmiKnown ? `` : `<span class="small" style="color:#b00020">(BMI not entered → assuming BMI &lt; 40)</span>`}
+      </div>
+
+      <div class="sep"></div>
+
+      <div><b>Protocol dose:</b> <b>${perKg.toFixed(1)} mg/kg</b> ${freqText}
+        <span class="small">(BMI ${obese40 ? "≥ 40" : "< 40"} • ${renalLow ? "CrCl < 30" : "CrCl > 30"})</span>
+      </div>
+
+      <div style="margin-top:6px">
+        Calculated: <b>${Math.round(raw)} mg</b> → rounded: <b>${rounded} mg</b> <span class="small">(${freqDetail})</span>
+      </div>
     `;
   } else {
-    const renal = toNum(s.crcl);
-    if(isFinite(renal) && renal < 30){
+    // Fondaparinux protocol
+    if(crcl < 30){
       html = `<div><b>Fondaparinux:</b> <span style="color:#b00020"><b>contraindicated if CrCl &lt; 30</b></span>.</div>`;
     } else {
       let dose = 7.5;
       if(wt < 50) dose = 5;
       else if(wt > 100) dose = 10;
+
+      const caution = (crcl >= 30 && crcl <= 50)
+        ? `<div class="small" style="margin-top:6px;color:#b00020"><b>Caution:</b> CrCl 30–50 mL/min (per protocol note)</div>`
+        : ``;
+
       html = `
         <div><b>Fondaparinux bridging:</b> ${s.bridgeInd ? `(${escapeHtml(s.bridgeInd)})` : ""}</div>
         <div class="sep"></div>
         <div>Weight-based dose: <b>${dose} mg SC daily</b></div>
+        ${caution}
       `;
     }
   }
+
   $("bridgeText").innerHTML = html;
 }
 
