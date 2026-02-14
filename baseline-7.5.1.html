@@ -2067,9 +2067,7 @@ s.crcl = $("crcl").value.trim();
     renderAll();
   };
 
-  ["ptName","wt","crcl","mrn","targetRange","customL","customH","inrToday","bridgeNeed","bridgeAgent","bridgeInd","enoxFreq"]
-    .forEach(id => $(id).addEventListener("input", sync));
-
+  ["ptName","wt","bmi","crcl","mrn","targetRange","customL","customH","inrToday","bridgeNeed","bridgeAgent","bridgeInd","enoxFreq"]
   $("applyBeyondRepeat").addEventListener("change", sync);
 
   $("inrToday").addEventListener("blur", ()=>{
