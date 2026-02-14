@@ -1869,21 +1869,34 @@ function renderBridging(){
   if(agent === "enox"){
     const renal = isFinite(crcl) ? crcl : null;
     const isSevere = (renal !== null && renal < 30);
-    const freq = isSevere ? "daily" : s.enoxFreq;
-    const perKg = (freq === "q12") ? 1.0 : 1.5;
+
+    // If CrCl < 30, force 1 mg/kg DAILY (not 1.5 mg/kg)
+    let perKg, freqLabel, freqText;
+    if(isSevere){
+      perKg = 1.0;
+      freqLabel = "daily";
+      freqText = "1 mg/kg daily";
+    } else {
+      const freq = s.enoxFreq; // "q12" or "daily" (1.5 mg/kg daily)
+      perKg = (freq === "q12") ? 1.0 : 1.5;
+      freqLabel = freq;
+      freqText = (freq === "q12") ? "1 mg/kg q12h" : "1.5 mg/kg daily";
+    }
+
     const raw = wt * perKg;
     const rounded = roundEnoxTo10(raw);
+
     html = `
       <div><b>Enoxaparin bridging:</b> ${s.bridgeInd ? `(${escapeHtml(s.bridgeInd)})` : ""}</div>
       <div class="sep"></div>
       <div>Calculated: <b>${Math.round(raw)} mg</b> → rounded: <b>${rounded} mg</b></div>
-      <div>Frequency: <b>${(isSevere ? "1 mg/kg daily" : (freq==="q12" ? "1 mg/kg q12h" : "1.5 mg/kg daily"))}</b></div>
-      ${isSevere ? `<div class="small" style="margin-top:6px;color:#b00020"><b>CrCl < 30:</b> use 1 mg/kg daily</div>` : ``}
+      <div>Frequency: <b>${freqText}</b></div>
+      ${isSevere ? `<div class="small" style="margin-top:6px;color:#b00020"><b>CrCl &lt; 30:</b> use 1 mg/kg daily</div>` : ``}
     `;
   } else {
     const renal = toNum(s.crcl);
     if(isFinite(renal) && renal < 30){
-      html = `<div><b>Fondaparinux:</b> <span style="color:#b00020"><b>contraindicated if CrCl < 30</b></span>.</div>`;
+      html = `<div><b>Fondaparinux:</b> <span style="color:#b00020"><b>contraindicated if CrCl &lt; 30</b></span>.</div>`;
     } else {
       let dose = 7.5;
       if(wt < 50) dose = 5;
@@ -1896,112 +1909,6 @@ function renderBridging(){
     }
   }
   $("bridgeText").innerHTML = html;
-}
-
-/* ---- print pack builder ---- */
-function renderPrintPack(){
-  const p = activePatient(); if(!p) return;
-  const s = p.state;
-  const r = computeRecommendation();
-
-  const rows = next7PlanRows();
-  const planTable = buildPlanTableHtml(rows);
-
-  const repIso = computeRepeatIso();
-  const repDate = fromIso(repIso);
-
-  const name = s.ptName ? escapeHtml(s.ptName) : "—";
-  const dob = s.dob ? escapeHtml(s.dob) : "—";
-  const phone = s.phone ? escapeHtml(s.phone) : "—";
-  const mrn = s.mrn ? escapeHtml(s.mrn) : "—";
-
-  const wt = s.wt ? escapeHtml(s.wt) : "—";
-  const crcl = s.crcl ? escapeHtml(s.crcl) : "—";
-
-  const ints = (s.interactions||[]);
-  const intxBlock = ints.length
-    ? `<div style="margin-top:10px">
-         <h2 style="margin:0 0 6px">Drug interactions</h2>
-         <div style="font-size:13px;line-height:1.35">${interactionNarrative()}</div>
-       </div>`
-    : "";
-
-  const bridgeBlock = (s.bridgeNeed==="yes")
-    ? `<div style="margin-top:10px">
-         <h2 style="margin:0 0 6px">Bridging</h2>
-         <div style="font-size:13px;line-height:1.35">${$("bridgeText").innerHTML}</div>
-       </div>`
-    : "";
-
-  const notesTxt = (s.providerNotes||"").trim();
-  const notesBlock = notesTxt
-    ? `<div style="margin-top:10px">
-         <h2 style="margin:0 0 6px">Provider notes</h2>
-         <div style="white-space:pre-wrap;font-size:13px;line-height:1.35;border:1px solid #e6e6e6;border-radius:12px;background:#fff;padding:10px">${escapeHtml(notesTxt)}</div>
-       </div>`
-    : "";
-
-  const uclaBandTxt = (r.algoUsed==="UCLA" && r.hasRec)
-    ? `<b>UCLA band:</b> ${escapeHtml(String(r.plan||""))}`
-    : `<b>Algorithm:</b> ${escapeHtml(r.algoUsed)} (fallback)`;
-
-  const scopeTxt = s.applyBeyondRepeat ? "Today + tomorrow (max)" : "Today only";
-
-  $("printPack").innerHTML = `
-    <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
-      <div>
-        <div style="font-size:20px;font-weight:900">ThromboLogic INR — Recommendation Pack</div>
-        <div class="small">Generated: ${escapeHtml(new Date().toLocaleString())}</div>
-      </div>
-      <div class="small mono" style="text-align:right;opacity:.8">${escapeHtml(VERSION)} • ${escapeHtml(BUILD_STAMP.toLocaleString())}</div>
-    </div>
-
-    <div class="sep"></div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div style="border:1px solid #e6e6e6;border-radius:12px;background:#fff;padding:10px">
-        <div style="font-weight:800;margin-bottom:6px">Patient</div>
-        <div style="font-size:13px;line-height:1.35">
-          <div><b>Name:</b> ${name}</div>
-          <div><b>DOB:</b> ${dob}</div>
-          <div><b>Phone:</b> ${phone}</div>
-          <div><b>MRN:</b> ${mrn}</div>
-        </div>
-      </div>
-
-      <div style="border:1px solid #e6e6e6;border-radius:12px;background:#fff;padding:10px">
-        <div style="font-weight:800;margin-bottom:6px">Clinical</div>
-        <div style="font-size:13px;line-height:1.35">
-          <div><b>Weight:</b> ${wt} kg</div>
-          <div><b>CrCl:</b> ${crcl} mL/min</div>
-          <div><b>Target INR:</b> ${escapeHtml(r.label||"—")}</div>
-          <div><b>Today INR:</b> ${r.hasRec ? escapeHtml(formatInrOneDecimal(r.inr)) : "—"}</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="sep"></div>
-
-    <div style="border:1px solid #e6e6e6;border-radius:12px;background:#fff;padding:10px">
-      <h2 style="margin:0 0 6px">Recommendation summary</h2>
-      <div style="font-size:13px;line-height:1.35">
-        <div>${r.baseLine || ""}</div>
-        <div style="margin-top:6px">${uclaBandTxt}</div>
-        <div style="margin-top:6px"><b>Repeat INR:</b> ${escapeHtml(fmtMDY(repDate))} (in ${escapeHtml(String(r.repeatDays||""))} day${r.repeatDays===1?"":"s"})</div>
-        <div style="margin-top:6px"><b>Scope:</b> ${escapeHtml(scopeTxt)}</div>
-      </div>
-    </div>
-
-    <div style="margin-top:10px">
-      <h2 style="margin:0 0 6px">7-day dosing chart</h2>
-      ${planTable}
-      <div class="small" style="margin-top:6px">Doses are snapped to achievable tablet combinations (½ tablets allowed). If no tablets were selected, standard warfarin strengths (0.5–10 mg) are assumed.</div>
-    </div>
-
-    ${bridgeBlock}
-    ${intxBlock}
-    ${notesBlock}
-  `;
 }
 
 /* ---- Save / Delete / Clear / Search ---- */
