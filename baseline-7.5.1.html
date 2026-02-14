@@ -2093,8 +2093,7 @@ s.crcl = $("crcl").value.trim();
     renderAll();
   };
 
-  ["ptName","wt","bmi","crcl","mrn","targetRange","customL","customH","inrToday","bridgeNeed","bridgeAgent","bridgeInd","enoxFreq"]
-  $("applyBeyondRepeat").addEventListener("change", sync);
+  ["ptName","wt","ht","crcl","mrn","targetRange","customL","customH","inrToday","bridgeNeed","bridgeAgent","bridgeInd","enoxFreq"]
 
   $("inrToday").addEventListener("blur", ()=>{
     const p = activePatient(); if(!p) return;
