@@ -689,7 +689,32 @@ function formatPhone(raw){
   if(v.length<=6) return "(" + v.slice(0,3) + ") " + v.slice(3);
   return "(" + v.slice(0,3) + ") " + v.slice(3,6) + "-" + v.slice(6);
 }
+function calcBMIkgCm(wtKg, htCm){
+  const w = toNum(wtKg);
+  const h = toNum(htCm);
+  if(!isFinite(w) || w<=0) return NaN;
+  if(!isFinite(h) || h<=0) return NaN;
+  const m = h / 100;
+  const bmi = w / (m*m);
+  return Math.round(bmi*10)/10; // 1 decimal
+}
 
+function syncAutoBMI(){
+  const p = activePatient(); if(!p) return;
+  const s = p.state;
+
+  const bmi = calcBMIkgCm(s.wt, s.ht);
+  if(isFinite(bmi)){
+    s.bmi = bmi.toFixed(1);
+    const el = $("bmi");
+    if(el) el.value = s.bmi;
+  } else {
+    s.bmi = "";
+    const el = $("bmi");
+    if(el) el.value = "";
+  }
+}
+  
 /* ---- Tablets ---- */
 const DEFAULT_TABLETS = [1,2,2.5,3,4,5,6,7.5,10];
 
