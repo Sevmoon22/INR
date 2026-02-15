@@ -316,26 +316,26 @@
       <div class="results no-print" id="searchResults" style="display:none;margin-top:8px;border:1px solid var(--border);border-radius:12px;background:#fff;overflow:auto;max-height:220px"></div>
 
       <div class="row">
-        <div class="field" style="min-width:180px;flex:1">
-          <label>Patient name</label>
-          <input id="ptName" placeholder="e.g., Jane Doe" autocomplete="off" />
-        </div>
+  <div class="field" style="width:130px">
+    <label>Weight (kg)</label>
+    <input id="wt" inputmode="decimal" placeholder="e.g., 72" />
+  </div>
 
-        <div class="field" style="width:150px">
-          <label>DOB (DD/MM/YYYY)</label>
-          <input id="dob" inputmode="numeric" placeholder="DD/MM/YYYY" maxlength="10" autocomplete="off" />
-        </div>
+  <div class="field" style="width:140px">
+    <label>Height (cm)</label>
+    <input id="ht" inputmode="decimal" placeholder="e.g., 170" />
+  </div>
 
-        <div class="field" style="width:160px">
-          <label>Phone</label>
-          <input id="phone" inputmode="tel" placeholder="(###) ###-####" maxlength="14" autocomplete="off" />
-        </div>
+  <div class="field" style="width:130px">
+    <label>BMI (auto)</label>
+    <input id="bmi" inputmode="decimal" placeholder="—" readonly />
+  </div>
 
-        <div class="field" style="width:130px">
-          <label>MRN</label>
-          <input id="mrn" placeholder="MRN" autocomplete="off" />
-        </div>
-      </div>
+  <div class="field" style="width:150px">
+    <label>CrCl (mL/min)</label>
+    <input id="crcl" inputmode="decimal" placeholder="e.g., 55" />
+  </div>
+</div>
 
       <div class="row">
   <div class="row">
