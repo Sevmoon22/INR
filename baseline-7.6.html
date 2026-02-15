@@ -2365,21 +2365,35 @@ function clearScreenFlow(){
 function copyRegimenToVisible(){
   const p = activePatient(); if(!p) return;
   const s = p.state;
-  const {days} = calendarWindowInfinite();
-  for(const item of days){
-    const iso = item.iso;
-    const base = baselineScheduledForIso(iso);
-    if(base==="") continue;
+  s.regimen = s.regimen || {};
+
+  // ✅ Pull the currently-rendered calendar cells (what you actually see)
+  const isos = Array.from(document.querySelectorAll("#cal .day"))
+    .map(el => el.dataset.iso)
+    .filter(Boolean);
+
+  if(!isos.length){
+    modal.open("Calendar not ready", "No visible calendar days found. Try scrolling slightly, then click again.");
+    return;
+  }
+
+  for(const iso of isos){
+    const date = fromIso(iso);
+    const dow = date.getDay();
+    const mg = toNum(s.regimen[dow]);
+    if(!isFinite(mg)) continue;
+
     const day = getDay(iso);
-    // do not overwrite actuals; do not overwrite manual locked scheduled
-    if(String(day.actual||"").trim()!=="") continue;
-    if(day.scheduledLocked) continue;
-    day.scheduled = base;
-    day.scheduledLocked = false;
-    day.scheduledSource = "";
+
+    // Don't overwrite a recorded actual dose
+    if(String(day.actual||"").trim() !== "") continue;
+
+    day.scheduled = String(mg);
+    day.scheduledLocked = false;      // allow future reco logic if needed
+    day.scheduledSource = "regimen";  // mark where it came from
     s.days[iso] = day;
   }
-  markDirty(true);
+
   if(!p.isDraft) savePatients();
   renderAll(false);
 }
