@@ -1921,7 +1921,8 @@ function renderCalendar(forceRecenter){
 
   days.forEach(({date, iso})=>{
     const cell = document.createElement("div");
-    cell.className = "day";
+cell.className = "day";
+cell.dataset.iso = iso; // ✅ critical: lets "copy regimen" target visible cells
 
     const isToday = iso === todayIso;
     if(isToday) cell.classList.add("todayCell");
