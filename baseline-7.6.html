@@ -36,6 +36,7 @@
   h2{font-size:14px;margin:12px 0 6px}
   .small{font-size:12px;color:var(--muted)}
   .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+
   .app{height:100vh;display:flex;flex-direction:column;min-width:0}
 
   .topbar{
@@ -49,11 +50,6 @@
     gap:12px;
   }
   .topbar .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-end}
-  .pill{
-    font-size:11px; padding:3px 8px; border-radius:999px;
-    border:1px solid var(--border); background:#fff; color:#333;
-  }
-  .pill.dirty{border-color:#ffd66a;background:#fff8dc;color:#5c3b00;font-weight:800}
 
   .btn{
     font:inherit;
@@ -156,7 +152,7 @@
     background:#fff;
     padding:8px;
     margin-top:8px;
-    height:calc(100vh - 250px);
+    height:calc(100vh - 230px);
     -webkit-overflow-scrolling:touch;
   }
 
@@ -174,6 +170,7 @@
     padding:6px;min-height:84px;display:flex;flex-direction:column;gap:5px;
     overflow:hidden;
   }
+
   .day .date{display:flex;justify-content:space-between;align-items:center;font-size:11px}
   .badge{font-size:10px;padding:2px 6px;border-radius:999px;border:1px solid var(--border);color:#333;background:#f7f7f7}
 
@@ -248,12 +245,20 @@
     color:#234;
   }
 
+  .optBox{
+    margin-top:8px;
+    padding:10px;
+    border-radius:12px;
+    border:1px solid var(--border);
+    background:#fff;
+  }
+
   /* modal */
   .modal-backdrop{
     position:fixed;inset:0;background:rgba(0,0,0,.35);
     display:none;align-items:center;justify-content:center;padding:16px;z-index:9999;
   }
-  .modal{max-width:560px;width:100%;background:#fff;border-radius:16px;border:1px solid var(--border);box-shadow:0 20px 60px rgba(0,0,0,.25);padding:14px}
+  .modal{max-width:620px;width:100%;background:#fff;border-radius:16px;border:1px solid var(--border);box-shadow:0 20px 60px rgba(0,0,0,.25);padding:14px}
   .modal h3{margin:0 0 6px;font-size:15px}
   .modal .actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px;flex-wrap:wrap}
 
@@ -282,13 +287,11 @@
       <div style="display:flex; flex-direction:column; line-height:1.1; min-width:0;">
         <span style="font-size:26px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">ThromboLogic</span>
         <span style="font-size:16px; font-weight:600;">INR</span>
-        <span class="small" style="margin-top:4px;">INR-ALT • UCLA-prioritized bands • tablet-achievable dosing • regimen segments • Get Recommendation workflow</span>
+        <span class="small" style="margin-top:4px;">Baseline v7.6 (INR-ALT • UCLA-prioritized • regimen phases • on-demand recommendations)</span>
       </div>
     </div>
 
     <div class="actions">
-      <span class="pill" id="dirtyPill" style="display:none">—</span>
-      <button class="btn primary" id="btnGetRec">Get recommendation</button>
       <button class="btn secondary" id="btnDemo">Load demo history</button>
       <button class="btn ghost" id="btnClear">Clear all</button>
       <button class="btn primary" id="btnPrint">Print / PDF</button>
@@ -352,25 +355,16 @@
 
       <div class="sep"></div>
 
-      <h2 style="margin-top:0">Weekly regimen (current segment) (mg)</h2>
-      <div class="small">You can keep a <b>track record</b> by applying a new regimen <b>forward</b> (creates a new segment, does not overwrite prior).</div>
+      <h2 style="margin-top:0">Weekly maintenance regimen (mg)</h2>
+      <div class="small">
+        The regimen shown is the <b>current maintenance phase</b>. You can copy it to the <b>visible</b> calendar window, or generate a new phase forward.
+      </div>
       <div class="row" id="regimenRow" style="margin-top:8px"></div>
 
-      <div class="row no-print" style="align-items:center;justify-content:space-between;margin-top:8px">
-        <div class="row" style="gap:8px;align-items:flex-end">
-          <div class="field" style="width:170px">
-            <label>New regimen starts</label>
-            <input id="regStart" type="date" />
-          </div>
-          <button class="btn secondary" id="btnApplyRegForward">Apply new regimen forward</button>
-        </div>
-        <div class="row" style="gap:8px">
-          <button class="btn ghost" id="btnClearRegimen">Clear regimen</button>
-          <button class="btn primary" id="btnCopyRegimen">Copy regimen to calendar (visible)</button>
-        </div>
+      <div class="row no-print" style="justify-content:flex-end;margin-top:8px">
+        <button class="btn ghost" id="btnClearRegimen">Clear regimen</button>
+        <button class="btn primary" id="btnCopyRegimen">Copy regimen to calendar (visible)</button>
       </div>
-
-      <div class="hint no-print" id="regSegHint" style="margin-top:6px"></div>
 
       <div class="sep"></div>
 
@@ -406,6 +400,13 @@
             <label>Current INR (today)</label>
             <input id="inrToday" inputmode="decimal" placeholder="e.g., 2.0" />
           </div>
+
+          <div class="field no-print" style="width:190px">
+            <label>&nbsp;</label>
+            <button class="btn primary" id="btnGetRec" title="Recalculate + apply today/tomorrow calendar recommendation">
+              Get recommendation
+            </button>
+          </div>
         </div>
 
         <div class="sep"></div>
@@ -418,25 +419,6 @@
 
         <div class="sep"></div>
 
-        <label class="no-print" style="display:flex;align-items:center;gap:8px;font-size:12px;color:#111">
-          <input type="checkbox" id="useTargetMode">
-          Target a specific INR by a date (e.g., procedure)
-        </label>
-
-        <div class="row no-print" id="targetModeRow" style="display:none;margin-top:6px">
-          <div class="field" style="width:160px">
-            <label>Target INR</label>
-            <input id="targetInr" inputmode="decimal" placeholder="e.g., 1.5" />
-          </div>
-          <div class="field" style="width:210px">
-            <label>Target date</label>
-            <input id="targetDate" type="date" />
-          </div>
-        </div>
-        <div class="hint no-print" id="targetModeHint" style="display:none">Uses your patient’s historical dose→INR response (when available) to estimate the weekly dose needed to reach the target INR.</div>
-
-        <div class="sep"></div>
-
         <h2 style="margin:0 0 6px">Warfarin tablets on hand</h2>
         <div class="small">Select strengths available (½ tablets allowed). <b>No defaults</b> — select what the patient has.</div>
         <div id="pillBox" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;padding:8px;background:#fff;border:1px solid var(--border);border-radius:12px"></div>
@@ -446,15 +428,46 @@
         <div class="kpi">
           <div class="box">
             <div class="big" id="kpiWeekly">—</div>
-            <div class="sub">7-day total dose used (mg)</div>
+            <div class="sub">7-day total dose (mg)</div>
           </div>
           <div class="box">
             <div class="big" id="kpiWeighted">—</div>
-            <div class="sub">Lag-weighted dose used (mg)</div>
+            <div class="sub">Lag-weighted dose (mg)</div>
           </div>
         </div>
 
         <div class="sep"></div>
+
+        <!-- Maintenance optimization -->
+        <div class="optBox no-print">
+          <h2 style="margin:0 0 6px">Maintenance regimen optimization (history-based)</h2>
+          <div class="small">
+            If the patient is persistently out of range (labile), generate a <b>new maintenance regimen phase</b> using the patient’s dose–response history.
+            Default target = <b>midpoint</b> of the selected INR range.
+          </div>
+
+          <div class="row" style="margin-top:10px">
+            <button class="btn secondary" id="btnGenMaint">Generate maintenance option</button>
+            <div class="field" style="min-width:200px;flex:1">
+              <label>Result</label>
+              <input id="maintSummary" readonly placeholder="—" />
+            </div>
+          </div>
+
+          <div id="maintBox" style="display:none;margin-top:10px">
+            <div class="small" id="maintDetails" style="line-height:1.35;color:#111"></div>
+
+            <div class="row" style="margin-top:10px;align-items:center">
+              <div class="field" style="width:170px">
+                <label>Apply new regimen starting</label>
+                <input id="maintStart" inputmode="numeric" placeholder="MM/DD/YYYY" />
+              </div>
+              <button class="btn primary" id="btnApplyMaint">Apply regimen forward</button>
+              <button class="btn ghost" id="btnHideMaint">Hide</button>
+            </div>
+            <div class="hint">This creates a new regimen <b>phase</b> (history preserved). It does not overwrite past regimen phases.</div>
+          </div>
+        </div>
 
         <div class="card" style="background:#fff">
           <h2 style="margin-top:0">Verbal recommendation</h2>
@@ -551,7 +564,7 @@
       <div class="cal-head">
         <div>
           <h1 style="margin:0">Dosing calendar</h1>
-          <div class="small">Editable cells accept decimals. Changes are committed on <b>Enter</b> or <b>Tab</b> (or click out), then click <b>Get recommendation</b> to apply.</div>
+          <div class="small">Scroll up/down indefinitely. Calendar is updated only when you click <b>Get recommendation</b>.</div>
         </div>
         <div class="cal-controls no-print">
           <button class="btn ghost" id="btnToday">Today</button>
@@ -588,19 +601,14 @@
 
 <script>
 /* =========================
-   ThromboLogic INR (ALT)
-   Updates:
-   1) Calendar cell entry fixed: multi-char + decimals; commit on Enter/Tab/blur; no re-render while typing.
-   2) Regimen segments: "Apply new regimen forward" without overwriting prior.
-   3) Patient-specific INR prediction from historical dose→INR (recency-weighted) to guide maintenance.
-   4) Target INR by date mode (procedure planning) using same learned response when available.
-   5) Get Recommendation button + dirty indicator (recompute/apply on demand).
-   6) Repeat INR logic per ladder:
-        - If any change to regimen: repeat INR in 1 week.
-        - If in range + stable: 1w → 2w → 3w → 4w → 6w → 8w.
+   ThromboLogic INR — Baseline v7.6
+   Key changes:
+   - Copy regimen uses DOM visible cells (works with infinite scroll)
+   - Get Recommendation button applies today/tomorrow changes on demand
+   - Maintenance optimization: history-based regimen suggestion + apply forward (regimen phases)
    ========================= */
 
-const VERSION = "INR-ALT • v7.6 (segments + Get Rec + ladder follow-up)";
+const VERSION = "Baseline v7.6 (INR-ALT • regimen phases • on-demand reco + maint optimization)";
 const BUILD_STAMP = new Date();
 
 const DB_KEYS = {
@@ -657,11 +665,6 @@ function startOfWeekSun(d){
   x.setDate(x.getDate() - x.getDay());
   return x;
 }
-function parseISODateInput(v){
-  if(!v) return "";
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(v)) return "";
-  return v;
-}
 
 /* ---- misc ---- */
 function escapeHtml(s){
@@ -681,7 +684,7 @@ function fmtDose(x){
 function formatInrOneDecimal(valOrStr){
   const n = toNum(valOrStr);
   if(!isFinite(n)) return "";
-  return (Math.round(n*10)/10).toFixed(1); // preserves x.0
+  return (Math.round(n*10)/10).toFixed(1);
 }
 function clamp(x,a,b){ return Math.max(a, Math.min(b,x)); }
 
@@ -738,21 +741,6 @@ function syncAutoBMI(){
   }
 }
 
-/* ---- Dirty state (Get Recommendation workflow) ---- */
-function markDirty(on=true){
-  const p = activePatient(); if(!p) return;
-  p.state._dirty = !!on;
-  const pill = $("dirtyPill");
-  if(p.state._dirty){
-    pill.style.display = "inline-flex";
-    pill.className = "pill dirty";
-    pill.textContent = "Data changed — click Get recommendation";
-  } else {
-    pill.style.display = "none";
-  }
-  if(!p.isDraft) savePatients();
-}
-
 /* ---- Tablets ---- */
 const DEFAULT_TABLETS = [1,2,2.5,3,4,5,6,7.5,10];
 
@@ -789,6 +777,7 @@ function buildAchievableDP(tablets, maxPieces=12, maxDose=20){
       }
     }
   }
+
   return {ok:true, step, maxTick, best, prev, pieceTick, pieces};
 }
 function reconstructCombo(dp, tick){
@@ -862,11 +851,6 @@ function snapDoseFeasible(targetMg, tablets, direction){
   const rec = reconstructCombo(dp, bestTick);
   return {ok:true, dose:rec.dose, comboText: comboToText(rec.combo, tabs)};
 }
-function feasibleTabsForPatient(){
-  const p = activePatient(); if(!p) return DEFAULT_TABLETS;
-  const selected = (p.state.tablets || []).map(Number).filter(x=>isFinite(x)&&x>0);
-  return selected.length ? selected : DEFAULT_TABLETS;
-}
 
 /* ---- Patient DB ---- */
 function loadPatients(){
@@ -893,36 +877,71 @@ function matchesPatient(p, q){
   return blob.includes(qq);
 }
 
+/* ---- regimen phases ----
+   regimenPhases: [{startIso:"YYYY-MM-DD", regimen:{0..6}}]
+   Use latest phase whose startIso <= iso for that date.
+*/
+function ensureRegimenPhases(s){
+  if(!s.regimenPhases || !Array.isArray(s.regimenPhases) || !s.regimenPhases.length){
+    const base = s.regimen && Object.keys(s.regimen||{}).length ? s.regimen : {};
+    s.regimenPhases = [{startIso:"1900-01-01", regimen: Object.assign({}, base)}];
+  }
+  // keep sorted
+  s.regimenPhases.sort((a,b)=> (a.startIso<b.startIso?-1:a.startIso>b.startIso?1:0));
+}
+function getPhaseForIso(s, iso){
+  ensureRegimenPhases(s);
+  let best = s.regimenPhases[0];
+  for(const ph of s.regimenPhases){
+    if(ph.startIso <= iso) best = ph;
+    else break;
+  }
+  return best;
+}
+function setNewRegimenPhase(startIso, regimenObj){
+  const p = activePatient(); if(!p) return;
+  const s = p.state;
+  ensureRegimenPhases(s);
+
+  // normalize regimenObj
+  const reg = {};
+  for(let i=0;i<7;i++){
+    const v = toNum(regimenObj[i]);
+    if(isFinite(v)) reg[i]=v;
+  }
+
+  // if phase exists exactly on that startIso, overwrite that phase (but we will confirm in UI)
+  const idx = s.regimenPhases.findIndex(x=>x.startIso===startIso);
+  if(idx>=0){
+    s.regimenPhases[idx].regimen = reg;
+  }else{
+    s.regimenPhases.push({startIso, regimen: reg});
+  }
+  s.regimenPhases.sort((a,b)=> (a.startIso<b.startIso?-1:a.startIso>b.startIso?1:0));
+
+  // set current regimen UI to latest phase (max startIso)
+  const latest = s.regimenPhases[s.regimenPhases.length-1];
+  s.regimen = Object.assign({}, latest.regimen);
+
+  if(!p.isDraft) savePatients();
+}
+
+/* ---- state ---- */
 function blankState(){
-  const todayIso = isoLocal(new Date());
   return {
     ptName:"", dob:"", phone:"", mrn:"",
     wt:"", ht:"", bmi:"", crcl:"",
     targetRange:"2.0-3.0", customL:"", customH:"",
     inrToday:"",
     applyBeyondRepeat:false,
-    // target mode
-    useTargetMode:false,
-    targetInr:"",
-    targetDate:"",
     providerNotes:"Click here to type provider notes before printing.",
     bridgeNeed:"no", bridgeAgent:"enox", bridgeInd:"", enoxFreq:"q12",
     interactions:[],
+    regimen:{},
+    regimenPhases: null,
     tablets:[],
-    // regimen segments
-    regimen:{},              // legacy/current editor buffer
-    regimenSegments:[],      // [{startIso, doses:{0..6}}]
-    // follow-up ladder (0..5)
-    followupStep:0,
-    // infinite calendar anchor
     calAnchorOffsetDays: 0,
-    days:{},
-    _dirty:false,
-    _lastRec:{
-      ranAtIso: todayIso,
-      hasChange:false,
-      usedTargetMode:false
-    }
+    days:{}
   };
 }
 
@@ -938,9 +957,8 @@ function activePatient(){
 function setActive(id){
   activeId = id;
   localStorage.setItem(DB_KEYS.ACTIVE, activeId);
-  ensureStateUpgrades();
   bindInputs();
-  renderAll(true);
+  renderAllVisual(true);
 }
 function showSearchResults(list){
   const box = $("searchResults");
@@ -962,100 +980,6 @@ function showSearchResults(list){
   box.style.display="block";
 }
 
-/* ---- schema upgrades (legacy regimen -> segments) ---- */
-function ensureStateUpgrades(){
-  const p = activePatient(); if(!p) return;
-  const s = p.state;
-  if(!s.days) s.days = {};
-  if(!Array.isArray(s.regimenSegments)) s.regimenSegments = [];
-  if(typeof s.followupStep !== "number") s.followupStep = 0;
-  if(typeof s.useTargetMode !== "boolean") s.useTargetMode = false;
-
-  // If no segments exist, create one from legacy regimen (if present)
-  if(s.regimenSegments.length === 0){
-    const doses = {};
-    const reg = s.regimen || {};
-    let any=false;
-    for(let i=0;i<7;i++){
-      const v = toNum(reg[i]);
-      if(isFinite(v)){ doses[i]=v; any=true; }
-    }
-    // If truly empty, keep segment empty until user applies.
-    if(any){
-      s.regimenSegments.push({startIso:"1900-01-01", doses});
-    }
-  }
-  // Ensure regStart default
-  const todayIso = isoLocal(new Date());
-  if(!$("regStart").value) $("regStart").value = todayIso;
-
-  if(!p.isDraft) savePatients();
-}
-
-/* ---- regimen segments helpers ---- */
-function sortedSegments(){
-  const p = activePatient(); if(!p) return [];
-  const segs = (p.state.regimenSegments||[]).slice();
-  segs.sort((a,b)=> (a.startIso||"").localeCompare(b.startIso||""));
-  return segs;
-}
-function effectiveSegmentForIso(iso){
-  const segs = sortedSegments();
-  let eff = null;
-  for(const seg of segs){
-    if(!seg.startIso) continue;
-    if(seg.startIso <= iso) eff = seg;
-    else break;
-  }
-  return eff;
-}
-function effectiveRegimenDoseForIso(iso){
-  const seg = effectiveSegmentForIso(iso);
-  if(!seg || !seg.doses) return NaN;
-  const dow = fromIso(iso).getDay();
-  const v = toNum(seg.doses[dow]);
-  return isFinite(v) ? v : NaN;
-}
-function regimenDoseForDowFromEditor(dow){
-  const p = activePatient(); if(!p) return NaN;
-  const v = toNum((p.state.regimen||{})[dow]);
-  return isFinite(v) ? v : NaN;
-}
-function currentEditorRegimenWeeklyTotal(){
-  const p = activePatient(); if(!p) return 0;
-  const reg = p.state.regimen || {};
-  let sum=0, any=false;
-  for(let i=0;i<7;i++){
-    const v = toNum(reg[i]);
-    if(isFinite(v)){ sum += v; any=true; }
-  }
-  return any ? sum : 0;
-}
-function currentEffectiveWeeklyTotalAtToday(){
-  const todayIso = isoLocal(new Date());
-  const seg = effectiveSegmentForIso(todayIso);
-  if(!seg || !seg.doses) return 0;
-  let sum=0, any=false;
-  for(let i=0;i<7;i++){
-    const v = toNum(seg.doses[i]);
-    if(isFinite(v)){ sum += v; any=true; }
-  }
-  return any ? sum : 0;
-}
-function renderSegmentHint(){
-  const p = activePatient(); if(!p) return;
-  const segs = sortedSegments();
-  if(!segs.length){
-    $("regSegHint").innerHTML = `No regimen segments saved yet. Use <b>Apply new regimen forward</b> to start a regimen track record.`;
-    return;
-  }
-  const todayIso = isoLocal(new Date());
-  const eff = effectiveSegmentForIso(todayIso);
-  const effStart = eff ? eff.startIso : "—";
-  const count = segs.length;
-  $("regSegHint").innerHTML = `Regimen segments saved: <b>${count}</b>. Effective regimen today starts: <b>${escapeHtml(effStart)}</b>.`;
-}
-
 /* ---- Regimen UI ---- */
 function initRegimen(){
   const row = $("regimenRow");
@@ -1074,56 +998,29 @@ function initRegimen(){
       const v = toNum(f.querySelector(`#reg_${i}`).value);
       if(isFinite(v)) s.regimen[i] = v;
       else delete s.regimen[i];
-      markDirty(true);
+
+      // keep phases initialized but do not auto-create new phase on every keystroke;
+      // phases update happens when user applies forward via optimizer or other future controls.
+      ensureRegimenPhases(s);
+
       if(!p.isDraft) savePatients();
-      renderSegmentHint();
+      renderAllVisual(false);
     });
   }
 }
 function syncRegimenUI(){
   const p = activePatient(); if(!p) return;
-  const reg = p.state.regimen || {};
+  const s = p.state;
+  ensureRegimenPhases(s);
+
+  // show current regimen (s.regimen)
+  const reg = s.regimen || {};
   for(let i=0;i<7;i++){
     const el = document.getElementById(`reg_${i}`);
     if(!el) continue;
     const v = reg[i];
     el.value = (v===0 || v) ? String(v) : "";
   }
-}
-function applyRegimenForward(){
-  const p = activePatient(); if(!p) return;
-  const s = p.state;
-
-  const startIso = parseISODateInput($("regStart").value) || isoLocal(new Date());
-  const doses = {};
-  let any=false;
-  for(let i=0;i<7;i++){
-    const v = toNum((s.regimen||{})[i]);
-    if(isFinite(v)){ doses[i]=v; any=true; }
-  }
-  if(!any){
-    modal.open("Apply regimen forward","Enter a regimen (at least one day dose) before applying forward.");
-    return;
-  }
-
-  // Add segment (do not overwrite existing)
-  s.regimenSegments = s.regimenSegments || [];
-  s.regimenSegments.push({startIso, doses});
-  // keep sorted / dedupe exact startIso by keeping last
-  const byStart = new Map();
-  for(const seg of s.regimenSegments){
-    if(!seg.startIso) continue;
-    byStart.set(seg.startIso, seg);
-  }
-  s.regimenSegments = Array.from(byStart.values()).sort((a,b)=>a.startIso.localeCompare(b.startIso));
-
-  markDirty(true);
-  if(!p.isDraft) savePatients();
-  renderSegmentHint();
-
-  modal.open("Regimen saved",
-    `New regimen segment starts <b>${escapeHtml(startIso)}</b>.<br>
-     Prior regimen segments were preserved (track record maintained).`);
 }
 
 /* ---- Tablet UI ---- */
@@ -1150,8 +1047,8 @@ function initPills(){
       .map(x=>parseFloat(x.getAttribute("data-mg")))
       .filter(x=>isFinite(x));
     p.state.tablets = sels;
-    markDirty(true);
     if(!p.isDraft) savePatients();
+    renderAllVisual(false);
   });
 }
 function syncTabletUI(){
@@ -1167,6 +1064,7 @@ function syncTabletUI(){
 function bindInputs(){
   const p = activePatient(); if(!p) return;
   const s = p.state;
+  ensureRegimenPhases(s);
 
   $("ptName").value = s.ptName || "";
   $("dob").value = s.dob || "";
@@ -1184,10 +1082,6 @@ function bindInputs(){
   $("inrToday").value = s.inrToday || "";
   $("applyBeyondRepeat").checked = !!s.applyBeyondRepeat;
 
-  $("useTargetMode").checked = !!s.useTargetMode;
-  $("targetInr").value = s.targetInr || "";
-  $("targetDate").value = s.targetDate || "";
-
   $("providerNotes").value = s.providerNotes || "";
   $("bridgeNeed").value = s.bridgeNeed || "no";
   $("bridgeAgent").value = s.bridgeAgent || "enox";
@@ -1204,18 +1098,16 @@ function bindInputs(){
   $("bridgeAgent").disabled = !need;
   $("bridgeBox").style.display = need ? "block" : "none";
 
-  $("targetModeRow").style.display = s.useTargetMode ? "flex" : "none";
-  $("targetModeHint").style.display = s.useTargetMode ? "block" : "none";
-
   $("versionStamp").textContent = `${VERSION} • ${BUILD_STAMP.toLocaleString()}`;
-
-  // Regimen start default
-  $("regStart").value = parseISODateInput($("regStart").value) || isoLocal(new Date());
 
   syncRegimenUI();
   syncTabletUI();
-  renderSegmentHint();
-  markDirty(!!s._dirty);
+
+  // maintenance UI defaults
+  $("maintBox").style.display = "none";
+  $("maintSummary").value = "";
+  $("maintDetails").innerHTML = "";
+  $("maintStart").value = "";
 }
 
 /* ---- day model ---- */
@@ -1232,28 +1124,26 @@ function getDay(iso){
   if(d.scheduledSource === undefined) d.scheduledSource = "";
   return d;
 }
-function setDay(iso, patch, opts){
+function setDay(iso, patch){
   const p = activePatient(); if(!p) return;
   const s = p.state;
   s.days[iso] = Object.assign({}, getDay(iso), patch);
   if(!p.isDraft) savePatients();
-  if(!opts || !opts.silent){
-    renderAll(false);
-  }
+  renderAllVisual(false);
 }
 
 /* ---- target range + INR severity ---- */
 function getTargetRange(){
-  const p = activePatient(); if(!p) return {L:2.0,H:3.0,label:"2.0–3.0"};
+  const p = activePatient(); if(!p) return {L:2.0,H:3.0,label:"2.0–3.0", midpoint:2.5};
   const s = p.state;
   if(s.targetRange === "custom"){
     const L = toNum(s.customL);
     const H = toNum(s.customH);
-    if(isFinite(L) && isFinite(H) && L>0 && H>L) return {L, H, label:`${L.toFixed(1)}–${H.toFixed(1)}`};
-    return {L:2.0,H:3.0,label:"2.0–3.0"};
+    if(isFinite(L) && isFinite(H) && L>0 && H>L) return {L, H, label:`${L.toFixed(1)}–${H.toFixed(1)}`, midpoint: (L+H)/2};
+    return {L:2.0,H:3.0,label:"2.0–3.0", midpoint:2.5};
   }
   const [L,H] = s.targetRange.split("-").map(Number);
-  return {L,H,label:`${L.toFixed(1)}–${H.toFixed(1)}`};
+  return {L,H,label:`${L.toFixed(1)}–${H.toFixed(1)}`, midpoint:(L+H)/2};
 }
 function inrClass(v, L, H){
   if(!isFinite(v)) return "";
@@ -1272,15 +1162,18 @@ function effectiveDoseForIso(iso){
   const s = toNum(d.scheduled);
   return isFinite(s) ? s : NaN;
 }
-function lagWeightedDoseEndingAt(isoEnd){
-  // 7-day lag-weighted dose ending at isoEnd (inclusive), used for modeling.
+function isoDaysBackFrom(iso, n){
+  const d = fromIso(iso);
+  return isoLocal(addDaysLocal(d, -n));
+}
+function lagWeightedDoseAt(iso){
   const weights = [0.15,0.20,0.30,0.45,0.65,0.85,1.00]; // oldest->newest
-  const end = fromIso(isoEnd);
   let wsum=0, wtot=0;
-  for(let back=6; back>=0; back--){
-    const iso = isoLocal(addDaysLocal(end, -(6-back)));
-    const dose = effectiveDoseForIso(iso);
-    const w = weights[back];
+  for(let i=6;i>=0;i--){
+    const back = 6-i;
+    const dayIso = isoDaysBackFrom(iso, back);
+    const dose = effectiveDoseForIso(dayIso);
+    const w = weights[i];
     if(isFinite(dose)){
       wsum += dose * w;
       wtot += w;
@@ -1302,9 +1195,33 @@ function sum7DayDose(){
   });
   return sum;
 }
-function lagWeightedDoseToday(){
-  // lag-weighted ending today
-  return lagWeightedDoseEndingAt(isoLocal(new Date()));
+function lagWeightedDose(){
+  const todayIso = isoLocal(new Date());
+  return lagWeightedDoseAt(todayIso);
+}
+function regimenWeeklyTotalFrom(reg){
+  let sum=0, any=false;
+  for(let i=0;i<7;i++){
+    const v = toNum(reg?.[i]);
+    if(isFinite(v)){ sum += v; any=true; }
+  }
+  return any ? sum : 0;
+}
+function regimenWeeklyTotal(){
+  const p = activePatient(); if(!p) return 0;
+  const s = p.state;
+  ensureRegimenPhases(s);
+  const reg = s.regimen || {};
+  return regimenWeeklyTotalFrom(reg);
+}
+function regimenDoseForIso(iso){
+  const p = activePatient(); if(!p) return NaN;
+  const s = p.state;
+  ensureRegimenPhases(s);
+  const phase = getPhaseForIso(s, iso);
+  const dow = fromIso(iso).getDay();
+  const v = toNum((phase.regimen||{})[dow]);
+  return isFinite(v) ? v : NaN;
 }
 
 /* ---- interactions ---- */
@@ -1371,111 +1288,51 @@ function uclaBandForGoal(goalLabel, inr){
   return null;
 }
 
-/* ---- Follow-up ladder per your image ---- */
-const LADDER_DAYS = [7,14,21,28,42,56]; // 1w,2w,3w,4w,6w,8w
-function followupDaysFromStep(step){
-  const idx = clamp(Math.floor(step||0), 0, LADDER_DAYS.length-1);
-  return LADDER_DAYS[idx];
-}
-function updateFollowupStepOnRun(r){
-  // Per requirement:
-  // - If making any changes to the regimen -> repeat INR in 1 week (and reset ladder).
-  // - If in range AND stable regimen -> extend interval: 1w→2w→3w→4w→6w→8w.
-  const p = activePatient(); if(!p) return;
-  const s = p.state;
-  const inRange = r.hasRec && isFinite(r.inr) && (r.inr >= r.L && r.inr <= r.H);
-  const changed = !!r.hasChange; // dose change/hold/target-mode implies change
-  if(changed){
-    s.followupStep = 0;
-  } else if(inRange){
-    s.followupStep = clamp((s.followupStep||0) + 1, 0, LADDER_DAYS.length-1);
-  } else {
-    s.followupStep = 0;
-  }
-  if(!p.isDraft) savePatients();
+/* Generic fallback */
+function genericBand(L,H,inr){
+  let pct=0, holds=0, repeatDays=7, note="";
+  if(inr < 1.5){ pct=+15; repeatDays=3; note="Below range (very low)."; }
+  else if(inr < L){ pct=+10; repeatDays=7; note="Below range."; }
+  else if(inr <= H){ pct=0; repeatDays=14; note="In range."; }
+  else if(inr <= 3.5){ pct=-10; repeatDays=7; note="Above range."; }
+  else if(inr <= 4.5){ pct=-15; repeatDays=3; holds=1; note="Above range (higher)."; }
+  else { pct=-20; repeatDays=2; holds=2; note="Significantly above range."; }
+  return {pctChosen:pct, holdsChosen:holds, repeatDays, note};
 }
 
-/* =========================
-   Patient-specific dose→INR model (recency-weighted)
-   Model: log(INR) = A + B*log(Dose7)
-   Uses historical INR entries with preceding 7-day lag-weighted dose.
-   ========================= */
-function buildHistoryPairs(){
+/* ---- stability streak (for follow-up ladder) ---- */
+function listRecentINRs(maxLookbackDays=180){
   const p = activePatient(); if(!p) return [];
   const s = p.state;
-  const days = s.days || {};
-  const keys = Object.keys(days).sort(); // iso ascending
-  const pairs = [];
-  for(const iso of keys){
-    const inr = toNum(days[iso]?.inr);
-    if(!isFinite(inr) || inr <= 0) continue;
-    const dose7 = lagWeightedDoseEndingAt(iso);
-    if(!(dose7 > 0)) continue;
-    pairs.push({iso, inr, dose7});
+  const todayIso = isoLocal(new Date());
+  const out = [];
+  for(let i=0;i<=maxLookbackDays;i++){
+    const iso = isoLocal(addDaysLocal(new Date(), -i));
+    const v = (iso===todayIso) ? toNum(s.inrToday) : toNum(getDay(iso).inr);
+    if(isFinite(v)) out.push({iso, val:v});
   }
-  return pairs;
+  return out;
 }
-function fitDoseInrModel(){
-  // returns {ok, a, b, n, lastIso} where INR ≈ a*(dose7^b)
-  const pairs = buildHistoryPairs();
-  if(pairs.length < 3) return {ok:false, reason:"Need ≥3 INR points with preceding dose history."};
-
-  const now = new Date();
-  // Weighted least squares in log-space
-  let Sw=0, Sx=0, Sy=0, Sxx=0, Sxy=0;
-  let lastIso = pairs[pairs.length-1].iso;
-
-  for(const pt of pairs){
-    const x = Math.log(pt.dose7);
-    const y = Math.log(pt.inr);
-    // recency weight: half-life ~30 days
-    const ageDays = Math.max(0, (fromIso(isoLocal(now)) - fromIso(pt.iso)) / (1000*60*60*24));
-    const w = Math.pow(0.5, ageDays/30);
-    Sw += w;
-    Sx += w*x;
-    Sy += w*y;
-    Sxx += w*x*x;
-    Sxy += w*x*y;
+function countStableInRangeINRs(L,H){
+  const arr = listRecentINRs(180);
+  let count=0;
+  for(const item of arr){
+    if(item.val>=L && item.val<=H) count++;
+    else break;
   }
-
-  const denom = (Sw*Sxx - Sx*Sx);
-  if(Math.abs(denom) < 1e-9) return {ok:false, reason:"Insufficient dose variation for modeling."};
-
-  const B = (Sw*Sxy - Sx*Sy) / denom;
-  const A = (Sy - B*Sx) / Sw;
-
-  // convert to power law: INR = a * dose7^b
-  const a = Math.exp(A);
-  const b = B;
-
-  // sanity bounds
-  if(!(isFinite(a) && isFinite(b))) return {ok:false, reason:"Model fit failed."};
-  if(a <= 0) return {ok:false, reason:"Model fit invalid."};
-
-  return {ok:true, a, b, n:pairs.length, lastIso};
+  return count;
 }
-function predictInrFromDose7(dose7, model){
-  if(!model || !model.ok) return null;
-  if(!(dose7>0)) return null;
-  const pred = model.a * Math.pow(dose7, model.b);
-  return clamp(pred, 0.8, 8.0);
-}
-function dose7ForTargetInr(targetInr, model){
-  if(!model || !model.ok) return null;
-  const t = toNum(targetInr);
-  if(!isFinite(t) || t<=0) return null;
-  // dose7 = (INR/a)^(1/b)
-  if(Math.abs(model.b) < 1e-6) return null;
-  const dose7 = Math.pow(t / model.a, 1 / model.b);
-  if(!isFinite(dose7) || dose7<=0) return null;
-  return clamp(dose7, 1, 200);
+function followupDaysFromStreak(streak){
+  // Ladder: 1w -> 2w -> 3w -> 4w -> 6w -> 8w
+  if(streak >= 6) return 56;
+  if(streak === 5) return 42;
+  if(streak === 4) return 28;
+  if(streak === 3) return 21;
+  if(streak === 2) return 14;
+  return 7;
 }
 
-/* =========================
-   Recommendation core
-   - UCLA bands provide guardrails (pct min/max)
-   - Patient model refines maintenance weekly dose when sufficient history
-   ========================= */
+/* ---- recommendation core ---- */
 function computeRecommendation(){
   const p = activePatient(); if(!p) return {repeatDays:7, hasRec:false};
   const s = p.state;
@@ -1483,27 +1340,23 @@ function computeRecommendation(){
   const inr = toNum(s.inrToday);
   const hasRec = isFinite(inr);
 
-  // Compute current weekly dose used:
-  const weeklySum = sum7DayDose();
-  const weeklyLag = lagWeightedDoseToday();
-  const regWkEff = currentEffectiveWeeklyTotalAtToday();
-  const regWkEditor = currentEditorRegimenWeeklyTotal();
-  const currentWeekly = (weeklySum>0 ? weeklySum : (weeklyLag>0 ? weeklyLag : (regWkEff>0 ? regWkEff : (regWkEditor>0 ? regWkEditor : 0))));
+  const weekly = sum7DayDose();
+  const wtd = lagWeightedDose();
+  const regWk = regimenWeeklyTotal();
+  const currentWeekly = (weekly>0 ? weekly : (wtd>0 ? wtd : (regWk>0 ? regWk : 0)));
 
-  // UCLA / fallback % change and holds
+  let repeatDays=7;
   let pctMin=0, pctMax=0, pctChosen=0;
   let holdsMin=0, holdsMax=0, holdsChosen=0;
   let algoUsed = "generic";
   let algoNote = "";
   let consult = false;
   let baseLine="", plan="";
-  let usingTarget = !!s.useTargetMode;
 
-  // Determine direction
-  const direction = (!hasRec) ? "" : (inr > H ? "down" : (inr < L ? "up" : ""));
-
-  // UCLA eligible?
-  if(hasRec){
+  if(!hasRec){
+    baseLine = `Enter today’s INR to generate a recommendation.`;
+    plan = `You can still use the calendar to record doses and prior INRs.`;
+  } else {
     const goal = s.targetRange;
     const uclaEligible = (goal === "2.0-3.0" || goal === "2.5-3.5");
     const u = uclaEligible ? uclaBandForGoal(goal, inr) : null;
@@ -1514,130 +1367,50 @@ function computeRecommendation(){
       pctMin = u.pctMin; pctMax = u.pctMax; pctChosen = u.pctChosen;
       holdsMin = u.holdsMin; holdsMax = u.holdsMax; holdsChosen = u.holdsChosen;
       algoNote = u.note || "";
-    } else {
-      // generic fallback bands (kept tight)
-      algoUsed = "generic";
-      if(inr >= 5.0){ consult=true; holdsChosen=2; pctChosen=-15; algoNote="High INR; escalate per protocol."; }
-      else if(inr < L){ pctChosen=+10; algoNote="Below range."; }
-      else if(inr > H){ pctChosen=-10; algoNote="Above range."; }
-      else { pctChosen=0; algoNote="In range."; }
-      pctMin = pctChosen; pctMax = pctChosen;
-      holdsMin = holdsChosen; holdsMax = holdsChosen;
-    }
-  }
 
-  // Patient model refinement for MAINTENANCE weekly dose
-  const model = fitDoseInrModel();
-  let modelLine = "";
-  let refinedWeekly = null;
-  let targetWeekly = null;
+      const status = (inr < L) ? "below" : (inr > H) ? "above" : "in range";
+      baseLine = `INR <b>${formatInrOneDecimal(inr)}</b> is <b>${status}</b> target (<b>${label}</b>). <span class="small">Algorithm: <b>UCLA</b> priority.</span>`;
 
-  // Choose a target INR to drive maintenance:
-  // - In target mode: targetInr
-  // - Otherwise: midpoint of therapeutic range
-  const desiredInr = usingTarget ? toNum(s.targetInr) : (L + H)/2;
-  const desiredInrOk = isFinite(desiredInr) && desiredInr>0;
-
-  if(model.ok && desiredInrOk && currentWeekly>0){
-    targetWeekly = dose7ForTargetInr(desiredInr, model);
-    if(isFinite(targetWeekly) && targetWeekly>0){
-      // If not consult, refine pctChosen toward patient-specific target, but keep within UCLA range when UCLA is active.
-      if(!consult){
-        const rawPct = ((targetWeekly / currentWeekly) - 1) * 100;
-        let proposed = rawPct;
-
-        // Apply UCLA guardrails when UCLA is used and out of range or in target mode
-        const hasGuardrails = (algoUsed === "UCLA");
-        if(hasGuardrails && hasRec){
-          // If in range and not targeting, pct should stay 0
-          if(!usingTarget && inr>=L && inr<=H) proposed = 0;
-
-          // If UCLA band provides a range, clamp
-          const lo = Math.min(pctMin, pctMax);
-          const hi = Math.max(pctMin, pctMax);
-          if(lo!==hi || lo!==0){
-            proposed = clamp(proposed, lo, hi);
-          }
-        } else {
-          // generic clamp
-          proposed = clamp(proposed, -20, +20);
-        }
-
-        // If UCLA suggested 0 (in range) but targeting is ON, allow bounded move toward target
-        if(usingTarget && algoUsed==="UCLA" && pctMin===0 && pctMax===0){
-          proposed = clamp(proposed, -15, +15);
-        }
-
-        // If very small change, set to 0
-        if(Math.abs(proposed) < 1.0 && !usingTarget) proposed = 0;
-
-        refinedWeekly = currentWeekly * (1 + proposed/100);
-        pctChosen = proposed;
-
-        modelLine = `Patient-specific model used (n=${model.n}) to estimate maintenance weekly dose for desired INR <b>${formatInrOneDecimal(desiredInr)}</b>.`;
+      // Follow-up logic per your screenshot:
+      // - Any change to regimen/doses -> 1 week
+      // - If in range and stable -> extend 1->2->3->4->6->8 weeks
+      if(inr >= 5.0) repeatDays = 3;
+      else if(pctChosen !== 0 || holdsChosen > 0) repeatDays = 7;
+      else {
+        const streak = countStableInRangeINRs(L,H);
+        repeatDays = followupDaysFromStreak(streak);
       }
-    }
-  }
 
-  // Apply holds effect to “effective weekly” for predicted INR display
-  const suggestedWeekly = (currentWeekly>0) ? (currentWeekly * (1 + (pctChosen||0)/100)) : 0;
-
-  // Narrative
-  if(!hasRec){
-    baseLine = `Enter today’s INR to generate a recommendation.`;
-    plan = `You can still enter doses and historical INRs in the calendar.`;
-  } else {
-    const status = (inr < L) ? "below" : (inr > H) ? "above" : "in range";
-    const modeTxt = usingTarget ? `<span class="small">Mode: <b>Target INR</b>.</span>` : `<span class="small">Mode: <b>Therapeutic range</b>.</span>`;
-    baseLine = `INR <b>${formatInrOneDecimal(inr)}</b> is <b>${status}</b> target (<b>${label}</b>). <span class="small">Algorithm: <b>${escapeHtml(algoUsed)}</b>.</span> ${modeTxt}`;
-
-    if(consult){
-      plan = `High INR plan: ${escapeHtml(algoNote)}`;
+      if(consult) plan = `High INR plan: ${escapeHtml(algoNote)}`;
+      else {
+        const pctTxt = (pctChosen === 0)
+          ? `No weekly % change recommended.`
+          : `Weekly dose change: <b>${pctChosen>0?"+":""}${fmtDose(pctChosen)}%</b> (range ${pctMin}% to ${pctMax}%).`;
+        const holdTxt = (holdsChosen>0)
+          ? `<b>Hold warfarin</b> for <b>${holdsChosen}</b> dose${holdsChosen===1?"":"s"} (table range ${holdsMin}–${holdsMax}).`
+          : `No hold doses.`;
+        plan = `${holdTxt} ${pctTxt} ${algoNote ? `<span class="small">Note: ${escapeHtml(algoNote)}</span>` : ""}`;
+      }
     } else {
-      const holdTxt = (holdsChosen>0)
-        ? `<b>Hold warfarin</b> for <b>${holdsChosen}</b> dose${holdsChosen===1?"":"s"} (table range ${holdsMin}–${holdsMax}).`
-        : `No hold doses.`;
-      const pctTxt = (pctChosen === 0)
-        ? `No weekly % change recommended.`
-        : `Weekly dose change: <b>${pctChosen>0?"+":""}${fmtDose(pctChosen)}%</b>${algoUsed==="UCLA" ? ` (UCLA band ${pctMin}% to ${pctMax}%)` : ""}.`;
-      plan = `${holdTxt} ${pctTxt} ${algoNote ? `<span class="small">Note: ${escapeHtml(algoNote)}</span>` : ""}`;
+      const g = genericBand(L,H,inr);
+      pctChosen = g.pctChosen || 0;
+      holdsChosen = g.holdsChosen || 0;
+      repeatDays = g.repeatDays || 7;
+      algoNote = g.note || "";
+
+      baseLine = `INR <b>${formatInrOneDecimal(inr)}</b> assessed vs target (<b>${label}</b>). <span class="small">Algorithm: <b>generic fallback</b>.</span>`;
+      plan = `${holdsChosen>0 ? `Hold <b>${holdsChosen}</b> dose${holdsChosen===1?"":"s"}, then ` : ""}${pctChosen===0 ? `continue current regimen.` : `adjust weekly dose by <b>${pctChosen>0?"+":""}${fmtDose(pctChosen)}%</b>.`} ${algoNote}`;
     }
   }
 
-  // Dose achievability line (based on suggested avg/day)
-  let tabletLine = "";
-  const tabsForAchievability = feasibleTabsForPatient();
-  if(suggestedWeekly>0){
-    const avgNew = suggestedWeekly/7;
-    const snapped = snapDoseFeasible(avgNew, tabsForAchievability, direction);
-    if((s.tablets||[]).length){
-      tabletLine = snapped.ok
-        ? `Example tablets for ~${fmtDose(snapped.dose)} mg/day: <b>${escapeHtml(snapped.comboText)}</b>.`
-        : `Example tablets: <b>no match</b> using selected strengths — consider different strength.`;
-    } else {
-      tabletLine = `No tablets selected — snapping assumes standard warfarin strengths (0.5–10 mg) with ½ tablets.`;
-    }
-  } else if(hasRec && (!currentWeekly || currentWeekly<=0)){
-    tabletLine = `Enter recent dosing history or regimen to compute a dose-adjusted plan (INR-based guidance still shown).`;
-  }
+  const suggestedWeekly = (currentWeekly>0) ? (currentWeekly * (1 + pctChosen/100)) : 0;
+  const avgNow = currentWeekly>0 ? (currentWeekly/7) : NaN;
+  const avgNew = suggestedWeekly>0 ? (suggestedWeekly/7) : NaN;
 
-  // Repeat INR logic (ladder + change rule)
-  const hasChange = hasRec && (consult || (holdsChosen||0)>0 || (pctChosen||0)!==0 || usingTarget);
-  let repeatDays = hasChange ? 7 : followupDaysFromStep(activePatient().state.followupStep || 0);
-
-  // Interactions may pull earlier
   const intxMinDays = interactionRepeatOverrideDays();
   if(intxMinDays !== null) repeatDays = Math.min(repeatDays, intxMinDays);
 
-  // If target mode date is sooner than repeat, allow earlier repeat (optional)
-  if(usingTarget){
-    const td = parseISODateInput(s.targetDate);
-    if(td){
-      const daysTo = Math.max(0, Math.round((fromIso(td)-fromIso(isoLocal(new Date())))/(1000*60*60*24)));
-      if(daysTo>0) repeatDays = Math.min(repeatDays, daysTo);
-      else repeatDays = 1;
-    }
-  }
+  const direction = (!hasRec) ? "" : (inr > H ? "down" : (inr < L ? "up" : ""));
 
   return {
     hasRec, L, H, label, inr,
@@ -1645,15 +1418,10 @@ function computeRecommendation(){
     pctMin, pctMax, pctChosen,
     holdsMin, holdsMax, holdsChosen,
     consult,
-    currentWeekly, suggestedWeekly,
+    currentWeekly, suggestedWeekly, avgNow, avgNew,
     repeatDays,
-    baseLine, plan, tabletLine,
-    direction,
-    model, modelLine,
-    desiredInr: desiredInrOk ? desiredInr : null,
-    targetWeekly,
-    hasChange,
-    usingTarget
+    baseLine, plan,
+    direction
   };
 }
 function computeRepeatIso(){
@@ -1661,24 +1429,22 @@ function computeRepeatIso(){
   return isoLocal(addDaysLocal(new Date(), r.repeatDays));
 }
 
-/* ---- ensure today's INR stored on calendar ---- */
+/* ---- auto: current INR -> today cell ---- */
 function ensureTodayINROnCalendar(){
   const p = activePatient(); if(!p) return;
   const s = p.state;
   const inrStr = formatInrOneDecimal(s.inrToday);
-  const todayIso = isoLocal(new Date());
   if(inrStr){
+    const todayIso = isoLocal(new Date());
     const d = getDay(todayIso);
     d.inr = inrStr;
     s.days[todayIso] = d;
-  } else {
-    // keep whatever is in calendar; do not wipe
   }
 }
 
 /* =========================
-   Recommendation application
-   SCOPE: today (optional tomorrow), and DOES NOT overwrite history
+   Recommendation application (SCOPE: today, optional tomorrow)
+   Applied only when clicking "Get recommendation"
    ========================= */
 function isEditableForAuto(iso){
   const d = getDay(iso);
@@ -1687,9 +1453,9 @@ function isEditableForAuto(iso){
   return true;
 }
 function baselineScheduledForIso(iso){
-  // baseline: regimen segment effective for that date (if any)
-  const v = effectiveRegimenDoseForIso(iso);
-  return isFinite(v) ? fmtDose(v) : "";
+  const regDose = regimenDoseForIso(iso);
+  if(isFinite(regDose)) return fmtDose(regDose);
+  return "";
 }
 function clearOldRecoScheduledInWindow(startIso, countDays){
   const p = activePatient(); if(!p) return;
@@ -1705,6 +1471,11 @@ function clearOldRecoScheduledInWindow(startIso, countDays){
     s.days[iso] = d;
   }
 }
+function feasibleTabsForPatient(){
+  const p = activePatient(); if(!p) return DEFAULT_TABLETS;
+  const selected = (p.state.tablets || []).map(Number).filter(x=>isFinite(x)&&x>0);
+  return selected.length ? selected : DEFAULT_TABLETS;
+}
 function snapDailyDoseFeasible(targetMg, direction){
   const tabs = feasibleTabsForPatient();
   const snapped = snapDoseFeasible(targetMg, tabs, direction||"");
@@ -1716,7 +1487,7 @@ function applyRecommendationToCalendar(){
   const r = computeRecommendation();
   if(!r.hasRec) return;
 
-  // Clear prior reco markings only in a tight window around today
+  // Clear small window around today
   const startIso = isoLocal(addDaysLocal(new Date(), -7));
   clearOldRecoScheduledInWindow(startIso, 21);
 
@@ -1726,8 +1497,8 @@ function applyRecommendationToCalendar(){
   const wantTomorrow = !!s.applyBeyondRepeat;
   const holdN = Math.max(0, r.holdsChosen||0);
   const includeTomorrow = (holdN >= 2) ? true : wantTomorrow;
-  const targets = [todayIso].concat(includeTomorrow ? [tomorrowIso] : []);
 
+  const targets = [todayIso].concat(includeTomorrow ? [tomorrowIso] : []);
   const mult = 1 + (r.pctChosen||0)/100;
   const direction = r.direction || "";
 
@@ -1745,12 +1516,13 @@ function applyRecommendationToCalendar(){
     }
   }
 
+  // Apply % change to baseline day doses (using regimen phases by date)
   for(const iso of targets){
     if(!isEditableForAuto(iso)) continue;
     const d = getDay(iso);
     if(d.scheduledSource==="reco" && String(d.scheduled)==="0") continue;
 
-    let base = toNum(baselineScheduledForIso(iso));
+    let base = regimenDoseForIso(iso);
     if(!isFinite(base)){
       const existing = toNum(d.scheduled);
       if(isFinite(existing)) base = existing;
@@ -1771,29 +1543,7 @@ function applyRecommendationToCalendar(){
 }
 
 /* =========================
-   Get Recommendation button driver
-   - commits ladder step
-   - applies reco to calendar (today/tomorrow only)
-   - clears dirty
-   ========================= */
-function runRecommendation(){
-  const p = activePatient(); if(!p) return;
-  ensureTodayINROnCalendar();
-  const r = computeRecommendation();
-  if(!r.hasRec){
-    modal.open("Missing INR","Enter <b>Current INR (today)</b> first, then click <b>Get recommendation</b>.");
-    return;
-  }
-  updateFollowupStepOnRun(r);
-  applyRecommendationToCalendar();
-  p.state._lastRec = { ranAtIso: isoLocal(new Date()), hasChange: !!r.hasChange, usedTargetMode: !!r.usingTarget };
-  markDirty(false);
-  if(!p.isDraft) savePatients();
-  renderAll(false);
-}
-
-/* =========================
-   INFINITE CALENDAR (scroll up/down indefinitely)
+   INFINITE CALENDAR
    ========================= */
 const CAL_WEEKS_BEFORE = 8;
 const CAL_WEEKS_AFTER  = 8;
@@ -1835,80 +1585,6 @@ function scrollToMiddleWeek(){
   sc.scrollTop = Math.max(0, middleWeekIndex * calWeekHeightPx - 40);
 }
 
-/* ---- calendar cell commit behavior (Fix #1) ---- */
-function attachCommitBehavior(input, {iso, field, kind}){
-  // kind: "dose" or "inr"
-  // commit on Enter/Tab, or on blur. DO NOT re-render while typing.
-  let lastCommitted = input.value;
-
-  function normalize(val){
-    const raw = String(val||"").trim();
-    if(raw==="") return "";
-    if(kind==="inr"){
-      const fixed = formatInrOneDecimal(raw);
-      return fixed;
-    }
-    // dose: allow decimals, keep as entered but normalize numeric
-    const n = toNum(raw);
-    if(!isFinite(n)) return ""; // treat invalid as blank
-    return fmtDose(n);
-  }
-
-  function commit(){
-    const v = normalize(input.value);
-    if(v === lastCommitted) return;
-    lastCommitted = v;
-
-    if(field === "scheduled"){
-      setDay(iso, {scheduled:v, scheduledLocked:true, scheduledSource:"manual"}, {silent:true});
-    } else if(field === "actual"){
-      setDay(iso, {actual:v}, {silent:true});
-    } else if(field === "inr"){
-      setDay(iso, {inr:v}, {silent:true});
-      // keep today's INR synced
-      const todayIso = isoLocal(new Date());
-      if(iso === todayIso){
-        const p = activePatient(); if(!p) return;
-        p.state.inrToday = v;
-        $("inrToday").value = v;
-        if(!p.isDraft) savePatients();
-      }
-    }
-    markDirty(true);
-    // re-render after commit (safe)
-    renderAll(false);
-  }
-
-  input.addEventListener("keydown", (e)=>{
-    if(e.key === "Enter" || e.key === "Tab"){
-      // commit first; allow tab to move focus normally after commit
-      if(e.key === "Enter") e.preventDefault();
-      commit();
-      if(e.key === "Enter"){
-        // move to next input in cell
-        const mini = input.closest(".mini");
-        if(mini){
-          const inputs = Array.from(mini.querySelectorAll("input"));
-          const idx = inputs.indexOf(input);
-          const next = inputs[idx+1] || inputs[0];
-          next && next.focus();
-        }
-      }
-    }
-    if(e.key === "Escape"){
-      input.value = lastCommitted;
-      input.blur();
-    }
-  });
-
-  input.addEventListener("blur", ()=>{
-    // commit on blur
-    commit();
-  });
-
-  // allow typing freely; no "input" handler that triggers re-render
-}
-
 /* ---- calendar render ---- */
 function renderCalendar(forceRecenter){
   const cal = $("cal");
@@ -1921,8 +1597,8 @@ function renderCalendar(forceRecenter){
 
   days.forEach(({date, iso})=>{
     const cell = document.createElement("div");
-cell.className = "day";
-cell.dataset.iso = iso; // ✅ critical: lets "copy regimen" target visible cells
+    cell.className = "day";
+    cell.dataset.iso = iso; // ✅ critical for "copy regimen (visible)"
 
     const isToday = iso === todayIso;
     if(isToday) cell.classList.add("todayCell");
@@ -1943,24 +1619,69 @@ cell.dataset.iso = iso; // ✅ critical: lets "copy regimen" target visible cell
 
     const dayData = getDay(iso);
 
+    // Sched
     const sched = document.createElement("input");
     sched.placeholder = "Sched";
     sched.inputMode = "decimal";
     sched.value = dayData.scheduled ?? "";
-    attachCommitBehavior(sched, {iso, field:"scheduled", kind:"dose"});
 
+    // ✅ commit on Enter/Tab (not every keystroke)
+    const commitSched = ()=>{
+      setDay(iso, {scheduled: sched.value, scheduledLocked:true, scheduledSource:"manual"});
+    };
+    sched.addEventListener("keydown", (e)=>{
+      if(e.key==="Enter"){ e.preventDefault(); sched.blur(); commitSched(); }
+      if(e.key==="Tab"){ commitSched(); }
+    });
+    sched.addEventListener("blur", commitSched);
+
+    // Actual
     const actual = document.createElement("input");
     actual.placeholder = "Actual";
     actual.inputMode = "decimal";
     actual.value = dayData.actual ?? "";
-    attachCommitBehavior(actual, {iso, field:"actual", kind:"dose"});
+    const commitActual = ()=>{
+      setDay(iso, {actual: actual.value});
+    };
+    actual.addEventListener("keydown", (e)=>{
+      if(e.key==="Enter"){ e.preventDefault(); actual.blur(); commitActual(); }
+      if(e.key==="Tab"){ commitActual(); }
+    });
+    actual.addEventListener("blur", commitActual);
 
+    // INR
     const inr = document.createElement("input");
     inr.placeholder = "INR";
     inr.inputMode = "decimal";
     inr.step = "0.1";
     inr.value = dayData.inr ?? "";
-    attachCommitBehavior(inr, {iso, field:"inr", kind:"inr"});
+
+    const syncTodayFromCalendarINR = (val)=>{
+      if(iso !== todayIso) return;
+      const p = activePatient(); if(!p) return;
+      p.state.inrToday = val;
+      $("inrToday").value = val;
+      if(!p.isDraft) savePatients();
+      renderAllVisual(false);
+    };
+
+    const commitInr = ()=>{
+      const fixed = formatInrOneDecimal(inr.value);
+      if(fixed !== "") {
+        inr.value = fixed;
+        setDay(iso, {inr: fixed});
+        syncTodayFromCalendarINR(fixed);
+      } else {
+        setDay(iso, {inr: ""});
+        syncTodayFromCalendarINR("");
+      }
+    };
+
+    inr.addEventListener("keydown", (e)=>{
+      if(e.key==="Enter"){ e.preventDefault(); inr.blur(); commitInr(); }
+      if(e.key==="Tab"){ commitInr(); }
+    });
+    inr.addEventListener("blur", commitInr);
 
     mini.appendChild(sched);
     mini.appendChild(actual);
@@ -2011,12 +1732,29 @@ function hookInfiniteScroll(){
 /* ---- KPI ---- */
 function renderKPIs(){
   const weekly = sum7DayDose();
-  const wtd = lagWeightedDoseToday();
+  const wtd = lagWeightedDose();
   $("kpiWeekly").textContent = weekly>0 ? `${fmtDose(weekly)} mg` : "—";
   $("kpiWeighted").textContent = wtd>0 ? `${fmtDose(wtd)} mg` : "—";
 }
 
-/* ---- 7-day plan table ---- */
+/* predicted INR estimate (short-term only, uses current reco) */
+function predictedInrEstimate(r){
+  if(!r || !isFinite(r.inr)) return null;
+  if(!(r.currentWeekly>0)) return null;
+
+  let eff = r.suggestedWeekly;
+  const avgNow = isFinite(r.avgNow) && r.avgNow>0 ? r.avgNow : (r.currentWeekly/7);
+  const holdN = Math.max(0, r.holdsChosen||0);
+  if(isFinite(avgNow) && avgNow>0 && holdN>0){
+    eff = Math.max(0, eff - (avgNow * holdN));
+  }
+
+  const ratio = (eff>0) ? (eff / r.currentWeekly) : 0;
+  const expo = 0.70;
+  let pred = r.inr * Math.pow(Math.max(ratio, 0.10), expo);
+  pred = clamp(pred, 0.8, 6.0);
+  return Math.round(pred*10)/10;
+}
 function next7PlanRows(){
   const today = new Date();
   const rows = [];
@@ -2041,12 +1779,10 @@ function buildPlanTableHtml(rows){
     </table>
   `;
 }
-
-/* ---- verbal recommendation ---- */
 function laySummaryHtml(r){
   const {L,H,label} = r;
   if(!r.hasRec){
-    return {lead:`<div class="patientLead"><b>Your INR:</b> — <span style="color:#666">Enter today’s INR to get directions.</span></div>`, pred:``, clinician:``, plan7:``, algoLine:``};
+    return {lead:`<div class="patientLead"><b>Your INR:</b> — <span style="color:#666">Enter today’s INR then click <b>Get recommendation</b>.</span></div>`, pred:``, clinician:``, plan7:``, algoLine:``};
   }
 
   const inrTxt = formatInrOneDecimal(r.inr);
@@ -2059,15 +1795,13 @@ function laySummaryHtml(r){
   if(r.consult){
     dir = `<b>High INR:</b> follow the high-INR pathway and consult Medical Director / provider as needed.`;
   } else if(holdN>0){
-    dir = `<b>Do NOT take warfarin for ${holdN} day${holdN===1?"":"s"}.</b> (Scope: today and optional tomorrow.) Then follow the 7-day plan below.`;
-  } else if(r.pctChosen === 0 && !r.usingTarget){
+    dir = `<b>Do NOT take warfarin for ${holdN} day${holdN===1?"":"s"}.</b> Then follow the 7-day plan below.`;
+  } else if(r.pctChosen === 0){
     dir = `<b>Keep your warfarin dose the same.</b> Follow the 7-day plan below.`;
   } else if(r.pctChosen > 0){
     dir = `<b>Your warfarin dose needs to go up.</b> Follow the 7-day plan below.`;
-  } else if(r.pctChosen < 0){
-    dir = `<b>Your warfarin dose needs to go down.</b> Follow the 7-day plan below.`;
   } else {
-    dir = `<b>Follow the 7-day plan below.</b>`;
+    dir = `<b>Your warfarin dose needs to go down.</b> Follow the 7-day plan below.`;
   }
 
   const lead =
@@ -2076,33 +1810,25 @@ function laySummaryHtml(r){
       ${dir}
     </div>`;
 
-  const predNow = (r.model && r.model.ok && r.suggestedWeekly>0)
-    ? predictInrFromDose7(r.suggestedWeekly, r.model)
-    : null;
-
+  const predVal = predictedInrEstimate(r);
   const pred =
-    (predNow !== null)
-      ? `<div class="predLine"><b>Estimated next INR (patient-specific):</b> <b>${predNow.toFixed(1)}</b> <span style="color:#666">(estimate)</span></div>`
-      : `<div class="predLine"><b>Estimated next INR:</b> <span style="color:#666">— (need more historical INR + dose history to learn response)</span></div>`;
+    (predVal !== null)
+      ? `<div class="predLine"><b>Estimated next INR:</b> <b>${predVal.toFixed(1)}</b> <span style="color:#666">(estimate only)</span></div>`
+      : `<div class="predLine"><b>Estimated next INR:</b> <span style="color:#666">— (enter more dose history for a better estimate)</span></div>`;
 
   const scopeTxt = activePatient().state.applyBeyondRepeat ? "Today + tomorrow (max)" : "Today only";
-  const ladderTxt = `Follow-up ladder (when stable & in range): 1w → 2w → 3w → 4w → 6w → 8w.`;
-
   const algoLine =
     `<div class="pillNote">
-      <b>Algorithm used:</b> ${escapeHtml(r.algoUsed)} (UCLA bands prioritized for 2.0–3.0 and 2.5–3.5).<br>
-      <b>Patient-specific learning:</b> ${r.model && r.model.ok ? `ON (n=${r.model.n}). ${escapeHtml(r.modelLine||"")}` : `OFF (need ≥3 INR points with preceding dose history).`}<br>
-      <b>Scope:</b> ${escapeHtml(scopeTxt)}. <b>Get Recommendation</b> applies changes only to that scope.<br>
-      <b>Repeat INR rule:</b> ${r.hasChange ? `<b>Change made → repeat in 1 week</b>.` : `No change & stable → extend per ladder.`}<br>
-      <span class="small">${ladderTxt}</span>
+      <b>Algorithm used:</b> ${escapeHtml(r.algoUsed)}.
+      ${r.algoUsed==="UCLA" ? `This matches the UCLA table bands for goals 2.0–3.0 and 2.5–3.5.` : `Fallback logic used for non-UCLA goal ranges.`}
+      <br><b>Dose achievability:</b> scheduled doses are snapped to achievable tablet combinations (½ tablets allowed).
+      <br><b>Scope:</b> ${escapeHtml(scopeTxt)} (applied on button press).
     </div>`;
 
   const clinician =
     `<div class="sep"></div>
      <div class="small" style="color:#111">
-       • <b>Plan details:</b> ${r.plan}<br>
-       • ${r.tabletLine ? r.tabletLine : ""}<br>
-       ${r.usingTarget ? `• <b>Target mode:</b> aiming for INR <b>${formatInrOneDecimal(activePatient().state.targetInr)}</b> by <b>${escapeHtml(activePatient().state.targetDate || "—")}</b>.<br>` : ""}
+       • <b>Plan details:</b> ${r.plan}
      </div>`;
 
   const rows = next7PlanRows();
@@ -2110,6 +1836,8 @@ function laySummaryHtml(r){
 
   return {lead, pred, clinician, plan7, algoLine};
 }
+
+/* ---- verbal ---- */
 function renderVerbal(){
   const p = activePatient(); if(!p) return;
   const s = p.state;
@@ -2147,7 +1875,7 @@ function renderVerbal(){
 /* ---- interactions ---- */
 function renderInteractions(){ $("intxText").innerHTML = interactionNarrative(); }
 
-/* ---- bridging ---- */
+/* ---- bridging (unchanged core) ---- */
 function roundEnoxTo10(mg){
   const v = Math.round(mg);
   const mod = v % 10;
@@ -2226,10 +1954,11 @@ function renderBridging(){
       `;
     }
   }
+
   $("bridgeText").innerHTML = html;
 }
 
-/* ---- Print Pack ---- */
+/* ---- Print Pack (kept) ---- */
 function renderPrintPack(){
   const p = activePatient(); if(!p) return;
   const s = p.state;
@@ -2361,41 +2090,384 @@ function clearScreenFlow(){
   $("tab-notes").style.display="none";
 }
 
-/* ---- regimen copy (apply to visible calendar window, using effective segment for each date) ---- */
+/* ---- regimen copy (VISIBLE calendar cells via DOM) ---- */
 function copyRegimenToVisible(){
   const p = activePatient(); if(!p) return;
   const s = p.state;
-  s.regimen = s.regimen || {};
+  ensureRegimenPhases(s);
 
-  // ✅ Pull the currently-rendered calendar cells (what you actually see)
   const isos = Array.from(document.querySelectorAll("#cal .day"))
-    .map(el => el.dataset.iso)
+    .map(el=>el.dataset.iso)
     .filter(Boolean);
 
   if(!isos.length){
-    modal.open("Calendar not ready", "No visible calendar days found. Try scrolling slightly, then click again.");
+    modal.open("Calendar not ready","No visible calendar days found. Scroll slightly, then try again.");
     return;
   }
 
   for(const iso of isos){
-    const date = fromIso(iso);
-    const dow = date.getDay();
-    const mg = toNum(s.regimen[dow]);
+    const mg = regimenDoseForIso(iso);
     if(!isFinite(mg)) continue;
-
     const day = getDay(iso);
-
-    // Don't overwrite a recorded actual dose
-    if(String(day.actual||"").trim() !== "") continue;
-
+    if(String(day.actual||"").trim() !== "") continue; // do not overwrite actuals
     day.scheduled = String(mg);
-    day.scheduledLocked = false;      // allow future reco logic if needed
-    day.scheduledSource = "regimen";  // mark where it came from
+    day.scheduledLocked = false;
+    day.scheduledSource = "regimen";
     s.days[iso] = day;
   }
-
   if(!p.isDraft) savePatients();
-  renderAll(false);
+  renderAllVisual(false);
+}
+
+/* =========================
+   Maintenance optimization (history-based)
+   ========================= */
+function isOutOfRange(val, L, H){ return isFinite(val) && (val<L || val>H); }
+
+function isLabileByHistory(L,H){
+  const recent = listRecentINRs(180).slice(0,6); // most recent first
+  if(recent.length < 2) return false;
+
+  // Rule 1: last 2 consecutive out of range
+  const c2 = recent.slice(0,2).every(x=>isOutOfRange(x.val,L,H));
+  if(c2) return true;
+
+  // Rule 2: at least 2 out-of-range in last 3 measured INRs
+  const last3 = recent.slice(0,3);
+  if(last3.length>=3){
+    const oor = last3.filter(x=>isOutOfRange(x.val,L,H)).length;
+    if(oor>=2) return true;
+  }
+
+  // Rule 3: time-in-range over last 6 measured INRs < 50%
+  const oor6 = recent.filter(x=>isOutOfRange(x.val,L,H)).length;
+  const tir = 1 - (oor6 / recent.length);
+  return tir < 0.5;
+}
+
+function collectDoseInrPairs(maxLookbackDays=240){
+  const p = activePatient(); if(!p) return [];
+  const s = p.state;
+  const todayIso = isoLocal(new Date());
+  const out = [];
+
+  for(let i=1;i<=maxLookbackDays;i++){ // start at 1 day back to reduce "today" coupling
+    const iso = isoLocal(addDaysLocal(new Date(), -i));
+    const inr = toNum(getDay(iso).inr);
+    if(!isFinite(inr)) continue;
+
+    // require some dose history around that time
+    const wk = lagWeightedDoseAt(iso);
+    if(!(wk>0)) continue;
+
+    // exclude extreme INR values to avoid fitting to crisis holds
+    if(inr < 0.8 || inr > 6.5) continue;
+
+    out.push({iso, inr, wk});
+  }
+
+  // sort by recency (most recent first)
+  out.sort((a,b)=> a.iso>b.iso?-1:a.iso<b.iso?1:0);
+
+  // de-duplicate very close points (optional): keep most recent per 7-day bucket
+  const filtered = [];
+  const seenWeek = new Set();
+  for(const pnt of out){
+    const key = pnt.iso.slice(0,7) + "-" + Math.floor(parseInt(pnt.iso.slice(8,10),10)/7);
+    if(seenWeek.has(key)) continue;
+    seenWeek.add(key);
+    filtered.push(pnt);
+    if(filtered.length>=12) break; // cap for stability
+  }
+
+  return filtered;
+}
+
+function fitPowerDoseResponse(pairs){
+  // Fit ln(INR) = ln(a) + b ln(weeklyDose)
+  // Return {ok,a,b,n,r2}
+  const pts = pairs.filter(x=>x.wk>0 && x.inr>0);
+  if(pts.length < 2) return {ok:false, reason:"Need at least 2 historical INR points with usable dose history."};
+
+  const xs = pts.map(p=>Math.log(p.wk));
+  const ys = pts.map(p=>Math.log(p.inr));
+
+  const n = xs.length;
+  const meanX = xs.reduce((a,b)=>a+b,0)/n;
+  const meanY = ys.reduce((a,b)=>a+b,0)/n;
+
+  let num=0, den=0;
+  for(let i=0;i<n;i++){
+    const dx = xs[i]-meanX;
+    const dy = ys[i]-meanY;
+    num += dx*dy;
+    den += dx*dx;
+  }
+  if(den===0) return {ok:false, reason:"Insufficient variation in historical dose to model response."};
+
+  let b = num/den;
+  // bounds to keep sane
+  b = clamp(b, 0.30, 1.20);
+
+  const lnA = meanY - b*meanX;
+  const a = Math.exp(lnA);
+
+  // R^2 on log scale
+  let ssTot=0, ssRes=0;
+  for(let i=0;i<n;i++){
+    const yhat = lnA + b*xs[i];
+    ssTot += (ys[i]-meanY)*(ys[i]-meanY);
+    ssRes += (ys[i]-yhat)*(ys[i]-yhat);
+  }
+  const r2 = ssTot>0 ? 1 - (ssRes/ssTot) : 0;
+
+  return {ok:true,a,b,n,r2};
+}
+
+function computeCurrentMaintenanceWeekly(){
+  const weekly = sum7DayDose();
+  const wtd = lagWeightedDose();
+  const regWk = regimenWeeklyTotal();
+  return (weekly>0 ? weekly : (wtd>0 ? wtd : (regWk>0 ? regWk : 0)));
+}
+
+function suggestWeeklyForTarget(targetInr){
+  const {L,H} = getTargetRange();
+  const p = activePatient(); if(!p) return {ok:false, reason:"No patient."};
+  const s = p.state;
+
+  const curInr = toNum(s.inrToday);
+  const currentWeekly = computeCurrentMaintenanceWeekly();
+  if(!(currentWeekly>0)) return {ok:false, reason:"Enter dose history or regimen so a weekly dose baseline exists."};
+  if(!isFinite(curInr)) return {ok:false, reason:"Enter today’s INR (or record an INR) before generating a maintenance option."};
+
+  const pairs = collectDoseInrPairs(240);
+  const fit = fitPowerDoseResponse(pairs);
+
+  // If not enough history, use a conservative default b
+  const b = fit.ok ? fit.b : 0.70;
+  const a = fit.ok ? fit.a : (curInr / Math.pow(Math.max(currentWeekly,1), b)); // anchor to current point
+
+  let wkTarget = Math.pow(Math.max(targetInr/a, 0.01), 1/b);
+
+  // Safety rails: cap adjustment magnitude for a single maintenance step
+  // You can widen this later; start conservative.
+  const maxUp = currentWeekly * 1.25;
+  const maxDn = currentWeekly * 0.75;
+  wkTarget = clamp(wkTarget, maxDn, maxUp);
+
+  // Round to nearest 0.5 mg/week for usability
+  wkTarget = Math.round(wkTarget*2)/2;
+
+  return {
+    ok:true,
+    wkTarget,
+    currentWeekly,
+    model:{
+      usedHistory: fit.ok,
+      n: fit.ok ? fit.n : pairs.length,
+      b,
+      r2: fit.ok ? fit.r2 : null
+    },
+    pairs
+  };
+}
+
+function buildRegimenFromWeeklyTarget(wkTarget){
+  const p = activePatient(); if(!p) return null;
+  const s = p.state;
+  ensureRegimenPhases(s);
+
+  // pattern from current regimen if available; else even split
+  const cur = s.regimen || {};
+  const curWk = regimenWeeklyTotalFrom(cur);
+
+  const pattern = [];
+  if(curWk>0){
+    for(let i=0;i<7;i++){
+      const v = toNum(cur[i]);
+      pattern.push(isFinite(v) && v>0 ? v/curWk : 0);
+    }
+    // if pattern too sparse, fallback to even
+    const sumPat = pattern.reduce((a,b)=>a+b,0);
+    if(sumPat < 0.70){
+      for(let i=0;i<7;i++) pattern[i]=1/7;
+    }
+  }else{
+    for(let i=0;i<7;i++) pattern[i]=1/7;
+  }
+
+  // raw doses
+  const raw = {};
+  for(let i=0;i<7;i++){
+    raw[i] = wkTarget * pattern[i];
+  }
+
+  // snap each day to achievable daily dose (neutral direction)
+  const tabs = feasibleTabsForPatient();
+  const snapped = {};
+  let sum=0;
+  for(let i=0;i<7;i++){
+    let d = raw[i];
+    if(d<0) d=0;
+    // snap
+    const s1 = snapDoseFeasible(d, tabs, "");
+    const dose = s1.ok ? s1.dose : (Math.round(d*2)/2);
+    snapped[i] = dose;
+    sum += dose;
+  }
+
+  return {regimen: snapped, achievedWeekly: Math.round(sum*2)/2};
+}
+
+/* ---- Apply regimen forward (phase) ---- */
+function parseMDYToIso(mdy){
+  const m = (mdy||"").trim();
+  if(!m) return null;
+  const parts = m.split("/").map(x=>x.trim());
+  if(parts.length!==3) return null;
+  const mm = parseInt(parts[0],10), dd = parseInt(parts[1],10), yy = parseInt(parts[2],10);
+  if(!(mm>=1 && mm<=12 && dd>=1 && dd<=31 && yy>=1900 && yy<=2100)) return null;
+  const d = new Date(yy, mm-1, dd);
+  if(d.getFullYear()!==yy || (d.getMonth()+1)!==mm || d.getDate()!==dd) return null;
+  return isoLocal(d);
+}
+
+/* ---- maintenance UI handlers ---- */
+let lastMaintProposal = null;
+
+function renderMaintProposal(proposal, targetInr){
+  if(!proposal || !proposal.ok) return;
+  const regBuilt = buildRegimenFromWeeklyTarget(proposal.wkTarget);
+  if(!regBuilt){
+    modal.open("Maintenance option","Could not build regimen pattern.");
+    return;
+  }
+  lastMaintProposal = {proposal, regBuilt, targetInr};
+
+  const reg = regBuilt.regimen;
+  const labels = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const list = labels.map((lab,i)=> `${lab}: <b>${fmtDose(reg[i]||0)}</b>`).join(" • ");
+
+  const modelLine = proposal.model.usedHistory
+    ? `Model fit: n=${proposal.model.n}, b=${proposal.model.b.toFixed(2)}, R²≈${proposal.model.r2.toFixed(2)}`
+    : `Model fit: <b>limited history</b> (default sensitivity b=${proposal.model.b.toFixed(2)} anchored to current point)`;
+
+  $("maintSummary").value = `${fmtDose(proposal.wkTarget)} mg/week (achieved ~${fmtDose(regBuilt.achievedWeekly)} mg/week)`;
+  $("maintDetails").innerHTML = `
+    <div><b>Target INR (midpoint):</b> ${targetInr.toFixed(2)}</div>
+    <div><b>Current weekly (estimate):</b> ${fmtDose(proposal.currentWeekly)} mg/week</div>
+    <div><b>Suggested weekly:</b> ${fmtDose(proposal.wkTarget)} mg/week <span class="small">(capped to ±25% per step)</span></div>
+    <div class="sep"></div>
+    <div><b>Suggested regimen pattern (daily):</b></div>
+    <div style="margin-top:6px">${list}</div>
+    <div class="sep"></div>
+    <div class="small">${escapeHtml(modelLine)}</div>
+    <div class="small">History points used: ${proposal.pairs.length}</div>
+  `;
+
+  const tomorrow = addDaysLocal(new Date(), 1);
+  $("maintStart").value = fmtMDY(tomorrow);
+  $("maintBox").style.display = "block";
+}
+
+function generateMaintenanceOption(){
+  const {L,H,midpoint} = getTargetRange();
+  const p = activePatient(); if(!p) return;
+
+  // gating: only suggest if labile/out of range pattern exists
+  const labile = isLabileByHistory(L,H);
+  if(!labile){
+    modal.open(
+      "Maintenance optimization",
+      `Based on recent INR history, the patient does not appear persistently labile/out of range.<br><br>
+       If you still want a maintenance suggestion, enter more INR history (and dosing history) first.`
+    );
+    return;
+  }
+
+  const targetInr = midpoint;
+  const res = suggestWeeklyForTarget(targetInr);
+
+  if(!res.ok){
+    modal.open("Maintenance option", escapeHtml(res.reason||"Unable to generate regimen option."));
+    return;
+  }
+
+  renderMaintProposal(res, targetInr);
+}
+
+function applyMaintenanceForward(){
+  if(!lastMaintProposal) return;
+  const p = activePatient(); if(!p) return;
+
+  const startIso = parseMDYToIso($("maintStart").value);
+  if(!startIso){
+    modal.open("Start date","Please enter a valid date as MM/DD/YYYY.");
+    return;
+  }
+
+  const reg = lastMaintProposal.regBuilt.regimen;
+
+  // confirm if starting in the past
+  const todayIso = isoLocal(new Date());
+  if(startIso < todayIso){
+    modal.open(
+      "Start date is in the past",
+      `You entered <b>${escapeHtml($("maintStart").value)}</b> which is before today.<br><br>
+       Apply anyway?`,
+      [
+        {label:"Apply", cls:"btn primary", onClick:()=>{ modal.close(); doApply(startIso, reg); }},
+        {label:"Cancel", cls:"btn secondary", onClick:()=>modal.close()}
+      ]
+    );
+    return;
+  }
+
+  doApply(startIso, reg);
+}
+
+function doApply(startIso, reg){
+  const p = activePatient(); if(!p) return;
+  const s = p.state;
+  ensureRegimenPhases(s);
+
+  // if phase exists at same start, confirm overwrite
+  const exists = s.regimenPhases.find(x=>x.startIso===startIso);
+  if(exists){
+    modal.open(
+      "Regimen phase exists",
+      `A regimen phase already starts on <b>${escapeHtml(fmtMDY(fromIso(startIso)))}</b>.<br><br>
+       Replace that phase?`,
+      [
+        {label:"Replace phase", cls:"btn primary", onClick:()=>{ modal.close(); finalizeApply(startIso, reg); }},
+        {label:"Cancel", cls:"btn secondary", onClick:()=>modal.close()}
+      ]
+    );
+    return;
+  }
+
+  finalizeApply(startIso, reg);
+}
+
+function finalizeApply(startIso, reg){
+  setNewRegimenPhase(startIso, reg);
+
+  // Update regimen UI to new current phase
+  syncRegimenUI();
+
+  modal.open(
+    "Applied regimen forward",
+    `New maintenance regimen phase starts <b>${escapeHtml(fmtMDY(fromIso(startIso)))}</b>.<br>
+     Past phases preserved for regimen→INR tracking.`
+  );
+
+  $("maintBox").style.display = "none";
+  lastMaintProposal = null;
+  $("maintSummary").value = "";
+  $("maintDetails").innerHTML = "";
+
+  renderAllVisual(false);
 }
 
 /* ---- events + sync ---- */
@@ -2421,10 +2493,6 @@ function hookEvents(){
     s.inrToday = $("inrToday").value;
     s.applyBeyondRepeat = $("applyBeyondRepeat").checked;
 
-    s.useTargetMode = $("useTargetMode").checked;
-    s.targetInr = $("targetInr").value.trim();
-    s.targetDate = $("targetDate").value;
-
     s.providerNotes = $("providerNotes").value;
     s.bridgeNeed = $("bridgeNeed").value;
     s.bridgeAgent = $("bridgeAgent").value;
@@ -2440,24 +2508,13 @@ function hookEvents(){
     $("bridgeAgent").disabled = !need;
     $("bridgeBox").style.display = need ? "block" : "none";
 
-    $("targetModeRow").style.display = s.useTargetMode ? "flex" : "none";
-    $("targetModeHint").style.display = s.useTargetMode ? "block" : "none";
+    ensureRegimenPhases(s);
 
-    markDirty(true);
     if(!p.isDraft) savePatients();
-
-    // lightweight renders (no auto-apply)
-    renderVerbal();
-    renderInteractions();
-    renderBridging();
-    renderKPIs();
-    renderCalendar(false);
-    renderPrintPack();
-    renderSegmentHint();
+    renderAllVisual(false);
   };
 
-  // Basic field listeners
-  ["ptName","wt","ht","crcl","mrn","targetRange","customL","customH","inrToday","bridgeNeed","bridgeAgent","bridgeInd","enoxFreq","applyBeyondRepeat","useTargetMode","targetInr","targetDate"]
+  ["ptName","wt","ht","crcl","mrn","targetRange","customL","customH","inrToday","bridgeNeed","bridgeAgent","bridgeInd","enoxFreq","applyBeyondRepeat"]
     .forEach(id=> $(id).addEventListener("input", sync));
 
   $("inrToday").addEventListener("blur", ()=>{
@@ -2467,9 +2524,8 @@ function hookEvents(){
       $("inrToday").value = fixed;
       p.state.inrToday = fixed;
       ensureTodayINROnCalendar();
-      markDirty(true);
       if(!p.isDraft) savePatients();
-      renderAll(false);
+      renderAllVisual(false);
     }
   });
 
@@ -2488,7 +2544,6 @@ function hookEvents(){
     if(ta.value.trim() === "Click here to type provider notes before printing."){
       ta.value = "";
       p.state.providerNotes = "";
-      markDirty(true);
       if(!p.isDraft) savePatients();
     }
   });
@@ -2512,7 +2567,7 @@ function hookEvents(){
     const p = activePatient(); if(!p) return;
     p.state.calAnchorOffsetDays = 0;
     if(!p.isDraft) savePatients();
-    renderAll(true);
+    renderAllVisual(true);
   });
 
   $("btnSearch").addEventListener("click", ()=>{
@@ -2541,24 +2596,51 @@ function hookEvents(){
   });
 
   $("btnPrint").addEventListener("click", ()=>{
-    renderAll(false);
+    renderAllVisual(false);
     renderPrintPack();
     window.print();
   });
 
-  $("btnGetRec").addEventListener("click", runRecommendation);
-
   $("btnClearRegimen").addEventListener("click", ()=>{
     const p = activePatient(); if(!p) return;
     p.state.regimen = {};
-    markDirty(true);
+    ensureRegimenPhases(p.state);
     if(!p.isDraft) savePatients();
     syncRegimenUI();
-    renderSegmentHint();
+    renderAllVisual(false);
   });
   $("btnCopyRegimen").addEventListener("click", copyRegimenToVisible);
 
-  $("btnApplyRegForward").addEventListener("click", applyRegimenForward);
+  // ✅ On-demand apply recommendation
+  $("btnGetRec").addEventListener("click", ()=>{
+    const p = activePatient(); if(!p) return;
+    const fixed = formatInrOneDecimal($("inrToday").value);
+    if(fixed !== ""){
+      $("inrToday").value = fixed;
+      p.state.inrToday = fixed;
+      ensureTodayINROnCalendar();
+      if(!p.isDraft) savePatients();
+    }
+    applyRecommendationToCalendar();
+    renderAllVisual(false);
+  });
+
+  // Maintenance buttons
+  $("btnGenMaint").addEventListener("click", generateMaintenanceOption);
+  $("btnApplyMaint").addEventListener("click", applyMaintenanceForward);
+  $("btnHideMaint").addEventListener("click", ()=>{
+    $("maintBox").style.display="none";
+    lastMaintProposal = null;
+    $("maintSummary").value = "";
+    $("maintDetails").innerHTML = "";
+  });
+  $("maintStart").addEventListener("input", (e)=>{
+    // light formatting MM/DD/YYYY
+    const v = (e.target.value||"").replace(/[^\d]/g,"").slice(0,8);
+    if(v.length<=2) e.target.value = v;
+    else if(v.length<=4) e.target.value = v.slice(0,2)+"/"+v.slice(2);
+    else e.target.value = v.slice(0,2)+"/"+v.slice(2,4)+"/"+v.slice(4);
+  });
 
   $("btnDemo").addEventListener("click", ()=>{
     draftState = blankState();
@@ -2583,54 +2665,48 @@ function hookEvents(){
     s.enoxFreq = "q12";
     s.interactions = ["amio"];
     s.calAnchorOffsetDays = 0;
-    s.followupStep = 2; // demo: on ladder
 
-    // segments: old regimen then new regimen forward
+    // create initial phase starting long ago
     s.regimen = {0:7.5,1:7.5,2:7.5,3:7.5,4:7.5,5:7.5,6:7.5};
-    s.regimenSegments = [
-      {startIso:"1900-01-01", doses:{0:7.5,1:7.5,2:7.5,3:7.5,4:7.5,5:7.5,6:7.5}},
-      {startIso: isoLocal(addDaysLocal(new Date(), -14)), doses:{0:7.5,1:7.5,2:7.5,3:7.5,4:7.5,5:5.0,6:7.5}}
-    ];
-    $("regStart").value = isoLocal(new Date());
+    s.regimenPhases = [{startIso:"1900-01-01", regimen:Object.assign({}, s.regimen)}];
 
     const today = new Date();
     for(let i=0;i<20;i++){
       const iso = isoLocal(addDaysLocal(today, -i));
       const d = getDay(iso);
-      d.scheduled = baselineScheduledForIso(iso) || "7.5";
+      d.scheduled = "7.5";
       d.scheduledLocked = false;
       d.scheduledSource = "";
       s.days[iso] = d;
     }
-    getDay(isoLocal(addDaysLocal(today, -21))).inr = "2.1";
-    getDay(isoLocal(addDaysLocal(today, -14))).inr = "2.6";
-    getDay(isoLocal(addDaysLocal(today, -7))).inr = "3.1";
-    getDay(isoLocal(addDaysLocal(today, -3))).inr = "3.4";
+    getDay(isoLocal(addDaysLocal(today, -14))).inr = "2.1";
+    getDay(isoLocal(addDaysLocal(today, -10))).inr = "3.6";
+    getDay(isoLocal(addDaysLocal(today, -7))).inr = "3.2";
+    getDay(isoLocal(addDaysLocal(today, -3))).inr = "3.8";
     ensureTodayINROnCalendar();
 
-    markDirty(true);
     bindInputs();
-    renderAll(true);
+    renderAllVisual(true);
   });
 }
 
-/* ---- render all (no auto-apply) ---- */
-function renderAll(forceRecenterCalendar){
+/* ---- render all (visual only; no calendar auto-writing) ---- */
+function renderAllVisual(forceRecenterCalendar){
   renderCalendar(!!forceRecenterCalendar);
   renderKPIs();
   renderVerbal();
   renderBridging();
   renderInteractions();
   renderPrintPack();
-  renderSegmentHint();
 }
 
 /* ---- init ---- */
 initRegimen();
 initPills();
-setActive(activeId); // includes upgrades + bind + render
+bindInputs();
 hookEvents();
 hookInfiniteScroll();
+renderAllVisual(true);
 </script>
 </body>
 </html>
