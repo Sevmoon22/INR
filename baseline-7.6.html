@@ -1002,6 +1002,8 @@ function initRegimen(){
       // keep phases initialized but do not auto-create new phase on every keystroke;
       // phases update happens when user applies forward via optimizer or other future controls.
       ensureRegimenPhases(s);
+const latest = s.regimenPhases[s.regimenPhases.length - 1];
+latest.regimen = Object.assign({}, s.regimen);
 
       if(!p.isDraft) savePatients();
       renderAllVisual(false);
