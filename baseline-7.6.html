@@ -66,6 +66,15 @@
   .btn.danger{background:#b00020;color:#fff;border-color:#8d001a}
   .btn:active{transform:translateY(1px)}
 
+  .btn.unit{
+    padding:7px 10px;
+    border-radius:10px;
+    font-weight:800;
+    border:1px solid var(--border);
+    background:#fff;
+    min-width:54px;
+  }
+
   .main{
     flex:1 1 auto;
     min-height:0;
@@ -287,7 +296,7 @@
       <div style="display:flex; flex-direction:column; line-height:1.1; min-width:0;">
         <span style="font-size:26px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">ThromboLogic</span>
         <span style="font-size:16px; font-weight:600;">INR</span>
-        <span class="small" style="margin-top:4px;">Baseline v7.6 (INR-ALT • UCLA-prioritized • regimen phases • on-demand recommendations)</span>
+        <span class="small" style="margin-top:4px;">Baseline v7.6.1 (INR-ALT • UCLA-prioritized • regimen phases • on-demand recommendations • unit toggles • DOB normalize)</span>
       </div>
     </div>
 
@@ -336,13 +345,21 @@
 
       <div class="row">
         <div class="field" style="width:130px">
-          <label>Weight (kg)</label>
-          <input id="wt" inputmode="decimal" placeholder="e.g., 72" />
+          <label id="wtLabel">Weight</label>
+          <div class="row" style="gap:6px;align-items:center">
+            <input id="wt" inputmode="decimal" placeholder="e.g., 72" style="flex:1;min-width:0" />
+            <button type="button" class="btn unit" id="wtUnit">kg</button>
+          </div>
         </div>
+
         <div class="field" style="width:140px">
-          <label>Height (cm)</label>
-          <input id="ht" inputmode="decimal" placeholder="e.g., 170" />
+          <label id="htLabel">Height</label>
+          <div class="row" style="gap:6px;align-items:center">
+            <input id="ht" inputmode="decimal" placeholder="e.g., 170" style="flex:1;min-width:0" />
+            <button type="button" class="btn unit" id="htUnit">cm</button>
+          </div>
         </div>
+
         <div class="field" style="width:130px">
           <label>BMI (auto)</label>
           <input id="bmi" placeholder="—" readonly />
@@ -365,16 +382,17 @@
         <button class="btn ghost" id="btnClearRegimen">Clear regimen</button>
         <button class="btn primary" id="btnCopyRegimen">Copy regimen to calendar (visible)</button>
       </div>
-<div class="row no-print" style="justify-content:flex-end;margin-top:8px;gap:8px">
-  <div class="field" style="width:180px">
-    <label>New regimen start date</label>
-    <input id="regStartDate" type="date" />
-  </div>
-  <button class="btn secondary" id="btnApplyRegimenForward">Apply new regimen forward</button>
-</div>
-<div class="hint no-print">
-  “Apply new regimen forward” saves this regimen as a new phase starting on the chosen date (history preserved).
-</div>
+
+      <div class="row no-print" style="justify-content:flex-end;margin-top:8px;gap:8px">
+        <div class="field" style="width:180px">
+          <label>New regimen start date</label>
+          <input id="regStartDate" type="date" />
+        </div>
+        <button class="btn secondary" id="btnApplyRegimenForward">Apply new regimen forward</button>
+      </div>
+      <div class="hint no-print">
+        “Apply new regimen forward” saves this regimen as a new phase starting on the chosen date (history preserved).
+      </div>
 
       <div class="sep"></div>
 
@@ -456,12 +474,29 @@
             Default target = <b>midpoint</b> of the selected INR range.
           </div>
 
-          <div class="row" style="margin-top:10px">
+          <div class="row" style="margin-top:10px;align-items:flex-end">
             <button class="btn secondary" id="btnGenMaint">Generate maintenance option</button>
+
+            <div class="field" style="width:140px">
+              <label>Target INR (optional)</label>
+              <input id="targetInrOne" inputmode="decimal" placeholder="e.g., 2.2" />
+            </div>
+
+            <div class="field" style="width:190px">
+              <label>Target date (optional)</label>
+              <input id="targetInrDate" type="date" />
+            </div>
+
+            <button class="btn ghost" id="btnGenTarget">Target INR by date</button>
+
             <div class="field" style="min-width:200px;flex:1">
               <label>Result</label>
               <input id="maintSummary" readonly placeholder="—" />
             </div>
+          </div>
+
+          <div class="hint" style="margin-top:6px">
+            “Target INR by date” uses your patient’s regimen→INR response curve (if enough history exists). If limited history, it anchors to the current INR/dose point and stays conservative.
           </div>
 
           <div id="maintBox" style="display:none;margin-top:10px">
@@ -611,14 +646,15 @@
 
 <script>
 /* =========================
-   ThromboLogic INR — Baseline v7.6
-   Key changes:
-   - Copy regimen uses DOM visible cells (works with infinite scroll)
-   - Get Recommendation button applies today/tomorrow changes on demand
-   - Maintenance optimization: history-based regimen suggestion + apply forward (regimen phases)
+   ThromboLogic INR — Baseline v7.6.1
+   Added / fixed:
+   1) DOB: DD/MM/YYYY with smart normalization (2-digit year => 4-digit)
+   2) Apply new regimen forward: now works (creates regimen phase from chosen start date)
+   3) Target INR by date: history-based curve (power/log model) with conservative time-to-effect
+   4) Unit toggles: Weight kg↔lb, Height cm↔in (canonical stored in kg/cm for BMI + bridging)
    ========================= */
 
-const VERSION = "Baseline v7.6 (INR-ALT • regimen phases • on-demand reco + maint optimization)";
+const VERSION = "Baseline v7.6.1 (INR-ALT • regimen phases • on-demand reco + maint optimization • DOB normalize • unit toggles • target-by-date)";
 const BUILD_STAMP = new Date();
 
 const DB_KEYS = {
@@ -698,12 +734,49 @@ function formatInrOneDecimal(valOrStr){
 }
 function clamp(x,a,b){ return Math.max(a, Math.min(b,x)); }
 
-/* ---- formatting (DOB + phone) ---- */
-function formatDOB_DDMMYYYY(raw){
-  const v = (raw||"").replace(/[^\d]/g,"").slice(0,8);
-  if(v.length<=2) return v;
-  if(v.length<=4) return v.slice(0,2)+"/"+v.slice(2);
-  return v.slice(0,2)+"/"+v.slice(2,4)+"/"+v.slice(4);
+/* =========================
+   DOB normalization (DD/MM/YYYY)
+   - accepts flexible input:
+     1/2/84, 01-02-84, 010284, 1 2 1984
+   - 2-digit year => 4-digit (pivot 50 => 1950-1999, else 2000-2049)
+   ========================= */
+function normalizeDOB_DDMMYYYY(raw){
+  if(!raw) return "";
+  let s = String(raw).trim();
+
+  // normalize separators
+  s = s.replace(/[.\-\s]+/g,"/");
+
+  // pure digits DDMMYY or DDMMYYYY
+  if(/^\d{6,8}$/.test(s)){
+    const dd = s.slice(0,2), mm = s.slice(2,4), yy = s.slice(4);
+    s = `${dd}/${mm}/${yy}`;
+  }
+
+  const parts = s.split("/").filter(Boolean);
+  if(parts.length !== 3) return raw;
+
+  let [d,m,y] = parts.map(x=>x.trim());
+  d = d.replace(/\D/g,""); m = m.replace(/\D/g,""); y = y.replace(/\D/g,"");
+  if(!d || !m || !y) return raw;
+
+  if(d.length === 1) d = "0"+d;
+  if(m.length === 1) m = "0"+m;
+
+  if(y.length === 2){
+    const yy = parseInt(y,10);
+    const pivot = 50;
+    y = (yy >= pivot ? 1900+yy : 2000+yy).toString();
+  }
+  if(y.length !== 4) return raw;
+
+  const dd = parseInt(d,10), mm = parseInt(m,10), yyyy = parseInt(y,10);
+  if(!(mm>=1 && mm<=12 && dd>=1 && dd<=31 && yyyy>=1900 && yyyy<=2100)) return raw;
+
+  const dt = new Date(yyyy, mm-1, dd);
+  if(dt.getFullYear()!==yyyy || (dt.getMonth()+1)!==mm || dt.getDate()!==dd) return raw;
+
+  return `${pad2(dd)}/${pad2(mm)}/${yyyy}`;
 }
 function isValidDOB_DDMMYYYY(dmy){
   if(!/^\d{2}\/\d{2}\/\d{4}$/.test(dmy)) return false;
@@ -722,6 +795,8 @@ function getAgeYearsFromDmy(dmy){
   if(m<0 || (m===0 && today.getDate()<dob.getDate())) age--;
   return age;
 }
+
+/* ---- phone + BMI ---- */
 function formatPhone(raw){
   const v = (raw||"").replace(/[^\d]/g,"").slice(0,10);
   if(!v) return "";
@@ -738,6 +813,90 @@ function calcBMIkgCm(wtKg, htCm){
   const bmi = w / (m*m);
   return Math.round(bmi*10)/10;
 }
+
+/* =========================
+   Unit toggles (canonical stored as kg/cm)
+   ========================= */
+const KG_PER_LB = 0.45359237;
+const CM_PER_IN = 2.54;
+
+function toKgFromLb(lb){ return lb * KG_PER_LB; }
+function toLbFromKg(kg){ return kg / KG_PER_LB; }
+function toCmFromIn(inch){ return inch * CM_PER_IN; }
+function toInFromCm(cm){ return cm / CM_PER_IN; }
+
+function fmt1(x){ return (Math.round(x*10)/10).toFixed(1); }
+
+function ensureUnits(s){
+  if(!s.wtUnit) s.wtUnit = "kg";
+  if(!s.htUnit) s.htUnit = "cm";
+}
+function readWeightKgFromUI(){
+  const p = activePatient(); if(!p) return NaN;
+  const s = p.state; ensureUnits(s);
+  const v = toNum($("wt").value);
+  if(!isFinite(v) || v<=0) return NaN;
+  return (s.wtUnit === "kg") ? v : toKgFromLb(v);
+}
+function readHeightCmFromUI(){
+  const p = activePatient(); if(!p) return NaN;
+  const s = p.state; ensureUnits(s);
+  const v = toNum($("ht").value);
+  if(!isFinite(v) || v<=0) return NaN;
+  return (s.htUnit === "cm") ? v : toCmFromIn(v);
+}
+function writeWeightUIFromKg(kg){
+  const p = activePatient(); if(!p) return;
+  const s = p.state; ensureUnits(s);
+  if(!isFinite(kg) || kg<=0){ $("wt").value=""; return; }
+  const shown = (s.wtUnit === "kg") ? kg : toLbFromKg(kg);
+  $("wt").value = fmt1(shown).replace(/\.0$/,"");
+}
+function writeHeightUIFromCm(cm){
+  const p = activePatient(); if(!p) return;
+  const s = p.state; ensureUnits(s);
+  if(!isFinite(cm) || cm<=0){ $("ht").value=""; return; }
+  const shown = (s.htUnit === "cm") ? cm : toInFromCm(cm);
+  $("ht").value = fmt1(shown).replace(/\.0$/,"");
+}
+function syncUnitLabels(){
+  const p = activePatient(); if(!p) return;
+  const s = p.state; ensureUnits(s);
+  $("wtUnit").textContent = s.wtUnit;
+  $("htUnit").textContent = s.htUnit;
+  $("wtLabel").textContent = `Weight (${s.wtUnit})`;
+  $("htLabel").textContent = `Height (${s.htUnit})`;
+}
+function toggleWeightUnit(){
+  const p = activePatient(); if(!p) return;
+  const s = p.state; ensureUnits(s);
+
+  // capture current UI to canonical kg
+  const kg = readWeightKgFromUI();
+  if(isFinite(kg)) s.wt = fmtDose(kg);
+
+  s.wtUnit = (s.wtUnit === "kg") ? "lb" : "kg";
+  syncUnitLabels();
+  writeWeightUIFromKg(toNum(s.wt));
+  syncAutoBMI();
+  if(!p.isDraft) savePatients();
+  renderAllVisual(false);
+}
+function toggleHeightUnit(){
+  const p = activePatient(); if(!p) return;
+  const s = p.state; ensureUnits(s);
+
+  const cm = readHeightCmFromUI();
+  if(isFinite(cm)) s.ht = fmtDose(cm);
+
+  s.htUnit = (s.htUnit === "cm") ? "in" : "cm";
+  syncUnitLabels();
+  writeHeightUIFromCm(toNum(s.ht));
+  syncAutoBMI();
+  if(!p.isDraft) savePatients();
+  renderAllVisual(false);
+}
+
 function syncAutoBMI(){
   const p = activePatient(); if(!p) return;
   const s = p.state;
@@ -887,16 +1046,12 @@ function matchesPatient(p, q){
   return blob.includes(qq);
 }
 
-/* ---- regimen phases ----
-   regimenPhases: [{startIso:"YYYY-MM-DD", regimen:{0..6}}]
-   Use latest phase whose startIso <= iso for that date.
-*/
+/* ---- regimen phases ---- */
 function ensureRegimenPhases(s){
   if(!s.regimenPhases || !Array.isArray(s.regimenPhases) || !s.regimenPhases.length){
     const base = s.regimen && Object.keys(s.regimen||{}).length ? s.regimen : {};
     s.regimenPhases = [{startIso:"1900-01-01", regimen: Object.assign({}, base)}];
   }
-  // keep sorted
   s.regimenPhases.sort((a,b)=> (a.startIso<b.startIso?-1:a.startIso>b.startIso?1:0));
 }
 function getPhaseForIso(s, iso){
@@ -913,14 +1068,12 @@ function setNewRegimenPhase(startIso, regimenObj){
   const s = p.state;
   ensureRegimenPhases(s);
 
-  // normalize regimenObj
   const reg = {};
   for(let i=0;i<7;i++){
     const v = toNum(regimenObj[i]);
     if(isFinite(v)) reg[i]=v;
   }
 
-  // if phase exists exactly on that startIso, overwrite that phase (but we will confirm in UI)
   const idx = s.regimenPhases.findIndex(x=>x.startIso===startIso);
   if(idx>=0){
     s.regimenPhases[idx].regimen = reg;
@@ -929,7 +1082,6 @@ function setNewRegimenPhase(startIso, regimenObj){
   }
   s.regimenPhases.sort((a,b)=> (a.startIso<b.startIso?-1:a.startIso>b.startIso?1:0));
 
-  // set current regimen UI to latest phase (max startIso)
   const latest = s.regimenPhases[s.regimenPhases.length-1];
   s.regimen = Object.assign({}, latest.regimen);
 
@@ -941,6 +1093,7 @@ function blankState(){
   return {
     ptName:"", dob:"", phone:"", mrn:"",
     wt:"", ht:"", bmi:"", crcl:"",
+    wtUnit:"kg", htUnit:"cm",
     targetRange:"2.0-3.0", customL:"", customH:"",
     inrToday:"",
     applyBeyondRepeat:false,
@@ -1009,11 +1162,9 @@ function initRegimen(){
       if(isFinite(v)) s.regimen[i] = v;
       else delete s.regimen[i];
 
-      // keep phases initialized but do not auto-create new phase on every keystroke;
-      // phases update happens when user applies forward via optimizer or other future controls.
       ensureRegimenPhases(s);
-const latest = s.regimenPhases[s.regimenPhases.length - 1];
-latest.regimen = Object.assign({}, s.regimen);
+      const latest = s.regimenPhases[s.regimenPhases.length - 1];
+      latest.regimen = Object.assign({}, s.regimen);
 
       if(!p.isDraft) savePatients();
       renderAllVisual(false);
@@ -1025,7 +1176,6 @@ function syncRegimenUI(){
   const s = p.state;
   ensureRegimenPhases(s);
 
-  // show current regimen (s.regimen)
   const reg = s.regimen || {};
   for(let i=0;i<7;i++){
     const el = document.getElementById(`reg_${i}`);
@@ -1041,14 +1191,14 @@ function initPills(){
   box.innerHTML = "";
   for(const mg of DEFAULT_TABLETS){
     const lab = document.createElement("label");
-    lab.style.display="inline-flex";
-    lab.style.alignItems="center";
-    lab.style.gap="6px";
-    lab.style.fontSize="12px";
-    lab.style.padding="6px 10px";
-    lab.style.borderRadius="999px";
-    lab.style.background="var(--blue)";
-    lab.style.border="1px solid #d7e7ff";
+    lab.style.display = "inline-flex";
+    lab.style.alignItems = "center";
+    lab.style.gap = "6px";
+    lab.style.fontSize = "12px";
+    lab.style.padding = "6px 10px";
+    lab.style.borderRadius = "999px";
+    lab.style.background = "var(--blue)";
+    lab.style.border = "1px solid #d7e7ff";
     lab.innerHTML = `<input type="checkbox" data-mg="${mg}"> ${mg} mg`;
     box.appendChild(lab);
   }
@@ -1077,13 +1227,18 @@ function bindInputs(){
   const p = activePatient(); if(!p) return;
   const s = p.state;
   ensureRegimenPhases(s);
+  ensureUnits(s);
 
   $("ptName").value = s.ptName || "";
   $("dob").value = s.dob || "";
   $("phone").value = s.phone || "";
   $("mrn").value = s.mrn || "";
-  $("wt").value = s.wt || "";
-  $("ht").value = s.ht || "";
+
+  // show wt/ht in display units; store canonical in s.wt (kg) and s.ht (cm)
+  syncUnitLabels();
+  writeWeightUIFromKg(toNum(s.wt));
+  writeHeightUIFromCm(toNum(s.ht));
+
   $("bmi").value = s.bmi || "";
   $("crcl").value = s.crcl || "";
 
@@ -1115,7 +1270,6 @@ function bindInputs(){
   syncRegimenUI();
   syncTabletUI();
 
-  // maintenance UI defaults
   $("maintBox").style.display = "none";
   $("maintSummary").value = "";
   $("maintDetails").innerHTML = "";
@@ -1263,7 +1417,7 @@ function interactionNarrative(){
 }
 
 /* =========================
-   UCLA algorithm mapping
+   UCLA algorithm mapping (unchanged)
    ========================= */
 function uclaBandForGoal(goalLabel, inr){
   if(!isFinite(inr)) return null;
@@ -1335,7 +1489,6 @@ function countStableInRangeINRs(L,H){
   return count;
 }
 function followupDaysFromStreak(streak){
-  // Ladder: 1w -> 2w -> 3w -> 4w -> 6w -> 8w
   if(streak >= 6) return 56;
   if(streak === 5) return 42;
   if(streak === 4) return 28;
@@ -1383,9 +1536,6 @@ function computeRecommendation(){
       const status = (inr < L) ? "below" : (inr > H) ? "above" : "in range";
       baseLine = `INR <b>${formatInrOneDecimal(inr)}</b> is <b>${status}</b> target (<b>${label}</b>). <span class="small">Algorithm: <b>UCLA</b> priority.</span>`;
 
-      // Follow-up logic per your screenshot:
-      // - Any change to regimen/doses -> 1 week
-      // - If in range and stable -> extend 1->2->3->4->6->8 weeks
       if(inr >= 5.0) repeatDays = 3;
       else if(pctChosen !== 0 || holdsChosen > 0) repeatDays = 7;
       else {
@@ -1454,10 +1604,7 @@ function ensureTodayINROnCalendar(){
   }
 }
 
-/* =========================
-   Recommendation application (SCOPE: today, optional tomorrow)
-   Applied only when clicking "Get recommendation"
-   ========================= */
+/* ---- recommendation application (today, optional tomorrow) ---- */
 function isEditableForAuto(iso){
   const d = getDay(iso);
   if(String(d.actual||"").trim() !== "") return false;
@@ -1499,7 +1646,6 @@ function applyRecommendationToCalendar(){
   const r = computeRecommendation();
   if(!r.hasRec) return;
 
-  // Clear small window around today
   const startIso = isoLocal(addDaysLocal(new Date(), -7));
   clearOldRecoScheduledInWindow(startIso, 21);
 
@@ -1514,7 +1660,6 @@ function applyRecommendationToCalendar(){
   const mult = 1 + (r.pctChosen||0)/100;
   const direction = r.direction || "";
 
-  // Holds first
   let holdsApplied = 0;
   for(const iso of targets){
     if(!isEditableForAuto(iso)) continue;
@@ -1528,7 +1673,6 @@ function applyRecommendationToCalendar(){
     }
   }
 
-  // Apply % change to baseline day doses (using regimen phases by date)
   for(const iso of targets){
     if(!isEditableForAuto(iso)) continue;
     const d = getDay(iso);
@@ -1555,7 +1699,7 @@ function applyRecommendationToCalendar(){
 }
 
 /* =========================
-   INFINITE CALENDAR
+   INFINITE CALENDAR (unchanged)
    ========================= */
 const CAL_WEEKS_BEFORE = 8;
 const CAL_WEEKS_AFTER  = 8;
@@ -1596,8 +1740,6 @@ function scrollToMiddleWeek(){
   const middleWeekIndex = CAL_WEEKS_BEFORE;
   sc.scrollTop = Math.max(0, middleWeekIndex * calWeekHeightPx - 40);
 }
-
-/* ---- calendar render ---- */
 function renderCalendar(forceRecenter){
   const cal = $("cal");
   cal.innerHTML = "";
@@ -1610,7 +1752,7 @@ function renderCalendar(forceRecenter){
   days.forEach(({date, iso})=>{
     const cell = document.createElement("div");
     cell.className = "day";
-    cell.dataset.iso = iso; // ✅ critical for "copy regimen (visible)"
+    cell.dataset.iso = iso;
 
     const isToday = iso === todayIso;
     if(isToday) cell.classList.add("todayCell");
@@ -1631,13 +1773,10 @@ function renderCalendar(forceRecenter){
 
     const dayData = getDay(iso);
 
-    // Sched
     const sched = document.createElement("input");
     sched.placeholder = "Sched";
     sched.inputMode = "decimal";
     sched.value = dayData.scheduled ?? "";
-
-    // ✅ commit on Enter/Tab (not every keystroke)
     const commitSched = ()=>{
       setDay(iso, {scheduled: sched.value, scheduledLocked:true, scheduledSource:"manual"});
     };
@@ -1647,7 +1786,6 @@ function renderCalendar(forceRecenter){
     });
     sched.addEventListener("blur", commitSched);
 
-    // Actual
     const actual = document.createElement("input");
     actual.placeholder = "Actual";
     actual.inputMode = "decimal";
@@ -1661,7 +1799,6 @@ function renderCalendar(forceRecenter){
     });
     actual.addEventListener("blur", commitActual);
 
-    // INR
     const inr = document.createElement("input");
     inr.placeholder = "INR";
     inr.inputMode = "decimal";
@@ -1713,8 +1850,6 @@ function renderCalendar(forceRecenter){
   measureWeekHeight();
   if(forceRecenter) scrollToMiddleWeek();
 }
-
-/* ---- infinite scroll handler ---- */
 function hookInfiniteScroll(){
   const sc = $("calScroll");
   sc.addEventListener("scroll", ()=>{
@@ -1749,7 +1884,7 @@ function renderKPIs(){
   $("kpiWeighted").textContent = wtd>0 ? `${fmtDose(wtd)} mg` : "—";
 }
 
-/* predicted INR estimate (short-term only, uses current reco) */
+/* predicted INR estimate (short-term) */
 function predictedInrEstimate(r){
   if(!r || !isFinite(r.inr)) return null;
   if(!(r.currentWeekly>0)) return null;
@@ -1767,6 +1902,7 @@ function predictedInrEstimate(r){
   pred = clamp(pred, 0.8, 6.0);
   return Math.round(pred*10)/10;
 }
+
 function next7PlanRows(){
   const today = new Date();
   const rows = [];
@@ -1791,6 +1927,411 @@ function buildPlanTableHtml(rows){
     </table>
   `;
 }
+
+/* =========================
+   History-based dose-response + target INR by date
+   - Uses your existing lagWeightedDoseAt(iso) as weekly exposure proxy
+   - Fits power model: INR = a * (weeklyDose^b)
+   - For "by date", uses partial response factor f (0..1)
+     predicted(t) = current + f*(steady - current)
+   ========================= */
+function collectDoseInrPairs(maxLookbackDays=240){
+  const p = activePatient(); if(!p) return [];
+  const out = [];
+
+  for(let i=1;i<=maxLookbackDays;i++){
+    const iso = isoLocal(addDaysLocal(new Date(), -i));
+    const inr = toNum(getDay(iso).inr);
+    if(!isFinite(inr)) continue;
+
+    const wk = lagWeightedDoseAt(iso);
+    if(!(wk>0)) continue;
+
+    if(inr < 0.8 || inr > 6.5) continue;
+    out.push({iso, inr, wk});
+  }
+
+  out.sort((a,b)=> a.iso>b.iso?-1:a.iso<b.iso?1:0);
+
+  const filtered = [];
+  const seenWeek = new Set();
+  for(const pnt of out){
+    const key = pnt.iso.slice(0,7) + "-" + Math.floor(parseInt(pnt.iso.slice(8,10),10)/7);
+    if(seenWeek.has(key)) continue;
+    seenWeek.add(key);
+    filtered.push(pnt);
+    if(filtered.length>=12) break;
+  }
+  return filtered;
+}
+
+function fitPowerDoseResponse(pairs){
+  const pts = pairs.filter(x=>x.wk>0 && x.inr>0);
+  if(pts.length < 2) return {ok:false, reason:"Need at least 2 historical INR points with usable dose history."};
+
+  const xs = pts.map(p=>Math.log(p.wk));
+  const ys = pts.map(p=>Math.log(p.inr));
+
+  const n = xs.length;
+  const meanX = xs.reduce((a,b)=>a+b,0)/n;
+  const meanY = ys.reduce((a,b)=>a+b,0)/n;
+
+  let num=0, den=0;
+  for(let i=0;i<n;i++){
+    const dx = xs[i]-meanX;
+    const dy = ys[i]-meanY;
+    num += dx*dy;
+    den += dx*dx;
+  }
+  if(den===0) return {ok:false, reason:"Insufficient variation in historical dose to model response."};
+
+  let b = num/den;
+  b = clamp(b, 0.30, 1.20);
+
+  const lnA = meanY - b*meanX;
+  const a = Math.exp(lnA);
+
+  let ssTot=0, ssRes=0;
+  for(let i=0;i<n;i++){
+    const yhat = lnA + b*xs[i];
+    ssTot += (ys[i]-meanY)*(ys[i]-meanY);
+    ssRes += (ys[i]-yhat)*(ys[i]-yhat);
+  }
+  const r2 = ssTot>0 ? 1 - (ssRes/ssTot) : 0;
+
+  return {ok:true,a,b,n,r2};
+}
+
+function computeCurrentMaintenanceWeekly(){
+  const weekly = sum7DayDose();
+  const wtd = lagWeightedDose();
+  const regWk = regimenWeeklyTotal();
+  return (weekly>0 ? weekly : (wtd>0 ? wtd : (regWk>0 ? regWk : 0)));
+}
+
+function modelFromHistoryOrAnchor(curInr, curWeekly){
+  const pairs = collectDoseInrPairs(240);
+  const fit = fitPowerDoseResponse(pairs);
+  if(fit.ok){
+    return {ok:true, usedHistory:true, a:fit.a, b:fit.b, n:fit.n, r2:fit.r2, pairs};
+  }
+  // anchor to current point with conservative b
+  const b = 0.70;
+  const a = (curWeekly>0 && curInr>0) ? (curInr / Math.pow(curWeekly, b)) : NaN;
+  return {ok:isFinite(a), usedHistory:false, a, b, n:pairs.length, r2:null, pairs};
+}
+
+function weeklyDoseForTargetINR(a,b,targetInr){
+  if(!(a>0) || !(b>0) || !(targetInr>0)) return NaN;
+  return Math.pow(targetInr/a, 1/b);
+}
+
+function responseFactorByDays(days){
+  // pragmatic: ~50% of steady-state in ~7 days
+  const d = clamp(days, 1, 60);
+  const halfLife = 7; // days
+  return 1 - Math.pow(0.5, d/halfLife);
+}
+
+function suggestWeeklyForTarget(targetInr){
+  const p = activePatient(); if(!p) return {ok:false, reason:"No patient."};
+  const s = p.state;
+  const curInr = toNum(s.inrToday);
+  const currentWeekly = computeCurrentMaintenanceWeekly();
+  if(!(currentWeekly>0)) return {ok:false, reason:"Enter dose history or regimen so a weekly dose baseline exists."};
+  if(!isFinite(curInr)) return {ok:false, reason:"Enter today’s INR (or record an INR) before generating a maintenance option."};
+
+  const model = modelFromHistoryOrAnchor(curInr, currentWeekly);
+  if(!model.ok) return {ok:false, reason:"Unable to model dose-response. Add more INR + dose history."};
+
+  let wkTarget = weeklyDoseForTargetINR(model.a, model.b, targetInr);
+
+  const maxUp = currentWeekly * 1.25;
+  const maxDn = currentWeekly * 0.75;
+  wkTarget = clamp(wkTarget, maxDn, maxUp);
+
+  wkTarget = Math.round(wkTarget*2)/2;
+
+  return {
+    ok:true,
+    wkTarget,
+    currentWeekly,
+    model,
+    pairs: model.pairs
+  };
+}
+
+function suggestWeeklyForTargetByDate(targetInr, targetIso){
+  const p = activePatient(); if(!p) return {ok:false, reason:"No patient."};
+  const s = p.state;
+
+  const curInr = toNum(s.inrToday);
+  const currentWeekly = computeCurrentMaintenanceWeekly();
+  if(!(currentWeekly>0)) return {ok:false, reason:"Enter dose history or regimen so a weekly dose baseline exists."};
+  if(!isFinite(curInr)) return {ok:false, reason:"Enter today’s INR (or record an INR) before generating a target option."};
+  if(!targetIso) return {ok:false, reason:"Pick a target date."};
+
+  const days = Math.max(1, Math.round((fromIso(targetIso) - new Date())/(1000*60*60*24)));
+  const f = responseFactorByDays(days);
+
+  // Solve desired steady-state INR such that partial response hits target by date
+  // target = cur + f*(steady - cur) => steady = cur + (target-cur)/f
+  const steadyNeeded = clamp(curInr + (targetInr - curInr)/Math.max(0.20, f), 0.8, 6.5);
+
+  const model = modelFromHistoryOrAnchor(curInr, currentWeekly);
+  if(!model.ok) return {ok:false, reason:"Unable to model dose-response. Add more INR + dose history."};
+
+  let wkTarget = weeklyDoseForTargetINR(model.a, model.b, steadyNeeded);
+
+  // More conservative when timeline is short
+  const maxPct = (days <= 7) ? 0.20 : (days <= 14 ? 0.25 : 0.30);
+  const maxUp = currentWeekly * (1 + maxPct);
+  const maxDn = currentWeekly * (1 - maxPct);
+  wkTarget = clamp(wkTarget, maxDn, maxUp);
+
+  wkTarget = Math.round(wkTarget*2)/2;
+
+  return {
+    ok:true,
+    wkTarget,
+    currentWeekly,
+    model,
+    pairs: model.pairs,
+    byDate:{targetIso, days, f, steadyNeeded}
+  };
+}
+
+function buildRegimenFromWeeklyTarget(wkTarget){
+  const p = activePatient(); if(!p) return null;
+  const s = p.state;
+  ensureRegimenPhases(s);
+
+  const cur = s.regimen || {};
+  const curWk = regimenWeeklyTotalFrom(cur);
+
+  const pattern = [];
+  if(curWk>0){
+    for(let i=0;i<7;i++){
+      const v = toNum(cur[i]);
+      pattern.push(isFinite(v) && v>0 ? v/curWk : 0);
+    }
+    const sumPat = pattern.reduce((a,b)=>a+b,0);
+    if(sumPat < 0.70){
+      for(let i=0;i<7;i++) pattern[i]=1/7;
+    }
+  }else{
+    for(let i=0;i<7;i++) pattern[i]=1/7;
+  }
+
+  const raw = {};
+  for(let i=0;i<7;i++) raw[i] = wkTarget * pattern[i];
+
+  const tabs = feasibleTabsForPatient();
+  const snapped = {};
+  let sum=0;
+  for(let i=0;i<7;i++){
+    let d = raw[i];
+    if(d<0) d=0;
+    const s1 = snapDoseFeasible(d, tabs, "");
+    const dose = s1.ok ? s1.dose : (Math.round(d*2)/2);
+    snapped[i] = dose;
+    sum += dose;
+  }
+
+  return {regimen: snapped, achievedWeekly: Math.round(sum*2)/2};
+}
+
+/* ---- Apply regimen forward (phase) ---- */
+function parseMDYToIso(mdy){
+  const m = (mdy||"").trim();
+  if(!m) return null;
+  const parts = m.split("/").map(x=>x.trim());
+  if(parts.length!==3) return null;
+  const mm = parseInt(parts[0],10), dd = parseInt(parts[1],10), yy = parseInt(parts[2],10);
+  if(!(mm>=1 && mm<=12 && dd>=1 && dd<=31 && yy>=1900 && yy<=2100)) return null;
+  const d = new Date(yy, mm-1, dd);
+  if(d.getFullYear()!==yy || (d.getMonth()+1)!==mm || d.getDate()!==dd) return null;
+  return isoLocal(d);
+}
+
+/* ---- maintenance UI handlers ---- */
+let lastMaintProposal = null;
+
+function renderMaintProposal(proposal, targetInr, byDateInfo){
+  if(!proposal || !proposal.ok) return;
+  const regBuilt = buildRegimenFromWeeklyTarget(proposal.wkTarget);
+  if(!regBuilt){
+    modal.open("Maintenance option","Could not build regimen pattern.");
+    return;
+  }
+  lastMaintProposal = {proposal, regBuilt, targetInr, byDateInfo};
+
+  const reg = regBuilt.regimen;
+  const labels = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const list = labels.map((lab,i)=> `${lab}: <b>${fmtDose(reg[i]||0)}</b>`).join(" • ");
+
+  const modelLine = proposal.model.usedHistory
+    ? `Model fit: n=${proposal.model.n}, b=${proposal.model.b.toFixed(2)}, R²≈${proposal.model.r2.toFixed(2)}`
+    : `Model fit: <b>limited history</b> (default sensitivity b=${proposal.model.b.toFixed(2)} anchored to current point)`;
+
+  const byDateLine = byDateInfo
+    ? `<div class="sep"></div>
+       <div><b>Target date:</b> ${escapeHtml(fmtMDY(fromIso(byDateInfo.targetIso)))} (${byDateInfo.days} day${byDateInfo.days===1?"":"s"})</div>
+       <div class="small">Time-to-effect factor f≈${byDateInfo.f.toFixed(2)} → steady-state needed ≈ ${byDateInfo.steadyNeeded.toFixed(2)}</div>`
+    : ``;
+
+  $("maintSummary").value = `${fmtDose(proposal.wkTarget)} mg/week (achieved ~${fmtDose(regBuilt.achievedWeekly)} mg/week)`;
+  $("maintDetails").innerHTML = `
+    <div><b>Target INR:</b> ${targetInr.toFixed(2)} ${byDateInfo ? `<span class="small">(by date)</span>` : `<span class="small">(maintenance)</span>`}</div>
+    <div><b>Current weekly (estimate):</b> ${fmtDose(proposal.currentWeekly)} mg/week</div>
+    <div><b>Suggested weekly:</b> ${fmtDose(proposal.wkTarget)} mg/week</div>
+    ${byDateLine}
+    <div class="sep"></div>
+    <div><b>Suggested regimen pattern (daily):</b></div>
+    <div style="margin-top:6px">${list}</div>
+    <div class="sep"></div>
+    <div class="small">${escapeHtml(modelLine)}</div>
+    <div class="small">History points used: ${proposal.pairs.length}</div>
+  `;
+
+  const tomorrow = addDaysLocal(new Date(), 1);
+  $("maintStart").value = fmtMDY(tomorrow);
+  $("maintBox").style.display = "block";
+}
+
+function isOutOfRange(val, L, H){ return isFinite(val) && (val<L || val>H); }
+function isLabileByHistory(L,H){
+  const recent = listRecentINRs(180).slice(0,6);
+  if(recent.length < 2) return false;
+  const c2 = recent.slice(0,2).every(x=>isOutOfRange(x.val,L,H));
+  if(c2) return true;
+  const last3 = recent.slice(0,3);
+  if(last3.length>=3){
+    const oor = last3.filter(x=>isOutOfRange(x.val,L,H)).length;
+    if(oor>=2) return true;
+  }
+  const oor6 = recent.filter(x=>isOutOfRange(x.val,L,H)).length;
+  const tir = 1 - (oor6 / recent.length);
+  return tir < 0.5;
+}
+
+function generateMaintenanceOption(){
+  const {L,H,midpoint} = getTargetRange();
+  const p = activePatient(); if(!p) return;
+
+  const labile = isLabileByHistory(L,H);
+  if(!labile){
+    modal.open(
+      "Maintenance optimization",
+      `Based on recent INR history, the patient does not appear persistently labile/out of range.<br><br>
+       If you still want a maintenance suggestion, enter more INR history (and dosing history) first.`
+    );
+    return;
+  }
+
+  const userTarget = toNum($("targetInrOne").value);
+  const targetInr = isFinite(userTarget) ? userTarget : midpoint;
+
+  const res = suggestWeeklyForTarget(targetInr);
+  if(!res.ok){
+    modal.open("Maintenance option", escapeHtml(res.reason||"Unable to generate regimen option."));
+    return;
+  }
+  renderMaintProposal(res, targetInr, null);
+}
+
+function generateTargetByDate(){
+  const p = activePatient(); if(!p) return;
+  const s = p.state;
+
+  const userTarget = toNum($("targetInrOne").value);
+  if(!isFinite(userTarget) || userTarget<=0){
+    modal.open("Target INR", "Enter a valid <b>Target INR</b> (example: 2.2).");
+    return;
+  }
+
+  const targetIso = $("targetInrDate").value || "";
+  if(!targetIso){
+    modal.open("Target date", "Pick a <b>Target date</b>.");
+    return;
+  }
+
+  const res = suggestWeeklyForTargetByDate(userTarget, targetIso);
+  if(!res.ok){
+    modal.open("Target by date", escapeHtml(res.reason||"Unable to generate target regimen."));
+    return;
+  }
+
+  renderMaintProposal(res, userTarget, res.byDate);
+}
+
+function applyMaintenanceForward(){
+  if(!lastMaintProposal) return;
+  const p = activePatient(); if(!p) return;
+
+  const startIso = parseMDYToIso($("maintStart").value);
+  if(!startIso){
+    modal.open("Start date","Please enter a valid date as MM/DD/YYYY.");
+    return;
+  }
+
+  const reg = lastMaintProposal.regBuilt.regimen;
+
+  const todayIso = isoLocal(new Date());
+  const doApply = ()=>{
+    const s = activePatient().state;
+    ensureRegimenPhases(s);
+    const exists = s.regimenPhases.find(x=>x.startIso===startIso);
+    if(exists){
+      modal.open(
+        "Regimen phase exists",
+        `A regimen phase already starts on <b>${escapeHtml(fmtMDY(fromIso(startIso)))}</b>.<br><br>
+         Replace that phase?`,
+        [
+          {label:"Replace phase", cls:"btn primary", onClick:()=>{ modal.close(); finalizeApply(startIso, reg); }},
+          {label:"Cancel", cls:"btn secondary", onClick:()=>modal.close()}
+        ]
+      );
+      return;
+    }
+    finalizeApply(startIso, reg);
+  };
+
+  if(startIso < todayIso){
+    modal.open(
+      "Start date is in the past",
+      `You entered <b>${escapeHtml($("maintStart").value)}</b> which is before today.<br><br>
+       Apply anyway?`,
+      [
+        {label:"Apply", cls:"btn primary", onClick:()=>{ modal.close(); doApply(); }},
+        {label:"Cancel", cls:"btn secondary", onClick:()=>modal.close()}
+      ]
+    );
+    return;
+  }
+
+  doApply();
+}
+
+function finalizeApply(startIso, reg){
+  setNewRegimenPhase(startIso, reg);
+  syncRegimenUI();
+
+  modal.open(
+    "Applied regimen forward",
+    `New maintenance regimen phase starts <b>${escapeHtml(fmtMDY(fromIso(startIso)))}</b>.<br>
+     Past phases preserved for regimen→INR tracking.`
+  );
+
+  $("maintBox").style.display = "none";
+  lastMaintProposal = null;
+  $("maintSummary").value = "";
+  $("maintDetails").innerHTML = "";
+
+  renderAllVisual(false);
+}
+
+/* ---- lay summary + verbal (unchanged structure) ---- */
 function laySummaryHtml(r){
   const {L,H,label} = r;
   if(!r.hasRec){
@@ -1849,7 +2390,6 @@ function laySummaryHtml(r){
   return {lead, pred, clinician, plan7, algoLine};
 }
 
-/* ---- verbal ---- */
 function renderVerbal(){
   const p = activePatient(); if(!p) return;
   const s = p.state;
@@ -1887,7 +2427,7 @@ function renderVerbal(){
 /* ---- interactions ---- */
 function renderInteractions(){ $("intxText").innerHTML = interactionNarrative(); }
 
-/* ---- bridging (unchanged core) ---- */
+/* ---- bridging (updated to always use canonical kg/cm stored in state) ---- */
 function roundEnoxTo10(mg){
   const v = Math.round(mg);
   const mod = v % 10;
@@ -1902,13 +2442,14 @@ function renderBridging(){
   $("bridgeText").innerHTML = need ? "—" : "";
   if(!need) return;
 
+  // s.wt is canonical kg
   const wt = toNum(s.wt);
   const bmi = toNum(s.bmi);
   const crcl = toNum(s.crcl);
   const agent = s.bridgeAgent;
 
   if(!isFinite(wt) || wt<=0){
-    $("bridgeText").innerHTML = `Enter <b>weight (kg)</b> to calculate bridging dosing.`;
+    $("bridgeText").innerHTML = `Enter <b>weight</b> to calculate bridging dosing.`;
     return;
   }
   if(!isFinite(crcl) || crcl<=0){
@@ -1970,7 +2511,7 @@ function renderBridging(){
   $("bridgeText").innerHTML = html;
 }
 
-/* ---- Print Pack (kept) ---- */
+/* ---- Print Pack ---- */
 function renderPrintPack(){
   const p = activePatient(); if(!p) return;
   const s = p.state;
@@ -2121,7 +2662,7 @@ function copyRegimenToVisible(){
     const mg = regimenDoseForIso(iso);
     if(!isFinite(mg)) continue;
     const day = getDay(iso);
-    if(String(day.actual||"").trim() !== "") continue; // do not overwrite actuals
+    if(String(day.actual||"").trim() !== "") continue;
     day.scheduled = String(mg);
     day.scheduledLocked = false;
     day.scheduledSource = "regimen";
@@ -2132,354 +2673,54 @@ function copyRegimenToVisible(){
 }
 
 /* =========================
-   Maintenance optimization (history-based)
+   FIX: Apply new regimen forward button
    ========================= */
-function isOutOfRange(val, L, H){ return isFinite(val) && (val<L || val>H); }
-
-function isLabileByHistory(L,H){
-  const recent = listRecentINRs(180).slice(0,6); // most recent first
-  if(recent.length < 2) return false;
-
-  // Rule 1: last 2 consecutive out of range
-  const c2 = recent.slice(0,2).every(x=>isOutOfRange(x.val,L,H));
-  if(c2) return true;
-
-  // Rule 2: at least 2 out-of-range in last 3 measured INRs
-  const last3 = recent.slice(0,3);
-  if(last3.length>=3){
-    const oor = last3.filter(x=>isOutOfRange(x.val,L,H)).length;
-    if(oor>=2) return true;
-  }
-
-  // Rule 3: time-in-range over last 6 measured INRs < 50%
-  const oor6 = recent.filter(x=>isOutOfRange(x.val,L,H)).length;
-  const tir = 1 - (oor6 / recent.length);
-  return tir < 0.5;
-}
-
-function collectDoseInrPairs(maxLookbackDays=240){
-  const p = activePatient(); if(!p) return [];
-  const s = p.state;
-  const todayIso = isoLocal(new Date());
-  const out = [];
-
-  for(let i=1;i<=maxLookbackDays;i++){ // start at 1 day back to reduce "today" coupling
-    const iso = isoLocal(addDaysLocal(new Date(), -i));
-    const inr = toNum(getDay(iso).inr);
-    if(!isFinite(inr)) continue;
-
-    // require some dose history around that time
-    const wk = lagWeightedDoseAt(iso);
-    if(!(wk>0)) continue;
-
-    // exclude extreme INR values to avoid fitting to crisis holds
-    if(inr < 0.8 || inr > 6.5) continue;
-
-    out.push({iso, inr, wk});
-  }
-
-  // sort by recency (most recent first)
-  out.sort((a,b)=> a.iso>b.iso?-1:a.iso<b.iso?1:0);
-
-  // de-duplicate very close points (optional): keep most recent per 7-day bucket
-  const filtered = [];
-  const seenWeek = new Set();
-  for(const pnt of out){
-    const key = pnt.iso.slice(0,7) + "-" + Math.floor(parseInt(pnt.iso.slice(8,10),10)/7);
-    if(seenWeek.has(key)) continue;
-    seenWeek.add(key);
-    filtered.push(pnt);
-    if(filtered.length>=12) break; // cap for stability
-  }
-
-  return filtered;
-}
-
-function fitPowerDoseResponse(pairs){
-  // Fit ln(INR) = ln(a) + b ln(weeklyDose)
-  // Return {ok,a,b,n,r2}
-  const pts = pairs.filter(x=>x.wk>0 && x.inr>0);
-  if(pts.length < 2) return {ok:false, reason:"Need at least 2 historical INR points with usable dose history."};
-
-  const xs = pts.map(p=>Math.log(p.wk));
-  const ys = pts.map(p=>Math.log(p.inr));
-
-  const n = xs.length;
-  const meanX = xs.reduce((a,b)=>a+b,0)/n;
-  const meanY = ys.reduce((a,b)=>a+b,0)/n;
-
-  let num=0, den=0;
-  for(let i=0;i<n;i++){
-    const dx = xs[i]-meanX;
-    const dy = ys[i]-meanY;
-    num += dx*dy;
-    den += dx*dx;
-  }
-  if(den===0) return {ok:false, reason:"Insufficient variation in historical dose to model response."};
-
-  let b = num/den;
-  // bounds to keep sane
-  b = clamp(b, 0.30, 1.20);
-
-  const lnA = meanY - b*meanX;
-  const a = Math.exp(lnA);
-
-  // R^2 on log scale
-  let ssTot=0, ssRes=0;
-  for(let i=0;i<n;i++){
-    const yhat = lnA + b*xs[i];
-    ssTot += (ys[i]-meanY)*(ys[i]-meanY);
-    ssRes += (ys[i]-yhat)*(ys[i]-yhat);
-  }
-  const r2 = ssTot>0 ? 1 - (ssRes/ssTot) : 0;
-
-  return {ok:true,a,b,n,r2};
-}
-
-function computeCurrentMaintenanceWeekly(){
-  const weekly = sum7DayDose();
-  const wtd = lagWeightedDose();
-  const regWk = regimenWeeklyTotal();
-  return (weekly>0 ? weekly : (wtd>0 ? wtd : (regWk>0 ? regWk : 0)));
-}
-
-function suggestWeeklyForTarget(targetInr){
-  const {L,H} = getTargetRange();
-  const p = activePatient(); if(!p) return {ok:false, reason:"No patient."};
-  const s = p.state;
-
-  const curInr = toNum(s.inrToday);
-  const currentWeekly = computeCurrentMaintenanceWeekly();
-  if(!(currentWeekly>0)) return {ok:false, reason:"Enter dose history or regimen so a weekly dose baseline exists."};
-  if(!isFinite(curInr)) return {ok:false, reason:"Enter today’s INR (or record an INR) before generating a maintenance option."};
-
-  const pairs = collectDoseInrPairs(240);
-  const fit = fitPowerDoseResponse(pairs);
-
-  // If not enough history, use a conservative default b
-  const b = fit.ok ? fit.b : 0.70;
-  const a = fit.ok ? fit.a : (curInr / Math.pow(Math.max(currentWeekly,1), b)); // anchor to current point
-
-  let wkTarget = Math.pow(Math.max(targetInr/a, 0.01), 1/b);
-
-  // Safety rails: cap adjustment magnitude for a single maintenance step
-  // You can widen this later; start conservative.
-  const maxUp = currentWeekly * 1.25;
-  const maxDn = currentWeekly * 0.75;
-  wkTarget = clamp(wkTarget, maxDn, maxUp);
-
-  // Round to nearest 0.5 mg/week for usability
-  wkTarget = Math.round(wkTarget*2)/2;
-
-  return {
-    ok:true,
-    wkTarget,
-    currentWeekly,
-    model:{
-      usedHistory: fit.ok,
-      n: fit.ok ? fit.n : pairs.length,
-      b,
-      r2: fit.ok ? fit.r2 : null
-    },
-    pairs
-  };
-}
-
-function buildRegimenFromWeeklyTarget(wkTarget){
-  const p = activePatient(); if(!p) return null;
+function applyRegimenForwardFromButton(){
+  const p = activePatient(); if(!p) return;
   const s = p.state;
   ensureRegimenPhases(s);
 
-  // pattern from current regimen if available; else even split
-  const cur = s.regimen || {};
-  const curWk = regimenWeeklyTotalFrom(cur);
-
-  const pattern = [];
-  if(curWk>0){
-    for(let i=0;i<7;i++){
-      const v = toNum(cur[i]);
-      pattern.push(isFinite(v) && v>0 ? v/curWk : 0);
-    }
-    // if pattern too sparse, fallback to even
-    const sumPat = pattern.reduce((a,b)=>a+b,0);
-    if(sumPat < 0.70){
-      for(let i=0;i<7;i++) pattern[i]=1/7;
-    }
-  }else{
-    for(let i=0;i<7;i++) pattern[i]=1/7;
-  }
-
-  // raw doses
-  const raw = {};
-  for(let i=0;i<7;i++){
-    raw[i] = wkTarget * pattern[i];
-  }
-
-  // snap each day to achievable daily dose (neutral direction)
-  const tabs = feasibleTabsForPatient();
-  const snapped = {};
-  let sum=0;
-  for(let i=0;i<7;i++){
-    let d = raw[i];
-    if(d<0) d=0;
-    // snap
-    const s1 = snapDoseFeasible(d, tabs, "");
-    const dose = s1.ok ? s1.dose : (Math.round(d*2)/2);
-    snapped[i] = dose;
-    sum += dose;
-  }
-
-  return {regimen: snapped, achievedWeekly: Math.round(sum*2)/2};
-}
-
-/* ---- Apply regimen forward (phase) ---- */
-function parseMDYToIso(mdy){
-  const m = (mdy||"").trim();
-  if(!m) return null;
-  const parts = m.split("/").map(x=>x.trim());
-  if(parts.length!==3) return null;
-  const mm = parseInt(parts[0],10), dd = parseInt(parts[1],10), yy = parseInt(parts[2],10);
-  if(!(mm>=1 && mm<=12 && dd>=1 && dd<=31 && yy>=1900 && yy<=2100)) return null;
-  const d = new Date(yy, mm-1, dd);
-  if(d.getFullYear()!==yy || (d.getMonth()+1)!==mm || d.getDate()!==dd) return null;
-  return isoLocal(d);
-}
-
-/* ---- maintenance UI handlers ---- */
-let lastMaintProposal = null;
-
-function renderMaintProposal(proposal, targetInr){
-  if(!proposal || !proposal.ok) return;
-  const regBuilt = buildRegimenFromWeeklyTarget(proposal.wkTarget);
-  if(!regBuilt){
-    modal.open("Maintenance option","Could not build regimen pattern.");
-    return;
-  }
-  lastMaintProposal = {proposal, regBuilt, targetInr};
-
-  const reg = regBuilt.regimen;
-  const labels = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-  const list = labels.map((lab,i)=> `${lab}: <b>${fmtDose(reg[i]||0)}</b>`).join(" • ");
-
-  const modelLine = proposal.model.usedHistory
-    ? `Model fit: n=${proposal.model.n}, b=${proposal.model.b.toFixed(2)}, R²≈${proposal.model.r2.toFixed(2)}`
-    : `Model fit: <b>limited history</b> (default sensitivity b=${proposal.model.b.toFixed(2)} anchored to current point)`;
-
-  $("maintSummary").value = `${fmtDose(proposal.wkTarget)} mg/week (achieved ~${fmtDose(regBuilt.achievedWeekly)} mg/week)`;
-  $("maintDetails").innerHTML = `
-    <div><b>Target INR (midpoint):</b> ${targetInr.toFixed(2)}</div>
-    <div><b>Current weekly (estimate):</b> ${fmtDose(proposal.currentWeekly)} mg/week</div>
-    <div><b>Suggested weekly:</b> ${fmtDose(proposal.wkTarget)} mg/week <span class="small">(capped to ±25% per step)</span></div>
-    <div class="sep"></div>
-    <div><b>Suggested regimen pattern (daily):</b></div>
-    <div style="margin-top:6px">${list}</div>
-    <div class="sep"></div>
-    <div class="small">${escapeHtml(modelLine)}</div>
-    <div class="small">History points used: ${proposal.pairs.length}</div>
-  `;
-
-  const tomorrow = addDaysLocal(new Date(), 1);
-  $("maintStart").value = fmtMDY(tomorrow);
-  $("maintBox").style.display = "block";
-}
-
-function generateMaintenanceOption(){
-  const {L,H,midpoint} = getTargetRange();
-  const p = activePatient(); if(!p) return;
-
-  // gating: only suggest if labile/out of range pattern exists
-  const labile = isLabileByHistory(L,H);
-  if(!labile){
-    modal.open(
-      "Maintenance optimization",
-      `Based on recent INR history, the patient does not appear persistently labile/out of range.<br><br>
-       If you still want a maintenance suggestion, enter more INR history (and dosing history) first.`
-    );
-    return;
-  }
-
-  const targetInr = midpoint;
-  const res = suggestWeeklyForTarget(targetInr);
-
-  if(!res.ok){
-    modal.open("Maintenance option", escapeHtml(res.reason||"Unable to generate regimen option."));
-    return;
-  }
-
-  renderMaintProposal(res, targetInr);
-}
-
-function applyMaintenanceForward(){
-  if(!lastMaintProposal) return;
-  const p = activePatient(); if(!p) return;
-
-  const startIso = parseMDYToIso($("maintStart").value);
+  const startIso = ($("regStartDate").value || "").trim();
   if(!startIso){
-    modal.open("Start date","Please enter a valid date as MM/DD/YYYY.");
+    modal.open("New regimen start date","Pick a start date first.");
     return;
   }
 
-  const reg = lastMaintProposal.regBuilt.regimen;
-
-  // confirm if starting in the past
-  const todayIso = isoLocal(new Date());
-  if(startIso < todayIso){
-    modal.open(
-      "Start date is in the past",
-      `You entered <b>${escapeHtml($("maintStart").value)}</b> which is before today.<br><br>
-       Apply anyway?`,
-      [
-        {label:"Apply", cls:"btn primary", onClick:()=>{ modal.close(); doApply(startIso, reg); }},
-        {label:"Cancel", cls:"btn secondary", onClick:()=>modal.close()}
-      ]
-    );
+  const reg = Object.assign({}, s.regimen || {});
+  const any = Object.values(reg).some(v=>isFinite(toNum(v)));
+  if(!any){
+    modal.open("Regimen is empty","Enter at least one daily regimen dose before applying forward.");
     return;
   }
 
-  doApply(startIso, reg);
-}
-
-function doApply(startIso, reg){
-  const p = activePatient(); if(!p) return;
-  const s = p.state;
-  ensureRegimenPhases(s);
-
-  // if phase exists at same start, confirm overwrite
-  const exists = s.regimenPhases.find(x=>x.startIso===startIso);
+  const exists = s.regimenPhases.find(x=>x.startIso === startIso);
   if(exists){
     modal.open(
       "Regimen phase exists",
       `A regimen phase already starts on <b>${escapeHtml(fmtMDY(fromIso(startIso)))}</b>.<br><br>
-       Replace that phase?`,
+       Replace that phase with the current regimen?`,
       [
-        {label:"Replace phase", cls:"btn primary", onClick:()=>{ modal.close(); finalizeApply(startIso, reg); }},
+        {label:"Replace phase", cls:"btn primary", onClick:()=>{ modal.close(); setNewRegimenPhase(startIso, reg); syncRegimenUI(); renderAllVisual(false); }},
         {label:"Cancel", cls:"btn secondary", onClick:()=>modal.close()}
       ]
     );
     return;
   }
 
-  finalizeApply(startIso, reg);
+  setNewRegimenPhase(startIso, reg);
+  syncRegimenUI();
+  modal.open("Applied regimen forward", `New regimen phase starts <b>${escapeHtml(fmtMDY(fromIso(startIso)))}</b>. Past phases preserved.`);
+  renderAllVisual(false);
 }
 
-function finalizeApply(startIso, reg){
-  setNewRegimenPhase(startIso, reg);
-
-  // Update regimen UI to new current phase
-  syncRegimenUI();
-
-  modal.open(
-    "Applied regimen forward",
-    `New maintenance regimen phase starts <b>${escapeHtml(fmtMDY(fromIso(startIso)))}</b>.<br>
-     Past phases preserved for regimen→INR tracking.`
-  );
-
-  $("maintBox").style.display = "none";
-  lastMaintProposal = null;
-  $("maintSummary").value = "";
-  $("maintDetails").innerHTML = "";
-
-  renderAllVisual(false);
+/* ---- render all ---- */
+function renderAllVisual(forceRecenterCalendar){
+  renderCalendar(!!forceRecenterCalendar);
+  renderKPIs();
+  renderVerbal();
+  renderBridging();
+  renderInteractions();
+  renderPrintPack();
 }
 
 /* ---- events + sync ---- */
@@ -2487,15 +2728,20 @@ function hookEvents(){
   const sync = ()=>{
     const p = activePatient(); if(!p) return;
     const s = p.state;
+    ensureUnits(s);
 
     s.ptName = $("ptName").value.trim();
     s.dob = $("dob").value.trim();
     s.phone = $("phone").value.trim();
     s.mrn = $("mrn").value.trim();
-    s.wt = $("wt").value.trim();
-    s.ht = $("ht").value.trim();
-    s.crcl = $("crcl").value.trim();
 
+    // Canonicalize wt/ht on the fly (store kg/cm)
+    const kg = readWeightKgFromUI();
+    s.wt = isFinite(kg) ? fmtDose(kg) : "";
+    const cm = readHeightCmFromUI();
+    s.ht = isFinite(cm) ? fmtDose(cm) : "";
+
+    s.crcl = $("crcl").value.trim();
     syncAutoBMI();
 
     s.targetRange = $("targetRange").value;
@@ -2526,8 +2772,23 @@ function hookEvents(){
     renderAllVisual(false);
   };
 
-  ["ptName","wt","ht","crcl","mrn","targetRange","customL","customH","inrToday","bridgeNeed","bridgeAgent","bridgeInd","enoxFreq","applyBeyondRepeat"]
+  ["ptName","crcl","mrn","targetRange","customL","customH","inrToday","bridgeNeed","bridgeAgent","bridgeInd","enoxFreq","applyBeyondRepeat"]
     .forEach(id=> $(id).addEventListener("input", sync));
+
+  $("wt").addEventListener("blur", ()=>{
+    sync();
+    // reformat displayed value in chosen unit (clean 1dp)
+    const p = activePatient(); if(!p) return;
+    writeWeightUIFromKg(toNum(p.state.wt));
+  });
+  $("ht").addEventListener("blur", ()=>{
+    sync();
+    const p = activePatient(); if(!p) return;
+    writeHeightUIFromCm(toNum(p.state.ht));
+  });
+
+  $("wtUnit").addEventListener("click", toggleWeightUnit);
+  $("htUnit").addEventListener("click", toggleHeightUnit);
 
   $("inrToday").addEventListener("blur", ()=>{
     const p = activePatient(); if(!p) return;
@@ -2542,13 +2803,21 @@ function hookEvents(){
   });
 
   $("phone").addEventListener("input", (e)=>{ e.target.value = formatPhone(e.target.value); sync(); });
-  $("dob").addEventListener("input", (e)=>{ e.target.value = formatDOB_DDMMYYYY(e.target.value); sync(); });
+
+  // DOB: allow flexible entry while typing, normalize on blur
   $("dob").addEventListener("blur", ()=>{
-    const v = $("dob").value.trim();
-    if(v && !isValidDOB_DDMMYYYY(v)){
+    const before = $("dob").value.trim();
+    const norm = normalizeDOB_DDMMYYYY(before);
+    $("dob").value = norm;
+    const p = activePatient(); if(!p) return;
+    p.state.dob = norm;
+    if(norm && !isValidDOB_DDMMYYYY(norm)){
       modal.open("DOB format", `Please enter DOB as <b>DD/MM/YYYY</b> (example: 26/01/1970).`);
     }
+    if(!p.isDraft) savePatients();
+    renderAllVisual(false);
   });
+  $("dob").addEventListener("input", ()=>{}); // keep free typing
 
   $("providerNotes").addEventListener("focus", ()=>{
     const ta = $("providerNotes");
@@ -2623,7 +2892,10 @@ function hookEvents(){
   });
   $("btnCopyRegimen").addEventListener("click", copyRegimenToVisible);
 
-  // ✅ On-demand apply recommendation
+  // FIXED: Apply regimen forward
+  $("btnApplyRegimenForward").addEventListener("click", applyRegimenForwardFromButton);
+
+  // On-demand apply recommendation
   $("btnGetRec").addEventListener("click", ()=>{
     const p = activePatient(); if(!p) return;
     const fixed = formatInrOneDecimal($("inrToday").value);
@@ -2639,6 +2911,7 @@ function hookEvents(){
 
   // Maintenance buttons
   $("btnGenMaint").addEventListener("click", generateMaintenanceOption);
+  $("btnGenTarget").addEventListener("click", generateTargetByDate);
   $("btnApplyMaint").addEventListener("click", applyMaintenanceForward);
   $("btnHideMaint").addEventListener("click", ()=>{
     $("maintBox").style.display="none";
@@ -2647,7 +2920,6 @@ function hookEvents(){
     $("maintDetails").innerHTML = "";
   });
   $("maintStart").addEventListener("input", (e)=>{
-    // light formatting MM/DD/YYYY
     const v = (e.target.value||"").replace(/[^\d]/g,"").slice(0,8);
     if(v.length<=2) e.target.value = v;
     else if(v.length<=4) e.target.value = v.slice(0,2)+"/"+v.slice(2);
@@ -2664,8 +2936,8 @@ function hookEvents(){
     s.dob = "15/01/1950";
     s.phone = "(818) 555-1234";
     s.mrn = "123456";
-    s.wt = "78";
-    s.ht = "170";
+    s.wt = "78"; s.wtUnit = "kg";
+    s.ht = "170"; s.htUnit = "cm";
     s.crcl = "55";
     s.tablets = [2.5,5];
     s.targetRange = "2.0-3.0";
@@ -2678,7 +2950,6 @@ function hookEvents(){
     s.interactions = ["amio"];
     s.calAnchorOffsetDays = 0;
 
-    // create initial phase starting long ago
     s.regimen = {0:7.5,1:7.5,2:7.5,3:7.5,4:7.5,5:7.5,6:7.5};
     s.regimenPhases = [{startIso:"1900-01-01", regimen:Object.assign({}, s.regimen)}];
 
@@ -2700,16 +2971,6 @@ function hookEvents(){
     bindInputs();
     renderAllVisual(true);
   });
-}
-
-/* ---- render all (visual only; no calendar auto-writing) ---- */
-function renderAllVisual(forceRecenterCalendar){
-  renderCalendar(!!forceRecenterCalendar);
-  renderKPIs();
-  renderVerbal();
-  renderBridging();
-  renderInteractions();
-  renderPrintPack();
 }
 
 /* ---- init ---- */
