@@ -747,33 +747,34 @@ function formatInrOneDecimal(valOrStr){
 function clamp(x,a,b){ return Math.max(a, Math.min(b,x)); }
 
 /* =========================
-   DOB normalization (DD/MM/YYYY)
+   DOB normalization (MM/DD/YYYY)
    - accepts flexible input:
-     1/2/84, 01-02-84, 010284, 1 2 1984
+     1/26/84, 01-26-84, 012684, 1 26 1984
    - 2-digit year => 4-digit (pivot 50 => 1950-1999, else 2000-2049)
+   - auto-inserts / while typing (handled in events below)
    ========================= */
-function normalizeDOB_DDMMYYYY(raw){
+function normalizeDOB_MMDYYYY(raw){
   if(!raw) return "";
   let s = String(raw).trim();
 
   // normalize separators
   s = s.replace(/[.\-\s]+/g,"/");
 
-  // pure digits DDMMYY or DDMMYYYY
+  // pure digits MMDDYY or MMDDYYYY
   if(/^\d{6,8}$/.test(s)){
-    const dd = s.slice(0,2), mm = s.slice(2,4), yy = s.slice(4);
-    s = `${dd}/${mm}/${yy}`;
+    const mm = s.slice(0,2), dd = s.slice(2,4), yy = s.slice(4);
+    s = `${mm}/${dd}/${yy}`;
   }
 
   const parts = s.split("/").filter(Boolean);
   if(parts.length !== 3) return raw;
 
-  let [d,m,y] = parts.map(x=>x.trim());
+  let [m,d,y] = parts.map(x=>x.trim());
   d = d.replace(/\D/g,""); m = m.replace(/\D/g,""); y = y.replace(/\D/g,"");
   if(!d || !m || !y) return raw;
 
-  if(d.length === 1) d = "0"+d;
   if(m.length === 1) m = "0"+m;
+  if(d.length === 1) d = "0"+d;
 
   if(y.length === 2){
     const yy = parseInt(y,10);
@@ -782,24 +783,24 @@ function normalizeDOB_DDMMYYYY(raw){
   }
   if(y.length !== 4) return raw;
 
-  const dd = parseInt(d,10), mm = parseInt(m,10), yyyy = parseInt(y,10);
+  const mm = parseInt(m,10), dd = parseInt(d,10), yyyy = parseInt(y,10);
   if(!(mm>=1 && mm<=12 && dd>=1 && dd<=31 && yyyy>=1900 && yyyy<=2100)) return raw;
 
   const dt = new Date(yyyy, mm-1, dd);
   if(dt.getFullYear()!==yyyy || (dt.getMonth()+1)!==mm || dt.getDate()!==dd) return raw;
 
-  return `${pad2(dd)}/${pad2(mm)}/${yyyy}`;
+  return `${pad2(mm)}/${pad2(dd)}/${yyyy}`;
 }
-function isValidDOB_DDMMYYYY(dmy){
-  if(!/^\d{2}\/\d{2}\/\d{4}$/.test(dmy)) return false;
-  const [dd,mm,yy] = dmy.split("/").map(Number);
+function isValidDOB_MMDYYYY(mdy){
+  if(!/^\d{2}\/\d{2}\/\d{4}$/.test(mdy)) return false;
+  const [mm,dd,yy] = mdy.split("/").map(Number);
   if(mm<1||mm>12||dd<1||dd>31||yy<1900||yy>2100) return false;
   const d = new Date(yy, mm-1, dd);
   return d.getFullYear()===yy && (d.getMonth()+1)===mm && d.getDate()===dd;
 }
-function getAgeYearsFromDmy(dmy){
-  if(!isValidDOB_DDMMYYYY(dmy)) return null;
-  const [dd,mm,yy] = dmy.split("/").map(Number);
+function getAgeYearsFromMdy(mdy){
+  if(!isValidDOB_MMDYYYY(mdy)) return null;
+  const [mm,dd,yy] = mdy.split("/").map(Number);
   const dob = new Date(yy,mm-1,dd);
   const today = new Date();
   let age = today.getFullYear()-dob.getFullYear();
