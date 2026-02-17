@@ -2575,7 +2575,13 @@ function renderPrintPack(){
 
 /* ---- Save / Delete / Clear / Search ---- */
 function currentMetaFromUI(){
-  return { ptName: $("ptName").value.trim(), dob: $("dob").value.trim(), phone: $("phone").value.trim(), mrn: $("mrn").value.trim() };
+  return {
+    ptName: $("ptName").value.trim(),
+    dob: $("dob").value.trim(),
+    gender: ($("gender").value || "").trim(),
+    phone: $("phone").value.trim(),
+    mrn: $("mrn").value.trim()
+  };
 }
 function saveFlow(){
   const meta = currentMetaFromUI();
