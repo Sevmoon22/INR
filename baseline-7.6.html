@@ -2414,7 +2414,7 @@ function renderVerbal(){
   const repDate = fromIso(repIso);
 
   const pt = s.ptName ? `<b>${escapeHtml(s.ptName)}</b>: ` : "";
-  const age = getAgeYearsFromDmy(s.dob);
+const age = getAgeYearsFromMdy(s.dob);
   const ageTxt = isFinite(age) ? ` <span class="small">Age: <b>${age}</b>.</span>` : "";
 
   let intxLine = "";
