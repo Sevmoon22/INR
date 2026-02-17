@@ -2787,7 +2787,7 @@ function hookEvents(){
     renderAllVisual(false);
   };
 
-  ["ptName","crcl","mrn","targetRange","customL","customH","inrToday","bridgeNeed","bridgeAgent","bridgeInd","enoxFreq","applyBeyondRepeat"]
+  ["ptName","gender","crcl","mrn","targetRange","customL","customH","inrToday","bridgeNeed","bridgeAgent","bridgeInd","enoxFreq","applyBeyondRepeat"]
     .forEach(id=> $(id).addEventListener("input", sync));
 
   $("wt").addEventListener("blur", ()=>{
