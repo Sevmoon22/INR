@@ -1052,11 +1052,32 @@ function makePatientId(meta){
   const ph = (meta.phone||"").trim();
   return `P:${nm}|${dob}|${ph}`.replace(/\s+/g," ");
 }
+function digitsOnly(s){ return String(s||"").replace(/\D/g,""); }
+
 function matchesPatient(p, q){
-  const qq = normalizeForSearch(q);
-  if(!qq) return false;
-  const blob = [p.id, p.meta?.ptName, p.meta?.dob, p.meta?.phone, p.meta?.mrn].map(normalizeForSearch).join(" | ");
-  return blob.includes(qq);
+  const raw = String(q||"").trim();
+  if(raw.length < 2) return false;
+
+  // text-based search (your original behavior)
+  const qq = normalizeForSearch(raw);
+  const blobText = [p.id, p.meta?.ptName, p.meta?.dob, p.meta?.gender, p.meta?.phone, p.meta?.mrn]
+    .map(normalizeForSearch)
+    .join(" | ");
+
+  if(qq && blobText.includes(qq)) return true;
+
+  // digit-only search (DOB/phone/MRN)
+  const qDigits = digitsOnly(raw);
+  if(qDigits.length < 2) return false;
+
+  const blobDigits = digitsOnly([
+    p.id,
+    p.meta?.dob,
+    p.meta?.phone,
+    p.meta?.mrn
+  ].join(" "));
+
+  return blobDigits.includes(qDigits);
 }
 
 /* ---- regimen phases ---- */
