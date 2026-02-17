@@ -330,9 +330,21 @@
           <input id="ptName" placeholder="Last, First" />
         </div>
         <div class="field" style="width:150px">
-          <label>DOB (DD/MM/YYYY)</label>
-          <input id="dob" placeholder="26/01/1970" inputmode="numeric" />
-        </div>
+  <label>DOB (MM/DD/YYYY)</label>
+  <input id="dob" placeholder="01/26/1970" inputmode="numeric" maxlength="10" />
+</div>
+
+<div class="field" style="width:130px">
+  <label>Gender</label>
+  <select id="gender">
+    <option value=""></option>
+    <option value="Female">Female</option>
+    <option value="Male">Male</option>
+    <option value="Nonbinary">Nonbinary</option>
+    <option value="Other">Other</option>
+    <option value="Unknown">Unknown</option>
+  </select>
+</div>
         <div class="field" style="width:170px">
           <label>Phone</label>
           <input id="phone" placeholder="(###) ###-####" inputmode="tel" />
