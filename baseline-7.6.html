@@ -2818,18 +2818,28 @@ function hookEvents(){
   $("phone").addEventListener("input", (e)=>{ e.target.value = formatPhone(e.target.value); sync(); });
 
   // DOB: allow flexible entry while typing, normalize on blur
-  $("dob").addEventListener("blur", ()=>{
-    const before = $("dob").value.trim();
-    const norm = normalizeDOB_DDMMYYYY(before);
-    $("dob").value = norm;
-    const p = activePatient(); if(!p) return;
-    p.state.dob = norm;
-    if(norm && !isValidDOB_DDMMYYYY(norm)){
-      modal.open("DOB format", `Please enter DOB as <b>DD/MM/YYYY</b> (example: 26/01/1970).`);
-    }
-    if(!p.isDraft) savePatients();
-    renderAllVisual(false);
-  });
+  // DOB: auto-slash as MM/DD/YYYY while typing, normalize on blur, 2-digit year => 4-digit
+$("dob").addEventListener("input", (e)=>{
+  const digits = (e.target.value || "").replace(/[^\d]/g,"").slice(0,8); // MMDDYYYY max
+  if(digits.length <= 2) e.target.value = digits;
+  else if(digits.length <= 4) e.target.value = digits.slice(0,2) + "/" + digits.slice(2);
+  else e.target.value = digits.slice(0,2) + "/" + digits.slice(2,4) + "/" + digits.slice(4);
+});
+
+$("dob").addEventListener("blur", ()=>{
+  const before = $("dob").value.trim();
+  const norm = normalizeDOB_MMDYYYY(before);
+  $("dob").value = norm;
+
+  const p = activePatient(); if(!p) return;
+  p.state.dob = norm;
+
+  if(norm && !isValidDOB_MMDYYYY(norm)){
+    modal.open("DOB format", `Please enter DOB as <b>MM/DD/YYYY</b> (example: 01/26/1970).`);
+  }
+  if(!p.isDraft) savePatients();
+  renderAllVisual(false);
+});
   $("dob").addEventListener("input", ()=>{}); // keep free typing
 
   $("providerNotes").addEventListener("focus", ()=>{
