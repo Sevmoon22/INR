@@ -1,0 +1,3034 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="format-detection" content="telephone=no" />
+<title>ThromboLogic INR</title>
+
+<style>
+  :root{
+    --blue:#eaf3ff; --blue-ring:rgba(13,110,253,.25);
+    --ylw:#fffef0; --man:#ffe79a; --man-b:#ffc857;
+    --card:#fafafa; --border:#e6e6e6; --muted:#666;
+    --warn-bg:#fff7e6; --warn-b:#ffe2ad;
+    --crit-bg:#fff0f2; --crit-b:#ffd0d7;
+
+    --today-strong-bg:#cfe2ff;
+    --today-strong-b:#5aa2ff;
+
+    --repeat-strong-bg:#ffd66a;
+    --repeat-strong-b:#ff9f0a;
+
+    --shadow:0 10px 24px rgba(0,0,0,.05);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    margin:0; color:#111; background:#fff;
+    overflow:hidden;
+  }
+
+  h1{font-size:18px;margin:0 0 6px}
+  h2{font-size:14px;margin:12px 0 6px}
+  .small{font-size:12px;color:var(--muted)}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+
+  .app{height:100vh;display:flex;flex-direction:column;min-width:0}
+
+  .topbar{
+    flex:0 0 auto;
+    padding:10px 12px;
+    border-bottom:1px solid var(--border);
+    background:#fff;
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:12px;
+  }
+  .topbar .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-end}
+
+  .btn{
+    font:inherit;
+    border-radius:999px;
+    border:1px solid var(--border);
+    padding:6px 10px;
+    background:#fff;
+    cursor:pointer;
+    user-select:none;
+  }
+  .btn.primary{background:#0d6efd;color:#fff;border-color:#0b5ed7}
+  .btn.secondary{background:#fff;color:#0d6efd;border-color:#cfe2ff}
+  .btn.ghost{background:transparent;color:#111}
+  .btn.danger{background:#b00020;color:#fff;border-color:#8d001a}
+  .btn:active{transform:translateY(1px)}
+
+  .btn.unit{
+    padding:7px 10px;
+    border-radius:10px;
+    font-weight:800;
+    border:1px solid var(--border);
+    background:#fff;
+    min-width:54px;
+  }
+
+  .main{
+    flex:1 1 auto;
+    min-height:0;
+    display:grid;
+    grid-template-columns:1fr;
+    gap:10px;
+    padding:10px;
+    max-width:100vw;
+    overflow:hidden;
+  }
+  @media (min-width: 980px){
+    .main{
+      grid-template-columns: minmax(360px, 0.85fr) minmax(520px, 1.15fr);
+      align-items: stretch;
+    }
+    .leftScroll{ grid-column: 1; }
+    #calendarCard{ grid-column: 2; }
+  }
+
+  .card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:10px;
+    box-shadow:var(--shadow);
+    min-width:0;
+    min-height:0;
+  }
+  .leftScroll{overflow:auto;max-height:100%; min-height:0}
+
+  .row{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end}
+  .field{display:flex;flex-direction:column;gap:4px;min-width:0}
+  .field label{font-size:11px;color:var(--muted)}
+  input, select, textarea{
+    font:inherit;
+    border-radius:10px;
+    border:1px solid var(--border);
+    padding:7px 9px;
+    background:#fff;
+    outline:none;
+    min-width:0;
+  }
+  input:focus, select:focus, textarea:focus{
+    border-color:#0d6efd;
+    box-shadow:0 0 0 4px var(--blue-ring);
+  }
+  textarea{min-height:84px;resize:vertical}
+  .sep{height:1px;background:var(--border);margin:10px 0}
+
+  .tabs{display:flex;gap:8px;flex-wrap:wrap}
+  .tab{
+    padding:6px 10px;border-radius:999px;border:1px solid var(--border);
+    background:#fff;cursor:pointer;font-size:12px
+  }
+  .tab.active{background:var(--blue);border-color:#cfe2ff;color:#0d6efd}
+  .hint{font-size:12px;color:var(--muted);margin-top:6px}
+
+  .kpi{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .kpi .box{background:#fff;border:1px solid var(--border);border-radius:12px;padding:10px}
+  .kpi .big{font-size:16px;font-weight:800}
+  .kpi .sub{font-size:12px;color:var(--muted)}
+
+  #regimenRow{
+    flex-wrap:nowrap !important;
+    overflow-x:auto;
+    overflow-y:hidden;
+    padding-bottom:4px;
+    gap:6px !important;
+    -webkit-overflow-scrolling:touch;
+  }
+  #regimenRow .field{
+    flex:0 0 66px !important;
+    min-width:66px !important;
+  }
+
+  /* Calendar */
+  .cal-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+  .cal-controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+  .cal-scroll{
+    overflow:auto;
+    border-radius:12px;
+    border:1px solid var(--border);
+    background:#fff;
+    padding:8px;
+    margin-top:8px;
+    height:calc(100vh - 230px);
+    -webkit-overflow-scrolling:touch;
+  }
+
+  .cal-grid{
+    display:grid;
+    grid-template-columns:repeat(7, minmax(92px, 1fr));
+    gap:6px;
+    min-width:780px;
+  }
+
+  .dow{font-size:11px;color:var(--muted);text-align:center}
+
+  .day{
+    background:#fff;border:1px solid var(--border);border-radius:12px;
+    padding:6px;min-height:84px;display:flex;flex-direction:column;gap:5px;
+    overflow:hidden;
+  }
+
+  .day .date{display:flex;justify-content:space-between;align-items:center;font-size:11px}
+  .badge{font-size:10px;padding:2px 6px;border-radius:999px;border:1px solid var(--border);color:#333;background:#f7f7f7}
+
+  .badge.today{background:var(--today-strong-bg);border-color:var(--today-strong-b);color:#0b5ed7;font-weight:800}
+  .badge.repeat{background:var(--repeat-strong-bg);border-color:var(--repeat-strong-b);color:#5c3b00;font-weight:800}
+
+  .mini{display:grid;grid-template-columns:1fr;gap:5px}
+  .mini input{
+    padding:5px 7px;
+    font-size:12px;
+    border-radius:10px;
+    width:100%;
+    max-width:100%;
+    font-weight:900;
+    color:#000;
+  }
+
+  .band-warn{background:var(--warn-bg);border-color:var(--warn-b)}
+  .band-crit{background:var(--crit-bg);border-color:var(--crit-b)}
+
+  .todayCell{
+    background:var(--today-strong-bg) !important;
+    border-color:var(--today-strong-b) !important;
+    border-width:2px !important;
+    box-shadow:0 0 0 4px rgba(13,110,253,.16) inset;
+  }
+  .repeatCell{
+    background:var(--repeat-strong-bg) !important;
+    border-color:var(--repeat-strong-b) !important;
+    border-width:2px !important;
+    box-shadow:0 0 0 4px rgba(255,159,10,.18) inset;
+  }
+
+  .patientLead{font-size:14px;line-height:1.35;margin:2px 0 8px;}
+  .patientLead b{font-weight:900}
+
+  .predLine{
+    margin-top:6px;
+    padding:8px 10px;
+    border-radius:12px;
+    border:1px solid var(--border);
+    background:#fff;
+    font-size:13px;
+  }
+
+  .planTable{
+    width:100%;
+    border-collapse:separate;
+    border-spacing:0;
+    overflow:hidden;
+    border-radius:12px;
+    border:1px solid var(--border);
+    background:#fff;
+    margin-top:8px;
+    font-size:13px;
+  }
+  .planTable th,.planTable td{
+    padding:8px 10px;
+    border-bottom:1px solid var(--border);
+    vertical-align:top;
+  }
+  .planTable th{background:var(--blue);text-align:left;font-size:12px;color:#0d6efd}
+  .planTable tr:last-child td{border-bottom:none}
+
+  .pillNote{
+    margin-top:8px;
+    padding:8px 10px;
+    border-radius:12px;
+    border:1px dashed #cfe2ff;
+    background:#f8fbff;
+    font-size:12px;
+    color:#234;
+  }
+
+  .optBox{
+    margin-top:8px;
+    padding:10px;
+    border-radius:12px;
+    border:1px solid var(--border);
+    background:#fff;
+  }
+
+  /* modal */
+  .modal-backdrop{
+    position:fixed;inset:0;background:rgba(0,0,0,.35);
+    display:none;align-items:center;justify-content:center;padding:16px;z-index:9999;
+  }
+  .modal{max-width:620px;width:100%;background:#fff;border-radius:16px;border:1px solid var(--border);box-shadow:0 20px 60px rgba(0,0,0,.25);padding:14px}
+  .modal h3{margin:0 0 6px;font-size:15px}
+  .modal .actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px;flex-wrap:wrap}
+
+  /* Print rules */
+  .print-only{display:none}
+  @media print{
+    body{margin:0;overflow:visible}
+    .no-print{display:none !important}
+    .card{box-shadow:none}
+    #calendarCard{display:none !important}
+    .print-only{display:block !important}
+    .main{display:block; padding:0}
+    .leftScroll{overflow:visible}
+    .app{height:auto}
+  }
+</style>
+</head>
+
+<body>
+<div class="app">
+
+  <!-- TOPBAR -->
+  <div class="topbar no-print">
+    <div style="display:flex; align-items:center; gap:14px; margin:0 0 6px 0; min-width:0;">
+      <img src="ThromboLogic INR Logo Design.png" alt="ThromboLogic INR Logo" style="height:80px; width:auto;">
+      <div style="display:flex; flex-direction:column; line-height:1.1; min-width:0;">
+        <span style="font-size:26px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">ThromboLogic</span>
+        <span style="font-size:16px; font-weight:600;">INR</span>
+        <span class="small" style="margin-top:4px;">Baseline v7.6.1 (INR-ALT • UCLA-prioritized • regimen phases • on-demand recommendations • unit toggles • DOB normalize)</span>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn secondary" id="btnDemo">Load demo history</button>
+      <button class="btn ghost" id="btnClear">Clear all</button>
+      <button class="btn primary" id="btnPrint">Print / PDF</button>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- LEFT -->
+    <div class="card leftScroll">
+      <h1>Patient & INR entry</h1>
+
+      <div class="row no-print">
+        <div class="field" style="min-width:220px;flex:1">
+          <label>Search (name, DOB, gender, phone, MRN)</label>
+          <input id="ptSearch" placeholder="Type at least 2 characters…" autocomplete="off" />
+        </div>
+        <button class="btn ghost" id="btnSearch">Search</button>
+        <button class="btn secondary" id="btnSavePt">Save</button>
+        <button class="btn danger" id="btnDeletePt">Delete</button>
+      </div>
+      <div class="results no-print" id="searchResults" style="display:none;margin-top:8px;border:1px solid var(--border);border-radius:12px;background:#fff;overflow:auto;max-height:220px"></div>
+
+      <div class="row" style="margin-top:10px">
+        <div class="field" style="min-width:220px;flex:1">
+          <label>Patient name</label>
+          <input id="ptName" placeholder="Last, First" />
+        </div>
+        <div class="field" style="width:150px">
+          <label>DOB (MM/DD/YYYY)</label>
+          <input id="dob" placeholder="01/26/1970" inputmode="numeric" maxlength="10" />
+        </div>
+
+        <div class="field" style="width:130px">
+          <label>Gender</label>
+          <select id="gender">
+            <option value=""></option>
+            <option value="Female">Female</option>
+            <option value="Male">Male</option>
+            <option value="Nonbinary">Nonbinary</option>
+            <option value="Other">Other</option>
+            <option value="Unknown">Unknown</option>
+          </select>
+        </div>
+        <div class="field" style="width:170px">
+          <label>Phone</label>
+          <input id="phone" placeholder="(###) ###-####" inputmode="tel" />
+        </div>
+        <div class="field" style="width:140px">
+          <label>MRN</label>
+          <input id="mrn" placeholder="MRN" inputmode="numeric" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="field" style="width:130px">
+          <label id="wtLabel">Weight</label>
+          <div class="row" style="gap:6px;align-items:center">
+            <input id="wt" inputmode="decimal" placeholder="e.g., 72" style="flex:1;min-width:0" />
+            <button type="button" class="btn unit" id="wtUnit">kg</button>
+          </div>
+        </div>
+
+        <div class="field" style="width:140px">
+          <label id="htLabel">Height</label>
+          <div class="row" style="gap:6px;align-items:center">
+            <input id="ht" inputmode="decimal" placeholder="e.g., 170" style="flex:1;min-width:0" />
+            <button type="button" class="btn unit" id="htUnit">cm</button>
+          </div>
+        </div>
+
+        <div class="field" style="width:130px">
+          <label>BMI (auto)</label>
+          <input id="bmi" placeholder="—" readonly />
+        </div>
+        <div class="field" style="width:150px">
+          <label>CrCl (mL/min)</label>
+          <input id="crcl" inputmode="decimal" placeholder="e.g., 55" />
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <h2 style="margin-top:0">Weekly maintenance regimen (mg)</h2>
+      <div class="small">
+        The regimen shown is the <b>current maintenance phase</b>. You can copy it to the <b>visible</b> calendar window, or generate a new phase forward.
+      </div>
+      <div class="row" id="regimenRow" style="margin-top:8px"></div>
+
+      <div class="row no-print" style="justify-content:flex-end;margin-top:8px">
+        <button class="btn ghost" id="btnClearRegimen">Clear regimen</button>
+        <button class="btn primary" id="btnCopyRegimen">Copy regimen to calendar (visible)</button>
+      </div>
+
+      <div class="row no-print" style="justify-content:flex-end;margin-top:8px;gap:8px">
+        <div class="field" style="width:180px">
+          <label>New regimen start date</label>
+          <input id="regStartDate" type="date" />
+        </div>
+        <button class="btn secondary" id="btnApplyRegimenForward">Apply new regimen forward</button>
+      </div>
+      <div class="hint no-print">
+        “Apply new regimen forward” saves this regimen as a new phase starting on the chosen date (history preserved).
+      </div>
+
+      <div class="sep"></div>
+
+      <div class="tabs no-print" id="tabs">
+        <button class="tab active" data-tab="rec">Recommendation</button>
+        <button class="tab" data-tab="bridge">Bridging</button>
+        <button class="tab" data-tab="interact">Interactions</button>
+        <button class="tab" data-tab="notes">Provider notes</button>
+      </div>
+
+      <!-- Recommendation -->
+      <div id="tab-rec">
+        <div class="row">
+          <div class="field" style="width:160px">
+            <label>Target INR range</label>
+            <select id="targetRange">
+              <option value="2.0-3.0" selected>2.0–3.0 (default)</option>
+              <option value="2.5-3.5">2.5–3.5</option>
+              <option value="1.8-2.5">1.8–2.5</option>
+              <option value="custom">Custom…</option>
+            </select>
+          </div>
+
+          <div class="field" id="customRangeWrap" style="display:none;width:200px">
+            <label>Custom target (L–H)</label>
+            <div class="row" style="gap:8px">
+              <input id="customL" style="width:84px" inputmode="decimal" placeholder="L" />
+              <input id="customH" style="width:84px" inputmode="decimal" placeholder="H" />
+            </div>
+          </div>
+
+          <div class="field" style="min-width:220px;flex:1">
+            <label>Current INR (today)</label>
+            <input id="inrToday" inputmode="decimal" placeholder="e.g., 2.0" />
+          </div>
+
+          <div class="field no-print" style="width:190px">
+            <label>&nbsp;</label>
+            <button class="btn primary" id="btnGetRec" title="Recalculate + apply today/tomorrow calendar recommendation">
+              Get recommendation
+            </button>
+          </div>
+        </div>
+
+        <div class="sep"></div>
+
+        <label class="no-print" style="display:flex;align-items:center;gap:8px;font-size:12px;color:#111">
+          <input type="checkbox" id="applyBeyondRepeat">
+          Also adjust <b>tomorrow</b> (max scope = today + tomorrow)
+        </label>
+        <div class="hint no-print">Default OFF: recommendation only changes <b>today</b>. Holds (if any) may also set <b>tomorrow</b> to 0.</div>
+
+        <div class="sep"></div>
+
+        <h2 style="margin:0 0 6px">Warfarin tablets on hand</h2>
+        <div class="small">Select strengths available (½ tablets allowed). <b>No defaults</b> — select what the patient has.</div>
+        <div id="pillBox" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;padding:8px;background:#fff;border:1px solid var(--border);border-radius:12px"></div>
+
+        <div class="sep"></div>
+
+        <div class="kpi">
+          <div class="box">
+            <div class="big" id="kpiWeekly">—</div>
+            <div class="sub">7-day total dose (mg)</div>
+          </div>
+          <div class="box">
+            <div class="big" id="kpiWeighted">—</div>
+            <div class="sub">Lag-weighted dose (mg)</div>
+          </div>
+        </div>
+
+        <div class="sep"></div>
+
+        <!-- Maintenance optimization -->
+        <div class="optBox no-print">
+          <h2 style="margin:0 0 6px">Maintenance regimen optimization (history-based)</h2>
+          <div class="small">
+            If the patient is persistently out of range (labile), generate a <b>new maintenance regimen phase</b> using the patient’s dose–response history.
+            Default target = <b>midpoint</b> of the selected INR range.
+          </div>
+
+          <div class="row" style="margin-top:10px;align-items:flex-end">
+            <button class="btn secondary" id="btnGenMaint">Generate maintenance option</button>
+
+            <div class="field" style="width:140px">
+              <label>Target INR (optional)</label>
+              <input id="targetInrOne" inputmode="decimal" placeholder="e.g., 2.2" />
+            </div>
+
+            <div class="field" style="width:190px">
+              <label>Target date (optional)</label>
+              <input id="targetInrDate" type="date" />
+            </div>
+
+            <button class="btn ghost" id="btnGenTarget">Target INR by date</button>
+
+            <div class="field" style="min-width:200px;flex:1">
+              <label>Result</label>
+              <input id="maintSummary" readonly placeholder="—" />
+            </div>
+          </div>
+
+          <div class="hint" style="margin-top:6px">
+            “Target INR by date” uses your patient’s regimen→INR response curve (if enough history exists). If limited history, it anchors to the current INR/dose point and stays conservative.
+          </div>
+
+          <div id="maintBox" style="display:none;margin-top:10px">
+            <div class="small" id="maintDetails" style="line-height:1.35;color:#111"></div>
+
+            <div class="row" style="margin-top:10px;align-items:center">
+              <div class="field" style="width:170px">
+                <label>Apply new regimen starting</label>
+                <input id="maintStart" inputmode="numeric" placeholder="MM/DD/YYYY" />
+              </div>
+              <button class="btn primary" id="btnApplyMaint">Apply regimen forward</button>
+              <button class="btn ghost" id="btnHideMaint">Hide</button>
+            </div>
+            <div class="hint">This creates a new regimen <b>phase</b> (history preserved). It does not overwrite past regimen phases.</div>
+          </div>
+        </div>
+
+        <div class="card" style="background:#fff">
+          <h2 style="margin-top:0">Verbal recommendation</h2>
+          <div id="verbal" class="small" style="font-size:13px;color:#111;line-height:1.35"></div>
+          <div class="hint" id="repeatLine"></div>
+        </div>
+      </div>
+
+      <!-- Bridging -->
+      <div id="tab-bridge" style="display:none">
+        <h2 style="margin-top:10px">Bridging requirement</h2>
+        <div class="row">
+          <div class="field" style="min-width:240px;flex:1">
+            <label>Bridging</label>
+            <select id="bridgeNeed">
+              <option value="no" selected>No bridging</option>
+              <option value="yes">Bridging required</option>
+            </select>
+          </div>
+          <div class="field" style="min-width:240px;flex:1">
+            <label>Agent</label>
+            <select id="bridgeAgent" disabled>
+              <option value="enox" selected>Enoxaparin</option>
+              <option value="fonda">Fondaparinux</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="bridgeBox" style="display:none">
+          <div class="sep"></div>
+          <div class="row">
+            <div class="field" style="min-width:200px;flex:1">
+              <label>Indication note (optional)</label>
+              <input id="bridgeInd" placeholder="e.g., peri-procedural, mechanical valve, VTE..." />
+            </div>
+            <div class="field" style="width:210px">
+              <label>Dosing frequency (enox)</label>
+              <select id="enoxFreq">
+                <option value="q12" selected>1 mg/kg q12h</option>
+                <option value="daily">1.5 mg/kg daily</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="card" style="background:#fff;margin-top:10px">
+            <div id="bridgeText" style="font-size:13px;line-height:1.35"></div>
+            <div class="hint">Rounding rule: doses ending in <b>5 mg round down</b> to nearest 10; if ending >5, <b>round up</b> to nearest 10.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Interactions -->
+      <div id="tab-interact" style="display:none">
+        <h2 style="margin-top:10px">Warfarin interaction check</h2>
+        <div class="hint">Interactions can pull the repeat INR earlier.</div>
+        <div class="row" style="margin-top:8px">
+          <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:6px 10px;border-radius:999px;background:var(--blue);border:1px solid #d7e7ff">
+            <input type="checkbox" class="intx" value="amio"> Amiodarone
+          </label>
+          <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:6px 10px;border-radius:999px;background:var(--blue);border:1px solid #d7e7ff">
+            <input type="checkbox" class="intx" value="tmp"> TMP-SMX
+          </label>
+          <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:6px 10px;border-radius:999px;background:var(--blue);border:1px solid #d7e7ff">
+            <input type="checkbox" class="intx" value="metro"> Metronidazole
+          </label>
+          <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:6px 10px;border-radius:999px;background:var(--blue);border:1px solid #d7e7ff">
+            <input type="checkbox" class="intx" value="fluc"> Fluconazole/azole
+          </label>
+          <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:6px 10px;border-radius:999px;background:var(--blue);border:1px solid #d7e7ff">
+            <input type="checkbox" class="intx" value="rif"> Rifampin
+          </label>
+          <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:6px 10px;border-radius:999px;background:var(--blue);border:1px solid #d7e7ff">
+            <input type="checkbox" class="intx" value="pheny"> Phenytoin
+          </label>
+        </div>
+        <div class="card" style="background:#fff;margin-top:10px">
+          <div id="intxText" style="font-size:13px;line-height:1.35"></div>
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div id="tab-notes" style="display:none">
+        <h2 style="margin-top:10px">Provider notes</h2>
+        <textarea id="providerNotes">Click here to type provider notes before printing.</textarea>
+        <div class="hint">Tip: This prints with the PDF. The placeholder clears on first typing.</div>
+      </div>
+
+      <div class="sep"></div>
+      <div class="small mono" id="versionStamp" style="text-align:right;opacity:.75">—</div>
+    </div>
+
+    <!-- RIGHT (calendar) -->
+    <div class="card" id="calendarCard">
+      <div class="cal-head">
+        <div>
+          <h1 style="margin:0">Dosing calendar</h1>
+          <div class="small">Scroll up/down indefinitely. Calendar is updated only when you click <b>Get recommendation</b>.</div>
+        </div>
+        <div class="cal-controls no-print">
+          <button class="btn ghost" id="btnToday">Today</button>
+        </div>
+      </div>
+
+      <div class="cal-scroll" id="calScroll">
+        <div class="cal-grid" id="dowRow">
+          <div class="dow">Sun</div><div class="dow">Mon</div><div class="dow">Tue</div><div class="dow">Wed</div><div class="dow">Thu</div><div class="dow">Fri</div><div class="dow">Sat</div>
+        </div>
+        <div class="cal-grid" id="cal" style="margin-top:6px"></div>
+      </div>
+
+      <div class="sep"></div>
+      <div class="small">
+        <b>Out of range</b> is light orange; <b>critical</b> is red; <b>today</b> is bold blue; <b>repeat INR</b> is bold yellow.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- PRINT PACK (PDF output) -->
+<div class="print-only" id="printPack" style="padding:14px"></div>
+
+<!-- Modal -->
+<div class="modal-backdrop" id="modal">
+  <div class="modal">
+    <h3 id="modalTitle">Notice</h3>
+    <div id="modalBody" class="small" style="font-size:13px;color:#111;line-height:1.35"></div>
+    <div class="actions" id="modalActions"></div>
+  </div>
+</div>
+
+<script>
+/* =========================
+   ThromboLogic INR — Baseline v7.6.1
+   Added / fixed:
+   1) DOB: DD/MM/YYYY with smart normalization (2-digit year => 4-digit)
+   2) Apply new regimen forward: now works (creates regimen phase from chosen start date)
+   3) Target INR by date: history-based curve (power/log model) with conservative time-to-effect
+   4) Unit toggles: Weight kg↔lb, Height cm↔in (canonical stored in kg/cm for BMI + bridging)
+   ========================= */
+
+const VERSION = "Baseline v7.6.1 (INR-ALT • regimen phases • on-demand reco + maint optimization • DOB normalize • unit toggles • target-by-date)";
+const BUILD_STAMP = new Date();
+
+const DB_KEYS = {
+  PATIENTS: "TL_PATIENTS_V1",
+  ACTIVE: "TL_ACTIVE_PATIENT_ID_V1"
+};
+
+const DRAFT_ID = "__DRAFT__";
+const $ = (id)=>document.getElementById(id);
+
+/* ---- modal ---- */
+const modal = {
+  el: $("modal"),
+  title: $("modalTitle"),
+  body: $("modalBody"),
+  actions: $("modalActions"),
+  open(t,b,buttons){
+    this.title.textContent = t || "Notice";
+    this.body.innerHTML = b || "";
+    this.actions.innerHTML = "";
+    const btns = (buttons && buttons.length) ? buttons : [{label:"Close", cls:"btn secondary", onClick:()=>this.close()}];
+    btns.forEach(def=>{
+      const btn = document.createElement("button");
+      btn.className = def.cls || "btn secondary";
+      btn.textContent = def.label || "Close";
+      btn.onclick = def.onClick || (()=>this.close());
+      this.actions.appendChild(btn);
+    });
+    this.el.style.display = "flex";
+  },
+  close(){ this.el.style.display = "none"; }
+};
+$("modal").addEventListener("click", (e)=>{ if(e.target === $("modal")) modal.close(); });
+
+/* ---- dates ---- */
+function pad2(n){ return String(n).padStart(2,"0"); }
+function isoLocal(d){
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  return `${x.getFullYear()}-${pad2(x.getMonth()+1)}-${pad2(x.getDate())}`;
+}
+function fromIso(iso){
+  const [y,m,dd] = iso.split("-").map(Number);
+  return new Date(y, m-1, dd);
+}
+function addDaysLocal(d, n){
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  x.setDate(x.getDate() + n);
+  return x;
+}
+function fmtMDY(d){ return `${pad2(d.getMonth()+1)}/${pad2(d.getDate())}/${d.getFullYear()}`; }
+function fmtShort(d){ return `${pad2(d.getMonth()+1)}/${pad2(d.getDate())}`; }
+function startOfWeekSun(d){
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  x.setDate(x.getDate() - x.getDay());
+  return x;
+}
+
+/* ---- misc ---- */
+function escapeHtml(s){
+  return String(s||"").replace(/[&<>"']/g, c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+}
+function toNum(x){
+  const v = parseFloat(String(x||"").replace(/[^0-9.\-]/g,""));
+  return isFinite(v) ? v : NaN;
+}
+function normalizeForSearch(s){ return (s||"").toLowerCase().replace(/\s+/g," ").trim(); }
+function fmtDose(x){
+  const n = Number(x);
+  if(!isFinite(n)) return "";
+  const v = Math.round(n*100)/100;
+  return v.toFixed(2).replace(/\.?0+$/,"");
+}
+function formatInrOneDecimal(valOrStr){
+  const n = toNum(valOrStr);
+  if(!isFinite(n)) return "";
+  return (Math.round(n*10)/10).toFixed(1);
+}
+function clamp(x,a,b){ return Math.max(a, Math.min(b,x)); }
+
+/* =========================
+   DOB normalization (MM/DD/YYYY)
+   - accepts flexible input:
+     1/26/84, 01-26-84, 012684, 1 26 1984
+   - 2-digit year => 4-digit (pivot 50 => 1950-1999, else 2000-2049)
+   - auto-inserts / while typing (handled in events below)
+   ========================= */
+function normalizeDOB_MMDYYYY(raw){
+  if(!raw) return "";
+  let s = String(raw).trim();
+
+  // normalize separators
+  s = s.replace(/[.\-\s]+/g,"/");
+
+  // pure digits MMDDYY or MMDDYYYY
+  if(/^\d{6,8}$/.test(s)){
+    const mm = s.slice(0,2), dd = s.slice(2,4), yy = s.slice(4);
+    s = `${mm}/${dd}/${yy}`;
+  }
+
+  const parts = s.split("/").filter(Boolean);
+  if(parts.length !== 3) return raw;
+
+  let [m,d,y] = parts.map(x=>x.trim());
+  d = d.replace(/\D/g,""); m = m.replace(/\D/g,""); y = y.replace(/\D/g,"");
+  if(!d || !m || !y) return raw;
+
+  if(m.length === 1) m = "0"+m;
+  if(d.length === 1) d = "0"+d;
+
+  if(y.length === 2){
+    const yy = parseInt(y,10);
+    const pivot = 50;
+    y = (yy >= pivot ? 1900+yy : 2000+yy).toString();
+  }
+  if(y.length !== 4) return raw;
+
+  const mm = parseInt(m,10), dd = parseInt(d,10), yyyy = parseInt(y,10);
+  if(!(mm>=1 && mm<=12 && dd>=1 && dd<=31 && yyyy>=1900 && yyyy<=2100)) return raw;
+
+  const dt = new Date(yyyy, mm-1, dd);
+  if(dt.getFullYear()!==yyyy || (dt.getMonth()+1)!==mm || dt.getDate()!==dd) return raw;
+
+  return `${pad2(mm)}/${pad2(dd)}/${yyyy}`;
+}
+function isValidDOB_MMDYYYY(mdy){
+  if(!/^\d{2}\/\d{2}\/\d{4}$/.test(mdy)) return false;
+  const [mm,dd,yy] = mdy.split("/").map(Number);
+  if(mm<1||mm>12||dd<1||dd>31||yy<1900||yy>2100) return false;
+  const d = new Date(yy, mm-1, dd);
+  return d.getFullYear()===yy && (d.getMonth()+1)===mm && d.getDate()===dd;
+}
+function getAgeYearsFromMdy(mdy){
+  if(!isValidDOB_MMDYYYY(mdy)) return null;
+  const [mm,dd,yy] = mdy.split("/").map(Number);
+  const dob = new Date(yy,mm-1,dd);
+  const today = new Date();
+  let age = today.getFullYear()-dob.getFullYear();
+  const m = today.getMonth()-dob.getMonth();
+  if(m<0 || (m===0 && today.getDate()<dob.getDate())) age--;
+  return age;
+}
+
+/* ---- phone + BMI ---- */
+function formatPhone(raw){
+  const v = (raw||"").replace(/[^\d]/g,"").slice(0,10);
+  if(!v) return "";
+  if(v.length<=3) return "(" + v;
+  if(v.length<=6) return "(" + v.slice(0,3) + ") " + v.slice(3);
+  return "(" + v.slice(0,3) + ") " + v.slice(3,6) + "-" + v.slice(6);
+}
+function calcBMIkgCm(wtKg, htCm){
+  const w = toNum(wtKg);
+  const h = toNum(htCm);
+  if(!isFinite(w) || w<=0) return NaN;
+  if(!isFinite(h) || h<=0) return NaN;
+  const m = h / 100;
+  const bmi = w / (m*m);
+  return Math.round(bmi*10)/10;
+}
+
+/* =========================
+   Unit toggles (canonical stored as kg/cm)
+   ========================= */
+const KG_PER_LB = 0.45359237;
+const CM_PER_IN = 2.54;
+
+function toKgFromLb(lb){ return lb * KG_PER_LB; }
+function toLbFromKg(kg){ return kg / KG_PER_LB; }
+function toCmFromIn(inch){ return inch * CM_PER_IN; }
+function toInFromCm(cm){ return cm / CM_PER_IN; }
+
+function fmt1(x){ return (Math.round(x*10)/10).toFixed(1); }
+
+function ensureUnits(s){
+  if(!s.wtUnit) s.wtUnit = "kg";
+  if(!s.htUnit) s.htUnit = "cm";
+}
+function readWeightKgFromUI(){
+  const p = activePatient(); if(!p) return NaN;
+  const s = p.state; ensureUnits(s);
+  const v = toNum($("wt").value);
+  if(!isFinite(v) || v<=0) return NaN;
+  return (s.wtUnit === "kg") ? v : toKgFromLb(v);
+}
+function readHeightCmFromUI(){
+  const p = activePatient(); if(!p) return NaN;
+  const s = p.state; ensureUnits(s);
+  const v = toNum($("ht").value);
+  if(!isFinite(v) || v<=0) return NaN;
+  return (s.htUnit === "cm") ? v : toCmFromIn(v);
+}
+function writeWeightUIFromKg(kg){
+  const p = activePatient(); if(!p) return;
+  const s = p.state; ensureUnits(s);
+  if(!isFinite(kg) || kg<=0){ $("wt").value=""; return; }
+  const shown = (s.wtUnit === "kg") ? kg : toLbFromKg(kg);
+  $("wt").value = fmt1(shown).replace(/\.0$/,"");
+}
+function writeHeightUIFromCm(cm){
+  const p = activePatient(); if(!p) return;
+  const s = p.state; ensureUnits(s);
+  if(!isFinite(cm) || cm<=0){ $("ht").value=""; return; }
+  const shown = (s.htUnit === "cm") ? cm : toInFromCm(cm);
+  $("ht").value = fmt1(shown).replace(/\.0$/,"");
+}
+function syncUnitLabels(){
+  const p = activePatient(); if(!p) return;
+  const s = p.state; ensureUnits(s);
+  $("wtUnit").textContent = s.wtUnit;
+  $("htUnit").textContent = s.htUnit;
+  $("wtLabel").textContent = `Weight (${s.wtUnit})`;
+  $("htLabel").textContent = `Height (${s.htUnit})`;
+}
+function toggleWeightUnit(){
+  const p = activePatient(); if(!p) return;
+  const s = p.state; ensureUnits(s);
+
+  // capture current UI to canonical kg
+  const kg = readWeightKgFromUI();
+  if(isFinite(kg)) s.wt = fmtDose(kg);
+
+  s.wtUnit = (s.wtUnit === "kg") ? "lb" : "kg";
+  syncUnitLabels();
+  writeWeightUIFromKg(toNum(s.wt));
+  syncAutoBMI();
+  if(!p.isDraft) savePatients();
+  renderAllVisual(false);
+}
+function toggleHeightUnit(){
+  const p = activePatient(); if(!p) return;
+  const s = p.state; ensureUnits(s);
+
+  const cm = readHeightCmFromUI();
+  if(isFinite(cm)) s.ht = fmtDose(cm);
+
+  s.htUnit = (s.htUnit === "cm") ? "in" : "cm";
+  syncUnitLabels();
+  writeHeightUIFromCm(toNum(s.ht));
+  syncAutoBMI();
+  if(!p.isDraft) savePatients();
+  renderAllVisual(false);
+}
+
+function syncAutoBMI(){
+  const p = activePatient(); if(!p) return;
+  const s = p.state;
+  const bmi = calcBMIkgCm(s.wt, s.ht);
+  if(isFinite(bmi)){
+    s.bmi = bmi.toFixed(1);
+    $("bmi").value = s.bmi;
+  } else {
+    s.bmi = "";
+    $("bmi").value = "";
+  }
+}
+
+/* ---- Tablets ---- */
+const DEFAULT_TABLETS = [1,2,2.5,3,4,5,6,7.5,10];
+
+function tabletsWithHalves(tablets){
+  const tabs = (tablets||[]).map(Number).filter(x=>isFinite(x)&&x>0);
+  const pieces = [];
+  for(const t of tabs){ pieces.push(t); pieces.push(t/2); }
+  const uniq = Array.from(new Set(pieces.map(x=>Math.round(x*100)/100))).filter(x=>x>0).sort((a,b)=>a-b);
+  return uniq;
+}
+function buildAchievableDP(tablets, maxPieces=12, maxDose=20){
+  const pieces = tabletsWithHalves(tablets);
+  if(!pieces.length) return {ok:false, step:0.25, maxTick:0, best:null, prev:null, pieceTick:null, pieces:[]};
+
+  const step = 0.25;
+  const maxTick = Math.round(maxDose/step);
+
+  const pieceTick = pieces.map(p=>Math.round(p/step));
+  const best = new Array(maxTick+1).fill(Infinity);
+  const prev = new Array(maxTick+1).fill(null);
+
+  best[0]=0;
+
+  for(let used=0; used<maxPieces; used++){
+    for(let t=0; t<=maxTick; t++){
+      if(best[t] !== used) continue;
+      for(let i=0;i<pieceTick.length;i++){
+        const nt = t + pieceTick[i];
+        if(nt>maxTick) continue;
+        if(best[nt] > used+1){
+          best[nt] = used+1;
+          prev[nt] = {from:t, pi:i};
+        }
+      }
+    }
+  }
+
+  return {ok:true, step, maxTick, best, prev, pieceTick, pieces};
+}
+function reconstructCombo(dp, tick){
+  const {prev, pieces, step} = dp;
+  const counts = new Map();
+  let t = tick;
+  while(t>0){
+    const p = prev[t];
+    if(!p) break;
+    const mg = pieces[p.pi];
+    counts.set(mg, (counts.get(mg)||0) + 1);
+    t = p.from;
+  }
+  const combo = Array.from(counts.entries()).sort((a,b)=>b[0]-a[0]).map(([mg,n])=>({mg, n}));
+  const dose = Math.round(tick*step*100)/100;
+  return {dose, combo};
+}
+function comboToText(combo, tablets){
+  const tabs = (tablets||[]).map(Number).filter(x=>isFinite(x)&&x>0);
+  const parts = [];
+  for(const item of combo){
+    const mg = item.mg, n=item.n;
+    let label = `${mg} mg`;
+    const whole = tabs.find(t => Math.abs(t - mg) < 0.001);
+    const half = tabs.find(t => Math.abs(t/2 - mg) < 0.001);
+    if(whole) label = `${whole} mg`;
+    else if(half) label = `½ of ${half} mg`;
+    parts.push(`${n} × ${label}`);
+  }
+  return parts.join(", ");
+}
+function snapDoseFeasible(targetMg, tablets, direction){
+  const goal = Number(targetMg);
+  const tabs = (tablets||[]).map(Number).filter(x=>isFinite(x)&&x>0);
+  if(!isFinite(goal) || goal<=0) return {ok:false, dose:NaN, comboText:""};
+  if(!tabs.length) return {ok:false, dose:NaN, comboText:""};
+
+  const maxDose = Math.max(20, Math.ceil(goal*2));
+  const dp = buildAchievableDP(tabs, 12, maxDose);
+  if(!dp.ok) return {ok:false, dose:NaN, comboText:""};
+
+  const goalTick = Math.round(goal/dp.step);
+  let bestTick = null, bestDiff = Infinity, bestPieces = Infinity;
+
+  function consider(tick){
+    if(tick<=0 || tick>dp.maxTick) return;
+    const pieces = dp.best[tick];
+    if(!isFinite(pieces)) return;
+    const dose = tick*dp.step;
+    const diff = Math.abs(dose-goal);
+    if(diff < bestDiff - 1e-9 || (Math.abs(diff-bestDiff)<=1e-9 && pieces < bestPieces)){
+      bestDiff=diff; bestPieces=pieces; bestTick=tick;
+    }
+  }
+
+  if(direction === "down"){
+    for(let t=goalTick; t>=1; t--) consider(t);
+    if(bestTick===null){ for(let t=goalTick+1; t<=dp.maxTick; t++) consider(t); }
+  } else if(direction === "up"){
+    for(let t=goalTick; t<=dp.maxTick; t++) consider(t);
+    if(bestTick===null){ for(let t=goalTick-1; t>=1; t--) consider(t); }
+  } else {
+    for(let k=0;k<=dp.maxTick;k++){
+      consider(goalTick-k);
+      consider(goalTick+k);
+      if(bestTick!==null && bestDiff<=0.0001) break;
+    }
+  }
+
+  if(bestTick===null) return {ok:false, dose:NaN, comboText:""};
+  const rec = reconstructCombo(dp, bestTick);
+  return {ok:true, dose:rec.dose, comboText: comboToText(rec.combo, tabs)};
+}
+
+/* ---- Patient DB ---- */
+function loadPatients(){
+  try{
+    const raw = localStorage.getItem(DB_KEYS.PATIENTS);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  }catch{ return []; }
+}
+function savePatients(){ localStorage.setItem(DB_KEYS.PATIENTS, JSON.stringify(patients)); }
+
+function makePatientId(meta){
+  const mrn = (meta.mrn||"").trim();
+  if(mrn) return `MRN:${mrn}`;
+  const nm = normalizeForSearch(meta.ptName||"");
+  const dob = (meta.dob||"").trim();
+  const ph = (meta.phone||"").trim();
+  return `P:${nm}|${dob}|${ph}`.replace(/\s+/g," ");
+}
+function digitsOnly(s){ return String(s||"").replace(/\D/g,""); }
+
+function matchesPatient(p, q){
+  const raw = String(q||"").trim();
+  if(raw.length < 2) return false;
+
+  // text-based search (your original behavior)
+  const qq = normalizeForSearch(raw);
+  const blobText = [p.id, p.meta?.ptName, p.meta?.dob, p.meta?.gender, p.meta?.phone, p.meta?.mrn]
+    .map(normalizeForSearch)
+    .join(" | ");
+
+  if(qq && blobText.includes(qq)) return true;
+
+  // digit-only search (DOB/phone/MRN)
+  const qDigits = digitsOnly(raw);
+  if(qDigits.length < 2) return false;
+
+  const blobDigits = digitsOnly([
+    p.id,
+    p.meta?.dob,
+    p.meta?.phone,
+    p.meta?.mrn
+  ].join(" "));
+
+  return blobDigits.includes(qDigits);
+}
+
+/* ---- regimen phases ---- */
+function ensureRegimenPhases(s){
+  if(!s.regimenPhases || !Array.isArray(s.regimenPhases) || !s.regimenPhases.length){
+    const base = s.regimen && Object.keys(s.regimen||{}).length ? s.regimen : {};
+    s.regimenPhases = [{startIso:"1900-01-01", regimen: Object.assign({}, base)}];
+  }
+  s.regimenPhases.sort((a,b)=> (a.startIso<b.startIso?-1:a.startIso>b.startIso?1:0));
+}
+function getPhaseForIso(s, iso){
+  ensureRegimenPhases(s);
+  let best = s.regimenPhases[0];
+  for(const ph of s.regimenPhases){
+    if(ph.startIso <= iso) best = ph;
+    else break;
+  }
+  return best;
+}
+function setNewRegimenPhase(startIso, regimenObj){
+  const p = activePatient(); if(!p) return;
+  const s = p.state;
+  ensureRegimenPhases(s);
+
+  const reg = {};
+  for(let i=0;i<7;i++){
+    const v = toNum(regimenObj[i]);
+    if(isFinite(v)) reg[i]=v;
+  }
+
+  const idx = s.regimenPhases.findIndex(x=>x.startIso===startIso);
+  if(idx>=0){
+    s.regimenPhases[idx].regimen = reg;
+  }else{
+    s.regimenPhases.push({startIso, regimen: reg});
+  }
+  s.regimenPhases.sort((a,b)=> (a.startIso<b.startIso?-1:a.startIso>b.startIso?1:0));
+
+  const latest = s.regimenPhases[s.regimenPhases.length-1];
+  s.regimen = Object.assign({}, latest.regimen);
+
+  if(!p.isDraft) savePatients();
+}
+
+/* ---- state ---- */
+function blankState(){
+  return {
+    ptName:"", dob:"", gender:"", phone:"", mrn:"",
+    wt:"", ht:"", bmi:"", crcl:"",
+    wtUnit:"kg", htUnit:"cm",
+    targetRange:"2.0-3.0", customL:"", customH:"",
+    inrToday:"",
+    applyBeyondRepeat:false,
+    providerNotes:"Click here to type provider notes before printing.",
+    bridgeNeed:"no", bridgeAgent:"enox", bridgeInd:"", enoxFreq:"q12",
+    interactions:[],
+    regimen:{},
+    regimenPhases: null,
+    tablets:[],
+    calAnchorOffsetDays: 0,
+    days:{}
+  };
+}
+
+/* ---- active patient handling ---- */
+let patients = loadPatients();
+let activeId = localStorage.getItem(DB_KEYS.ACTIVE) || DRAFT_ID;
+let draftState = blankState();
+
+function activePatient(){
+  if(activeId === DRAFT_ID) return { id:DRAFT_ID, meta:{}, state:draftState, isDraft:true };
+  return patients.find(p=>p.id===activeId) || null;
+}
+function setActive(id){
+  activeId = id;
+  localStorage.setItem(DB_KEYS.ACTIVE, activeId);
+  bindInputs();
+  renderAllVisual(true);
+}
+function showSearchResults(list){
+  const box = $("searchResults");
+  box.innerHTML = "";
+  if(!list.length){ box.style.display="none"; return; }
+  for(const p of list.slice(0,30)){
+    const div = document.createElement("div");
+    div.style.padding="10px";
+    div.style.borderBottom="1px solid var(--border)";
+    div.style.cursor="pointer";
+    div.innerHTML = `
+      <div style="font-weight:800">${escapeHtml(p.meta?.ptName || "(No name)")}</div>
+      <div class="small">${escapeHtml([p.meta?.mrn?`MRN ${p.meta.mrn}`:"", p.meta?.dob?`DOB ${p.meta.dob}`:"", p.meta?.phone||""].filter(Boolean).join(" • "))}</div>
+    `;
+    div.onclick = ()=>{ setActive(p.id); box.style.display="none"; };
+    box.appendChild(div);
+  }
+  box.lastChild && (box.lastChild.style.borderBottom="none");
+  box.style.display="block";
+}
+
+/* ---- Regimen UI ---- */
+function initRegimen(){
+  const row = $("regimenRow");
+  row.innerHTML = "";
+  const labels = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  for(let i=0;i<7;i++){
+    const f = document.createElement("div");
+    f.className = "field";
+    f.innerHTML = `<label>${labels[i]}</label><input id="reg_${i}" placeholder="mg" inputmode="decimal" />`;
+    row.appendChild(f);
+
+    f.querySelector(`#reg_${i}`).addEventListener("input", ()=>{
+      const p = activePatient(); if(!p) return;
+      const s = p.state;
+      s.regimen = s.regimen || {};
+      const v = toNum(f.querySelector(`#reg_${i}`).value);
+      if(isFinite(v)) s.regimen[i] = v;
+      else delete s.regimen[i];
+
+      ensureRegimenPhases(s);
+      const latest = s.regimenPhases[s.regimenPhases.length - 1];
+      latest.regimen = Object.assign({}, s.regimen);
+
+      if(!p.isDraft) savePatients();
+      renderAllVisual(false);
+    });
+  }
+}
+function syncRegimenUI(){
+  const p = activePatient(); if(!p) return;
+  const s = p.state;
+  ensureRegimenPhases(s);
+
+  const reg = s.regimen || {};
+  for(let i=0;i<7;i++){
+    const el = document.getElementById(`reg_${i}`);
+    if(!el) continue;
+    const v = reg[i];
+    el.value = (v===0 || v) ? String(v) : "";
+  }
+}
+
+/* ---- Tablet UI ---- */
+function initPills(){
+  const box = $("pillBox");
+  box.innerHTML = "";
+  for(const mg of DEFAULT_TABLETS){
+    const lab = document.createElement("label");
+    lab.style.display = "inline-flex";
+    lab.style.alignItems = "center";
+    lab.style.gap = "6px";
+    lab.style.fontSize = "12px";
+    lab.style.padding = "6px 10px";
+    lab.style.borderRadius = "999px";
+    lab.style.background = "var(--blue)";
+    lab.style.border = "1px solid #d7e7ff";
+    lab.innerHTML = `<input type="checkbox" data-mg="${mg}"> ${mg} mg`;
+    box.appendChild(lab);
+  }
+  box.addEventListener("change", ()=>{
+    const p = activePatient(); if(!p) return;
+    const sels = Array.from(box.querySelectorAll("input[type=checkbox]"))
+      .filter(x=>x.checked)
+      .map(x=>parseFloat(x.getAttribute("data-mg")))
+      .filter(x=>isFinite(x));
+    p.state.tablets = sels;
+    if(!p.isDraft) savePatients();
+    renderAllVisual(false);
+  });
+}
+function syncTabletUI(){
+  const p = activePatient(); if(!p) return;
+  const set = new Set((p.state.tablets || []).map(Number));
+  Array.from($("pillBox").querySelectorAll("input[type=checkbox]")).forEach(cb=>{
+    const mg = parseFloat(cb.getAttribute("data-mg"));
+    cb.checked = set.has(mg);
+  });
+}
+
+/* ---- binding ---- */
+function bindInputs(){
+  const p = activePatient(); if(!p) return;
+  const s = p.state;
+  ensureRegimenPhases(s);
+  ensureUnits(s);
+
+  $("ptName").value = s.ptName || "";
+  $("dob").value = s.dob || "";
+  $("gender").value = s.gender || "";
+  $("phone").value = s.phone || "";
+  $("mrn").value = s.mrn || "";
+
+  // show wt/ht in display units; store canonical in s.wt (kg) and s.ht (cm)
+  syncUnitLabels();
+  writeWeightUIFromKg(toNum(s.wt));
+  writeHeightUIFromCm(toNum(s.ht));
+
+  $("bmi").value = s.bmi || "";
+  $("crcl").value = s.crcl || "";
+
+  $("targetRange").value = s.targetRange || "2.0-3.0";
+  $("customL").value = s.customL || "";
+  $("customH").value = s.customH || "";
+
+  $("inrToday").value = s.inrToday || "";
+  $("applyBeyondRepeat").checked = !!s.applyBeyondRepeat;
+
+  $("providerNotes").value = s.providerNotes || "";
+  $("bridgeNeed").value = s.bridgeNeed || "no";
+  $("bridgeAgent").value = s.bridgeAgent || "enox";
+  $("bridgeInd").value = s.bridgeInd || "";
+  $("enoxFreq").value = s.enoxFreq || "q12";
+
+  document.querySelectorAll(".intx").forEach(cb=>{
+    cb.checked = (s.interactions || []).includes(cb.value);
+  });
+
+  $("customRangeWrap").style.display = (s.targetRange === "custom") ? "block" : "none";
+
+  const need = s.bridgeNeed === "yes";
+  $("bridgeAgent").disabled = !need;
+  $("bridgeBox").style.display = need ? "block" : "none";
+
+  $("versionStamp").textContent = `${VERSION} • ${BUILD_STAMP.toLocaleString()}`;
+
+  syncRegimenUI();
+  syncTabletUI();
+
+  $("maintBox").style.display = "none";
+  $("maintSummary").value = "";
+  $("maintDetails").innerHTML = "";
+  $("maintStart").value = "";
+}
+
+/* ---- day model ---- */
+function getDay(iso){
+  const p = activePatient(); if(!p) return {scheduled:"", actual:"", inr:"", scheduledLocked:false, scheduledSource:""};
+  const s = p.state;
+  if(!s.days) s.days = {};
+  if(!s.days[iso]) s.days[iso] = {scheduled:"", actual:"", inr:"", scheduledLocked:false, scheduledSource:""};
+  const d = s.days[iso];
+  if(d.actual === undefined) d.actual = "";
+  if(d.inr === undefined) d.inr = "";
+  if(d.scheduled === undefined) d.scheduled = "";
+  if(d.scheduledLocked === undefined) d.scheduledLocked = false;
+  if(d.scheduledSource === undefined) d.scheduledSource = "";
+  return d;
+}
+function setDay(iso, patch){
+  const p = activePatient(); if(!p) return;
+  const s = p.state;
+  s.days[iso] = Object.assign({}, getDay(iso), patch);
+  if(!p.isDraft) savePatients();
+  renderAllVisual(false);
+}
+
+/* ---- target range + INR severity ---- */
+function getTargetRange(){
+  const p = activePatient(); if(!p) return {L:2.0,H:3.0,label:"2.0–3.0", midpoint:2.5};
+  const s = p.state;
+  if(s.targetRange === "custom"){
+    const L = toNum(s.customL);
+    const H = toNum(s.customH);
+    if(isFinite(L) && isFinite(H) && L>0 && H>L) return {L, H, label:`${L.toFixed(1)}–${H.toFixed(1)}`, midpoint: (L+H)/2};
+    return {L:2.0,H:3.0,label:"2.0–3.0", midpoint:2.5};
+  }
+  const [L,H] = s.targetRange.split("-").map(Number);
+  return {L,H,label:`${L.toFixed(1)}–${H.toFixed(1)}`, midpoint:(L+H)/2};
+}
+function inrClass(v, L, H){
+  if(!isFinite(v)) return "";
+  const critHigh = v > (H + 1.5);
+  const critLow  = v < Math.max(0, (L - 0.7));
+  if(critHigh || critLow) return "band-crit";
+  if(v < L || v > H) return "band-warn";
+  return "";
+}
+
+/* ---- doses ---- */
+function effectiveDoseForIso(iso){
+  const d = getDay(iso);
+  const a = toNum(d.actual);
+  if(isFinite(a)) return a;
+  const s = toNum(d.scheduled);
+  return isFinite(s) ? s : NaN;
+}
+function isoDaysBackFrom(iso, n){
+  const d = fromIso(iso);
+  return isoLocal(addDaysLocal(d, -n));
+}
+function lagWeightedDoseAt(iso){
+  const weights = [0.15,0.20,0.30,0.45,0.65,0.85,1.00]; // oldest->newest
+  let wsum=0, wtot=0;
+  for(let i=6;i>=0;i--){
+    const back = 6-i;
+    const dayIso = isoDaysBackFrom(iso, back);
+    const dose = effectiveDoseForIso(dayIso);
+    const w = weights[i];
+    if(isFinite(dose)){
+      wsum += dose * w;
+      wtot += w;
+    }
+  }
+  return wtot>0 ? (wsum/wtot)*7 : 0;
+}
+function last7IsoList(){
+  const today = new Date();
+  const arr = [];
+  for(let i=6;i>=0;i--) arr.push(isoLocal(addDaysLocal(today, -i)));
+  return arr;
+}
+function sum7DayDose(){
+  let sum = 0;
+  last7IsoList().forEach(iso=>{
+    const v = effectiveDoseForIso(iso);
+    if(isFinite(v)) sum += v;
+  });
+  return sum;
+}
+function lagWeightedDose(){
+  const todayIso = isoLocal(new Date());
+  return lagWeightedDoseAt(todayIso);
+}
+function regimenWeeklyTotalFrom(reg){
+  let sum=0, any=false;
+  for(let i=0;i<7;i++){
+    const v = toNum(reg?.[i]);
+    if(isFinite(v)){ sum += v; any=true; }
+  }
+  return any ? sum : 0;
+}
+function regimenWeeklyTotal(){
+  const p = activePatient(); if(!p) return 0;
+  const s = p.state;
+  ensureRegimenPhases(s);
+  const reg = s.regimen || {};
+  return regimenWeeklyTotalFrom(reg);
+}
+function regimenDoseForIso(iso){
+  const p = activePatient(); if(!p) return NaN;
+  const s = p.state;
+  ensureRegimenPhases(s);
+  const phase = getPhaseForIso(s, iso);
+  const dow = fromIso(iso).getDay();
+  const v = toNum((phase.regimen||{})[dow]);
+  return isFinite(v) ? v : NaN;
+}
+
+/* ---- interactions ---- */
+function interactionRepeatOverrideDays(){
+  const p = activePatient(); if(!p) return null;
+  const ints = p.state.interactions || [];
+  if(!ints.length) return null;
+  if(ints.some(x=>["amio","tmp","metro","fluc"].includes(x))) return 3;
+  if(ints.includes("rif")) return 5;
+  if(ints.includes("pheny")) return 7;
+  return null;
+}
+function interactionNarrative(){
+  const p = activePatient(); if(!p) return "—";
+  const ints = p.state.interactions || [];
+  if(!ints.length) return `No interactions selected.`;
+  const items = [];
+  if(ints.includes("amio")) items.push(`<b>Amiodarone:</b> may increase INR—often needs dose reduction + closer INR monitoring.`);
+  if(ints.includes("tmp")) items.push(`<b>TMP-SMX:</b> can significantly increase INR—monitor closely; consider empiric reduction per protocol.`);
+  if(ints.includes("metro")) items.push(`<b>Metronidazole:</b> can increase INR—monitor closely; consider empiric reduction per protocol.`);
+  if(ints.includes("fluc")) items.push(`<b>Azoles (e.g., fluconazole):</b> can increase INR—monitor closely; consider empiric reduction per protocol.`);
+  if(ints.includes("rif")) items.push(`<b>Rifampin:</b> can lower INR—may require dose increases and frequent monitoring.`);
+  if(ints.includes("pheny")) items.push(`<b>Phenytoin:</b> complex interaction—monitor INR and phenytoin levels as appropriate.`);
+  const pulled = interactionRepeatOverrideDays();
+  const extra = pulled ? `<div class="sep"></div><b>Repeat INR suggestion:</b> pull to <b>${pulled} day(s)</b> due to interaction risk.` : "";
+  return items.join("<br>") + extra;
+}
+
+/* =========================
+   UCLA algorithm mapping (unchanged)
+   ========================= */
+function uclaBandForGoal(goalLabel, inr){
+  if(!isFinite(inr)) return null;
+
+  const mk = (action, pctMin, pctMax, pctChosen, holdsMin, holdsMax, holdsChosen, note) => ({
+    action, pctMin, pctMax, pctChosen, holdsMin, holdsMax, holdsChosen,
+    note: note || "", consult: false
+  });
+
+  if(inr >= 5.0){
+    const o = mk("High INR", 0,0,0, 1,2,2, "Consult Medical Director. Hold 1–2 doses. Repeat INR within next 3 days; monitor frequently.");
+    o.consult = true;
+    return o;
+  }
+
+  if(goalLabel === "2.0-3.0"){
+    if(inr < 1.5) return mk("Increase", +10, +20, +15, 0,0,0, "Consider booster per protocol if clinically appropriate.");
+    if(inr >= 1.5 && inr <= 1.9) return mk("Increase", +5, +10, +7.5, 0,0,0, "");
+    if(inr >= 2.0 && inr <= 3.0) return mk("No change", 0,0,0, 0,0,0, "");
+    if(inr >= 3.1 && inr <= 3.5) return mk("Decrease", -10, 0, -5, 0,0,0, "");
+    if(inr >= 3.6 && inr <= 4.0) return mk("Decrease", -10, -5, -7.5, 0,0,0, "");
+    if(inr >= 4.0 && inr <= 4.9) return mk("Hold/Decrease", -15, -10, -12.5, 0,1,1, "If bleeding/clinical concern, escalate per protocol.");
+  }
+
+  if(goalLabel === "2.5-3.5"){
+    if(inr < 1.5) return mk("Increase", +10, +20, +15, 0,0,0, "");
+    if(inr >= 1.5 && inr <= 1.9) return mk("Increase", +10, +20, +15, 0,0,0, "");
+    if(inr >= 2.0 && inr <= 2.4) return mk("Increase", +5, +10, +7.5, 0,0,0, "");
+    if(inr >= 2.5 && inr <= 3.5) return mk("No change", 0,0,0, 0,0,0, "");
+    if(inr >= 3.6 && inr <= 4.0) return mk("Decrease", -10, 0, -5, 0,0,0, "");
+    if(inr >= 4.0 && inr <= 4.9) return mk("Decrease", -15, -5, -10, 0,0,0, "");
+  }
+
+  return null;
+}
+
+/* Generic fallback */
+function genericBand(L,H,inr){
+  let pct=0, holds=0, repeatDays=7, note="";
+  if(inr < 1.5){ pct=+15; repeatDays=3; note="Below range (very low)."; }
+  else if(inr < L){ pct=+10; repeatDays=7; note="Below range."; }
+  else if(inr <= H){ pct=0; repeatDays=14; note="In range."; }
+  else if(inr <= 3.5){ pct=-10; repeatDays=7; note="Above range."; }
+  else if(inr <= 4.5){ pct=-15; repeatDays=3; holds=1; note="Above range (higher)."; }
+  else { pct=-20; repeatDays=2; holds=2; note="Significantly above range."; }
+  return {pctChosen:pct, holdsChosen:holds, repeatDays, note};
+}
+
+/* ---- stability streak (for follow-up ladder) ---- */
+function listRecentINRs(maxLookbackDays=180){
+  const p = activePatient(); if(!p) return [];
+  const s = p.state;
+  const todayIso = isoLocal(new Date());
+  const out = [];
+  for(let i=0;i<=maxLookbackDays;i++){
+    const iso = isoLocal(addDaysLocal(new Date(), -i));
+    const v = (iso===todayIso) ? toNum(s.inrToday) : toNum(getDay(iso).inr);
+    if(isFinite(v)) out.push({iso, val:v});
+  }
+  return out;
+}
+function countStableInRangeINRs(L,H){
+  const arr = listRecentINRs(180);
+  let count=0;
+  for(const item of arr){
+    if(item.val>=L && item.val<=H) count++;
+    else break;
+  }
+  return count;
+}
+function followupDaysFromStreak(streak){
+  if(streak >= 6) return 56;
+  if(streak === 5) return 42;
+  if(streak === 4) return 28;
+  if(streak === 3) return 21;
+  if(streak === 2) return 14;
+  return 7;
+}
+
+/* ---- recommendation core ---- */
+function computeRecommendation(){
+  const p = activePatient(); if(!p) return {repeatDays:7, hasRec:false};
+  const s = p.state;
+  const {L,H,label} = getTargetRange();
+  const inr = toNum(s.inrToday);
+  const hasRec = isFinite(inr);
+
+  const weekly = sum7DayDose();
+  const wtd = lagWeightedDose();
+  const regWk = regimenWeeklyTotal();
+  const currentWeekly = (weekly>0 ? weekly : (wtd>0 ? wtd : (regWk>0 ? regWk : 0)));
+
+  let repeatDays=7;
+  let pctMin=0, pctMax=0, pctChosen=0;
+  let holdsMin=0, holdsMax=0, holdsChosen=0;
+  let algoUsed = "generic";
+  let algoNote = "";
+  let consult = false;
+  let baseLine="", plan="";
+
+  if(!hasRec){
+    baseLine = `Enter today’s INR to generate a recommendation.`;
+    plan = `You can still use the calendar to record doses and prior INRs.`;
+  } else {
+    const goal = s.targetRange;
+    const uclaEligible = (goal === "2.0-3.0" || goal === "2.5-3.5");
+    const u = uclaEligible ? uclaBandForGoal(goal, inr) : null;
+
+    if(u){
+      algoUsed = "UCLA";
+      consult = !!u.consult;
+      pctMin = u.pctMin; pctMax = u.pctMax; pctChosen = u.pctChosen;
+      holdsMin = u.holdsMin; holdsMax = u.holdsMax; holdsChosen = u.holdsChosen;
+      algoNote = u.note || "";
+
+      const status = (inr < L) ? "below" : (inr > H) ? "above" : "in range";
+      baseLine = `INR <b>${formatInrOneDecimal(inr)}</b> is <b>${status}</b> target (<b>${label}</b>). <span class="small">Algorithm: <b>UCLA</b> priority.</span>`;
+
+      if(inr >= 5.0) repeatDays = 3;
+      else if(pctChosen !== 0 || holdsChosen > 0) repeatDays = 7;
+      else {
+        const streak = countStableInRangeINRs(L,H);
+        repeatDays = followupDaysFromStreak(streak);
+      }
+
+      if(consult) plan = `High INR plan: ${escapeHtml(algoNote)}`;
+      else {
+        const pctTxt = (pctChosen === 0)
+          ? `No weekly % change recommended.`
+          : `Weekly dose change: <b>${pctChosen>0?"+":""}${fmtDose(pctChosen)}%</b> (range ${pctMin}% to ${pctMax}%).`;
+        const holdTxt = (holdsChosen>0)
+          ? `<b>Hold warfarin</b> for <b>${holdsChosen}</b> dose${holdsChosen===1?"":"s"} (table range ${holdsMin}–${holdsMax}).`
+          : `No hold doses.`;
+        plan = `${holdTxt} ${pctTxt} ${algoNote ? `<span class="small">Note: ${escapeHtml(algoNote)}</span>` : ""}`;
+      }
+    } else {
+      const g = genericBand(L,H,inr);
+      pctChosen = g.pctChosen || 0;
+      holdsChosen = g.holdsChosen || 0;
+      repeatDays = g.repeatDays || 7;
+      algoNote = g.note || "";
+
+      baseLine = `INR <b>${formatInrOneDecimal(inr)}</b> assessed vs target (<b>${label}</b>). <span class="small">Algorithm: <b>generic fallback</b>.</span>`;
+      plan = `${holdsChosen>0 ? `Hold <b>${holdsChosen}</b> dose${holdsChosen===1?"":"s"}, then ` : ""}${pctChosen===0 ? `continue current regimen.` : `adjust weekly dose by <b>${pctChosen>0?"+":""}${fmtDose(pctChosen)}%</b>.`} ${algoNote}`;
+    }
+  }
+
+  const suggestedWeekly = (currentWeekly>0) ? (currentWeekly * (1 + pctChosen/100)) : 0;
+  const avgNow = currentWeekly>0 ? (currentWeekly/7) : NaN;
+  const avgNew = suggestedWeekly>0 ? (suggestedWeekly/7) : NaN;
+
+  const intxMinDays = interactionRepeatOverrideDays();
+  if(intxMinDays !== null) repeatDays = Math.min(repeatDays, intxMinDays);
+
+  const direction = (!hasRec) ? "" : (inr > H ? "down" : (inr < L ? "up" : ""));
+
+  return {
+    hasRec, L, H, label, inr,
+    algoUsed,
+    pctMin, pctMax, pctChosen,
+    holdsMin, holdsMax, holdsChosen,
+    consult,
+    currentWeekly, suggestedWeekly, avgNow, avgNew,
+    repeatDays,
+    baseLine, plan,
+    direction
+  };
+}
+function computeRepeatIso(){
+  const r = computeRecommendation();
+  return isoLocal(addDaysLocal(new Date(), r.repeatDays));
+}
+
+/* ---- auto: current INR -> today cell ---- */
+function ensureTodayINROnCalendar(){
+  const p = activePatient(); if(!p) return;
+  const s = p.state;
+  const inrStr = formatInrOneDecimal(s.inrToday);
+  if(inrStr){
+    const todayIso = isoLocal(new Date());
+    const d = getDay(todayIso);
+    d.inr = inrStr;
+    s.days[todayIso] = d;
+  }
+}
+
+/* ---- recommendation application (today, optional tomorrow) ---- */
+function isEditableForAuto(iso){
+  const d = getDay(iso);
+  if(String(d.actual||"").trim() !== "") return false;
+  if(!!d.scheduledLocked) return false;
+  return true;
+}
+function baselineScheduledForIso(iso){
+  const regDose = regimenDoseForIso(iso);
+  if(isFinite(regDose)) return fmtDose(regDose);
+  return "";
+}
+function clearOldRecoScheduledInWindow(startIso, countDays){
+  const p = activePatient(); if(!p) return;
+  const s = p.state;
+  for(let i=0;i<countDays;i++){
+    const iso = isoLocal(addDaysLocal(fromIso(startIso), i));
+    const d = getDay(iso);
+    if(d.scheduledSource !== "reco") continue;
+    if(String(d.actual||"").trim() !== "") continue;
+    if(!!d.scheduledLocked) continue;
+    d.scheduled = baselineScheduledForIso(iso);
+    d.scheduledSource = "";
+    s.days[iso] = d;
+  }
+}
+function feasibleTabsForPatient(){
+  const p = activePatient(); if(!p) return DEFAULT_TABLETS;
+  const selected = (p.state.tablets || []).map(Number).filter(x=>isFinite(x)&&x>0);
+  return selected.length ? selected : DEFAULT_TABLETS;
+}
+function snapDailyDoseFeasible(targetMg, direction){
+  const tabs = feasibleTabsForPatient();
+  const snapped = snapDoseFeasible(targetMg, tabs, direction||"");
+  return snapped.ok ? snapped.dose : targetMg;
+}
+function applyRecommendationToCalendar(){
+  const p = activePatient(); if(!p) return;
+  const s = p.state;
+  const r = computeRecommendation();
+  if(!r.hasRec) return;
+
+  const startIso = isoLocal(addDaysLocal(new Date(), -7));
+  clearOldRecoScheduledInWindow(startIso, 21);
+
+  const todayIso = isoLocal(new Date());
+  const tomorrowIso = isoLocal(addDaysLocal(new Date(), 1));
+
+  const wantTomorrow = !!s.applyBeyondRepeat;
+  const holdN = Math.max(0, r.holdsChosen||0);
+  const includeTomorrow = (holdN >= 2) ? true : wantTomorrow;
+
+  const targets = [todayIso].concat(includeTomorrow ? [tomorrowIso] : []);
+  const mult = 1 + (r.pctChosen||0)/100;
+  const direction = r.direction || "";
+
+  let holdsApplied = 0;
+  for(const iso of targets){
+    if(!isEditableForAuto(iso)) continue;
+    const d = getDay(iso);
+    if(holdsApplied < holdN){
+      d.scheduled = "0";
+      d.scheduledSource = "reco";
+      d.scheduledLocked = false;
+      s.days[iso] = d;
+      holdsApplied++;
+    }
+  }
+
+  for(const iso of targets){
+    if(!isEditableForAuto(iso)) continue;
+    const d = getDay(iso);
+    if(d.scheduledSource==="reco" && String(d.scheduled)==="0") continue;
+
+    let base = regimenDoseForIso(iso);
+    if(!isFinite(base)){
+      const existing = toNum(d.scheduled);
+      if(isFinite(existing)) base = existing;
+    }
+    if(!isFinite(base) || base < 0) continue;
+
+    let dose = base;
+    if((r.pctChosen||0) !== 0) dose = base * mult;
+    dose = snapDailyDoseFeasible(dose, direction);
+
+    d.scheduled = fmtDose(dose);
+    d.scheduledSource = "reco";
+    d.scheduledLocked = false;
+    s.days[iso] = d;
+  }
+
+  if(!p.isDraft) savePatients();
+}
+
+/* =========================
+   INFINITE CALENDAR (unchanged)
+   ========================= */
+const CAL_WEEKS_BEFORE = 8;
+const CAL_WEEKS_AFTER  = 8;
+let calWeekHeightPx = 140;
+let calGuard = false;
+
+function calAnchorDate(){
+  const p = activePatient(); if(!p) return new Date();
+  const off = Number(p.state.calAnchorOffsetDays||0);
+  return addDaysLocal(new Date(), off);
+}
+function setCalAnchorOffsetDays(delta){
+  const p = activePatient(); if(!p) return;
+  p.state.calAnchorOffsetDays = (Number(p.state.calAnchorOffsetDays||0) + delta);
+  if(!p.isDraft) savePatients();
+}
+function calendarWindowInfinite(){
+  const anchor = calAnchorDate();
+  const start = addDaysLocal(startOfWeekSun(anchor), -CAL_WEEKS_BEFORE*7);
+  const totalDays = (CAL_WEEKS_BEFORE + CAL_WEEKS_AFTER + 1) * 7;
+  const days = [];
+  for(let i=0;i<totalDays;i++){
+    const d = addDaysLocal(start, i);
+    days.push({date:d, iso:isoLocal(d)});
+  }
+  return {days, start};
+}
+function measureWeekHeight(){
+  const cells = Array.from(document.querySelectorAll("#cal .day"));
+  if(cells.length < 15) return;
+  const a = cells[0].getBoundingClientRect();
+  const b = cells[7].getBoundingClientRect();
+  const h = Math.abs(b.top - a.top);
+  if(h > 40 && h < 600) calWeekHeightPx = h;
+}
+function scrollToMiddleWeek(){
+  const sc = $("calScroll");
+  const middleWeekIndex = CAL_WEEKS_BEFORE;
+  sc.scrollTop = Math.max(0, middleWeekIndex * calWeekHeightPx - 40);
+}
+function renderCalendar(forceRecenter){
+  const cal = $("cal");
+  cal.innerHTML = "";
+
+  const todayIso = isoLocal(new Date());
+  const {days} = calendarWindowInfinite();
+  const repeatIso = computeRepeatIso();
+  const {L,H} = getTargetRange();
+
+  days.forEach(({date, iso})=>{
+    const cell = document.createElement("div");
+    cell.className = "day";
+    cell.dataset.iso = iso;
+
+    const isToday = iso === todayIso;
+    if(isToday) cell.classList.add("todayCell");
+
+    const isRepeat = repeatIso && iso === repeatIso;
+    if(isRepeat) cell.classList.add("repeatCell");
+
+    const head = document.createElement("div");
+    head.className = "date";
+    head.innerHTML = `<span>${fmtShort(date)}</span>
+      <span style="display:flex;gap:6px;align-items:center">
+        ${isRepeat ? `<span class="badge repeat">Repeat</span>` : ``}
+        ${isToday ? `<span class="badge today">Today</span>` : ``}
+      </span>`;
+
+    const mini = document.createElement("div");
+    mini.className = "mini";
+
+    const dayData = getDay(iso);
+
+    const sched = document.createElement("input");
+    sched.placeholder = "Sched";
+    sched.inputMode = "decimal";
+    sched.value = dayData.scheduled ?? "";
+    const commitSched = ()=>{
+      setDay(iso, {scheduled: sched.value, scheduledLocked:true, scheduledSource:"manual"});
+    };
+    sched.addEventListener("keydown", (e)=>{
+      if(e.key==="Enter"){ e.preventDefault(); sched.blur(); commitSched(); }
+      if(e.key==="Tab"){ commitSched(); }
+    });
+    sched.addEventListener("blur", commitSched);
+
+    const actual = document.createElement("input");
+    actual.placeholder = "Actual";
+    actual.inputMode = "decimal";
+    actual.value = dayData.actual ?? "";
+    const commitActual = ()=>{
+      setDay(iso, {actual: actual.value});
+    };
+    actual.addEventListener("keydown", (e)=>{
+      if(e.key==="Enter"){ e.preventDefault(); actual.blur(); commitActual(); }
+      if(e.key==="Tab"){ commitActual(); }
+    });
+    actual.addEventListener("blur", commitActual);
+
+    const inr = document.createElement("input");
+    inr.placeholder = "INR";
+    inr.inputMode = "decimal";
+    inr.step = "0.1";
+    inr.value = dayData.inr ?? "";
+
+    const syncTodayFromCalendarINR = (val)=>{
+      if(iso !== todayIso) return;
+      const p = activePatient(); if(!p) return;
+      p.state.inrToday = val;
+      $("inrToday").value = val;
+      if(!p.isDraft) savePatients();
+      renderAllVisual(false);
+    };
+
+    const commitInr = ()=>{
+      const fixed = formatInrOneDecimal(inr.value);
+      if(fixed !== "") {
+        inr.value = fixed;
+        setDay(iso, {inr: fixed});
+        syncTodayFromCalendarINR(fixed);
+      } else {
+        setDay(iso, {inr: ""});
+        syncTodayFromCalendarINR("");
+      }
+    };
+
+    inr.addEventListener("keydown", (e)=>{
+      if(e.key==="Enter"){ e.preventDefault(); inr.blur(); commitInr(); }
+      if(e.key==="Tab"){ commitInr(); }
+    });
+    inr.addEventListener("blur", commitInr);
+
+    mini.appendChild(sched);
+    mini.appendChild(actual);
+    mini.appendChild(inr);
+
+    cell.appendChild(head);
+    cell.appendChild(mini);
+
+    const vToday = toNum(activePatient().state.inrToday);
+    const v = isToday && isFinite(vToday) ? vToday : toNum(dayData.inr);
+    const klass = inrClass(v, L, H);
+    if(klass) cell.classList.add(klass);
+
+    cal.appendChild(cell);
+  });
+
+  measureWeekHeight();
+  if(forceRecenter) scrollToMiddleWeek();
+}
+function hookInfiniteScroll(){
+  const sc = $("calScroll");
+  sc.addEventListener("scroll", ()=>{
+    if(calGuard) return;
+
+    const topThreshold = calWeekHeightPx * 2;
+    const botThreshold = sc.scrollHeight - sc.clientHeight - calWeekHeightPx * 2;
+
+    if(sc.scrollTop < topThreshold){
+      calGuard = true;
+      setCalAnchorOffsetDays(-7);
+      const prevTop = sc.scrollTop;
+      renderCalendar(false);
+      sc.scrollTop = prevTop + calWeekHeightPx;
+      calGuard = false;
+    } else if(sc.scrollTop > botThreshold){
+      calGuard = true;
+      setCalAnchorOffsetDays(+7);
+      const prevTop = sc.scrollTop;
+      renderCalendar(false);
+      sc.scrollTop = Math.max(0, prevTop - calWeekHeightPx);
+      calGuard = false;
+    }
+  }, {passive:true});
+}
+
+/* ---- KPI ---- */
+function renderKPIs(){
+  const weekly = sum7DayDose();
+  const wtd = lagWeightedDose();
+  $("kpiWeekly").textContent = weekly>0 ? `${fmtDose(weekly)} mg` : "—";
+  $("kpiWeighted").textContent = wtd>0 ? `${fmtDose(wtd)} mg` : "—";
+}
+
+/* predicted INR estimate (short-term) */
+function predictedInrEstimate(r){
+  if(!r || !isFinite(r.inr)) return null;
+  if(!(r.currentWeekly>0)) return null;
+
+  let eff = r.suggestedWeekly;
+  const avgNow = isFinite(r.avgNow) && r.avgNow>0 ? r.avgNow : (r.currentWeekly/7);
+  const holdN = Math.max(0, r.holdsChosen||0);
+  if(isFinite(avgNow) && avgNow>0 && holdN>0){
+    eff = Math.max(0, eff - (avgNow * holdN));
+  }
+
+  const ratio = (eff>0) ? (eff / r.currentWeekly) : 0;
+  const expo = 0.70;
+  let pred = r.inr * Math.pow(Math.max(ratio, 0.10), expo);
+  pred = clamp(pred, 0.8, 6.0);
+  return Math.round(pred*10)/10;
+}
+
+function next7PlanRows(){
+  const today = new Date();
+  const rows = [];
+  for(let i=0;i<7;i++){
+    const d = addDaysLocal(today, i);
+    const iso = isoLocal(d);
+    const day = getDay(iso);
+    const dose = (String(day.actual||"").trim()!=="") ? day.actual : day.scheduled;
+    rows.push({date: fmtMDY(d), iso, dose: (dose!==undefined && dose!==null) ? String(dose) : ""});
+  }
+  return rows;
+}
+function buildPlanTableHtml(rows){
+  const trs = rows.map(r=>{
+    const doseTxt = (String(r.dose||"").trim()==="") ? "—" : `${escapeHtml(r.dose)} mg`;
+    return `<tr><td style="width:38%"><b>${escapeHtml(r.date)}</b></td><td>${doseTxt}</td></tr>`;
+  }).join("");
+  return `
+    <table class="planTable" aria-label="7-day plan">
+      <thead><tr><th>Date</th><th>Warfarin dose</th></tr></thead>
+      <tbody>${trs}</tbody>
+    </table>
+  `;
+}
+
+/* =========================
+   History-based dose-response + target INR by date
+   - Uses your existing lagWeightedDoseAt(iso) as weekly exposure proxy
+   - Fits power model: INR = a * (weeklyDose^b)
+   - For "by date", uses partial response factor f (0..1)
+     predicted(t) = current + f*(steady - current)
+   ========================= */
+function collectDoseInrPairs(maxLookbackDays=240){
+  const p = activePatient(); if(!p) return [];
+  const out = [];
+
+  for(let i=1;i<=maxLookbackDays;i++){
+    const iso = isoLocal(addDaysLocal(new Date(), -i));
+    const inr = toNum(getDay(iso).inr);
+    if(!isFinite(inr)) continue;
+
+    const wk = lagWeightedDoseAt(iso);
+    if(!(wk>0)) continue;
+
+    if(inr < 0.8 || inr > 6.5) continue;
+    out.push({iso, inr, wk});
+  }
+
+  out.sort((a,b)=> a.iso>b.iso?-1:a.iso<b.iso?1:0);
+
+  const filtered = [];
+  const seenWeek = new Set();
+  for(const pnt of out){
+    const key = pnt.iso.slice(0,7) + "-" + Math.floor(parseInt(pnt.iso.slice(8,10),10)/7);
+    if(seenWeek.has(key)) continue;
+    seenWeek.add(key);
+    filtered.push(pnt);
+    if(filtered.length>=12) break;
+  }
+  return filtered;
+}
+
+function fitPowerDoseResponse(pairs){
+  const pts = pairs.filter(x=>x.wk>0 && x.inr>0);
+  if(pts.length < 2) return {ok:false, reason:"Need at least 2 historical INR points with usable dose history."};
+
+  const xs = pts.map(p=>Math.log(p.wk));
+  const ys = pts.map(p=>Math.log(p.inr));
+
+  const n = xs.length;
+  const meanX = xs.reduce((a,b)=>a+b,0)/n;
+  const meanY = ys.reduce((a,b)=>a+b,0)/n;
+
+  let num=0, den=0;
+  for(let i=0;i<n;i++){
+    const dx = xs[i]-meanX;
+    const dy = ys[i]-meanY;
+    num += dx*dy;
+    den += dx*dx;
+  }
+  if(den===0) return {ok:false, reason:"Insufficient variation in historical dose to model response."};
+
+  let b = num/den;
+  b = clamp(b, 0.30, 1.20);
+
+  const lnA = meanY - b*meanX;
+  const a = Math.exp(lnA);
+
+  let ssTot=0, ssRes=0;
+  for(let i=0;i<n;i++){
+    const yhat = lnA + b*xs[i];
+    ssTot += (ys[i]-meanY)*(ys[i]-meanY);
+    ssRes += (ys[i]-yhat)*(ys[i]-yhat);
+  }
+  const r2 = ssTot>0 ? 1 - (ssRes/ssTot) : 0;
+
+  return {ok:true,a,b,n,r2};
+}
+
+function computeCurrentMaintenanceWeekly(){
+  const weekly = sum7DayDose();
+  const wtd = lagWeightedDose();
+  const regWk = regimenWeeklyTotal();
+  return (weekly>0 ? weekly : (wtd>0 ? wtd : (regWk>0 ? regWk : 0)));
+}
+
+function modelFromHistoryOrAnchor(curInr, curWeekly){
+  const pairs = collectDoseInrPairs(240);
+  const fit = fitPowerDoseResponse(pairs);
+  if(fit.ok){
+    return {ok:true, usedHistory:true, a:fit.a, b:fit.b, n:fit.n, r2:fit.r2, pairs};
+  }
+  // anchor to current point with conservative b
+  const b = 0.70;
+  const a = (curWeekly>0 && curInr>0) ? (curInr / Math.pow(curWeekly, b)) : NaN;
+  return {ok:isFinite(a), usedHistory:false, a, b, n:pairs.length, r2:null, pairs};
+}
+
+function weeklyDoseForTargetINR(a,b,targetInr){
+  if(!(a>0) || !(b>0) || !(targetInr>0)) return NaN;
+  return Math.pow(targetInr/a, 1/b);
+}
+
+function responseFactorByDays(days){
+  // pragmatic: ~50% of steady-state in ~7 days
+  const d = clamp(days, 1, 60);
+  const halfLife = 7; // days
+  return 1 - Math.pow(0.5, d/halfLife);
+}
+
+function suggestWeeklyForTarget(targetInr){
+  const p = activePatient(); if(!p) return {ok:false, reason:"No patient."};
+  const s = p.state;
+  const curInr = toNum(s.inrToday);
+  const currentWeekly = computeCurrentMaintenanceWeekly();
+  if(!(currentWeekly>0)) return {ok:false, reason:"Enter dose history or regimen so a weekly dose baseline exists."};
+  if(!isFinite(curInr)) return {ok:false, reason:"Enter today’s INR (or record an INR) before generating a maintenance option."};
+
+  const model = modelFromHistoryOrAnchor(curInr, currentWeekly);
+  if(!model.ok) return {ok:false, reason:"Unable to model dose-response. Add more INR + dose history."};
+
+  let wkTarget = weeklyDoseForTargetINR(model.a, model.b, targetInr);
+
+  const maxUp = currentWeekly * 1.25;
+  const maxDn = currentWeekly * 0.75;
+  wkTarget = clamp(wkTarget, maxDn, maxUp);
+
+  wkTarget = Math.round(wkTarget*2)/2;
+
+  return {
+    ok:true,
+    wkTarget,
+    currentWeekly,
+    model,
+    pairs: model.pairs
+  };
+}
+
+function suggestWeeklyForTargetByDate(targetInr, targetIso){
+  const p = activePatient(); if(!p) return {ok:false, reason:"No patient."};
+  const s = p.state;
+
+  const curInr = toNum(s.inrToday);
+  const currentWeekly = computeCurrentMaintenanceWeekly();
+  if(!(currentWeekly>0)) return {ok:false, reason:"Enter dose history or regimen so a weekly dose baseline exists."};
+  if(!isFinite(curInr)) return {ok:false, reason:"Enter today’s INR (or record an INR) before generating a target option."};
+  if(!targetIso) return {ok:false, reason:"Pick a target date."};
+
+  const days = Math.max(1, Math.round((fromIso(targetIso) - new Date())/(1000*60*60*24)));
+  const f = responseFactorByDays(days);
+
+  // Solve desired steady-state INR such that partial response hits target by date
+  // target = cur + f*(steady - cur) => steady = cur + (target-cur)/f
+  const steadyNeeded = clamp(curInr + (targetInr - curInr)/Math.max(0.20, f), 0.8, 6.5);
+
+  const model = modelFromHistoryOrAnchor(curInr, currentWeekly);
+  if(!model.ok) return {ok:false, reason:"Unable to model dose-response. Add more INR + dose history."};
+
+  let wkTarget = weeklyDoseForTargetINR(model.a, model.b, steadyNeeded);
+
+  // More conservative when timeline is short
+  const maxPct = (days <= 7) ? 0.20 : (days <= 14 ? 0.25 : 0.30);
+  const maxUp = currentWeekly * (1 + maxPct);
+  const maxDn = currentWeekly * (1 - maxPct);
+  wkTarget = clamp(wkTarget, maxDn, maxUp);
+
+  wkTarget = Math.round(wkTarget*2)/2;
+
+  return {
+    ok:true,
+    wkTarget,
+    currentWeekly,
+    model,
+    pairs: model.pairs,
+    byDate:{targetIso, days, f, steadyNeeded}
+  };
+}
+
+function buildRegimenFromWeeklyTarget(wkTarget){
+  const p = activePatient(); if(!p) return null;
+  const s = p.state;
+  ensureRegimenPhases(s);
+
+  const cur = s.regimen || {};
+  const curWk = regimenWeeklyTotalFrom(cur);
+
+  const pattern = [];
+  if(curWk>0){
+    for(let i=0;i<7;i++){
+      const v = toNum(cur[i]);
+      pattern.push(isFinite(v) && v>0 ? v/curWk : 0);
+    }
+    const sumPat = pattern.reduce((a,b)=>a+b,0);
+    if(sumPat < 0.70){
+      for(let i=0;i<7;i++) pattern[i]=1/7;
+    }
+  }else{
+    for(let i=0;i<7;i++) pattern[i]=1/7;
+  }
+
+  const raw = {};
+  for(let i=0;i<7;i++) raw[i] = wkTarget * pattern[i];
+
+  const tabs = feasibleTabsForPatient();
+  const snapped = {};
+  let sum=0;
+  for(let i=0;i<7;i++){
+    let d = raw[i];
+    if(d<0) d=0;
+    const s1 = snapDoseFeasible(d, tabs, "");
+    const dose = s1.ok ? s1.dose : (Math.round(d*2)/2);
+    snapped[i] = dose;
+    sum += dose;
+  }
+
+  return {regimen: snapped, achievedWeekly: Math.round(sum*2)/2};
+}
+
+/* ---- Apply regimen forward (phase) ---- */
+function parseMDYToIso(mdy){
+  const m = (mdy||"").trim();
+  if(!m) return null;
+  const parts = m.split("/").map(x=>x.trim());
+  if(parts.length!==3) return null;
+  const mm = parseInt(parts[0],10), dd = parseInt(parts[1],10), yy = parseInt(parts[2],10);
+  if(!(mm>=1 && mm<=12 && dd>=1 && dd<=31 && yy>=1900 && yy<=2100)) return null;
+  const d = new Date(yy, mm-1, dd);
+  if(d.getFullYear()!==yy || (d.getMonth()+1)!==mm || d.getDate()!==dd) return null;
+  return isoLocal(d);
+}
+
+/* ---- maintenance UI handlers ---- */
+let lastMaintProposal = null;
+
+function renderMaintProposal(proposal, targetInr, byDateInfo){
+  if(!proposal || !proposal.ok) return;
+  const regBuilt = buildRegimenFromWeeklyTarget(proposal.wkTarget);
+  if(!regBuilt){
+    modal.open("Maintenance option","Could not build regimen pattern.");
+    return;
+  }
+  lastMaintProposal = {proposal, regBuilt, targetInr, byDateInfo};
+
+  const reg = regBuilt.regimen;
+  const labels = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const list = labels.map((lab,i)=> `${lab}: <b>${fmtDose(reg[i]||0)}</b>`).join(" • ");
+
+  const modelLine = proposal.model.usedHistory
+    ? `Model fit: n=${proposal.model.n}, b=${proposal.model.b.toFixed(2)}, R²≈${proposal.model.r2.toFixed(2)}`
+    : `Model fit: <b>limited history</b> (default sensitivity b=${proposal.model.b.toFixed(2)} anchored to current point)`;
+
+  const byDateLine = byDateInfo
+    ? `<div class="sep"></div>
+       <div><b>Target date:</b> ${escapeHtml(fmtMDY(fromIso(byDateInfo.targetIso)))} (${byDateInfo.days} day${byDateInfo.days===1?"":"s"})</div>
+       <div class="small">Time-to-effect factor f≈${byDateInfo.f.toFixed(2)} → steady-state needed ≈ ${byDateInfo.steadyNeeded.toFixed(2)}</div>`
+    : ``;
+
+  $("maintSummary").value = `${fmtDose(proposal.wkTarget)} mg/week (achieved ~${fmtDose(regBuilt.achievedWeekly)} mg/week)`;
+  $("maintDetails").innerHTML = `
+    <div><b>Target INR:</b> ${targetInr.toFixed(2)} ${byDateInfo ? `<span class="small">(by date)</span>` : `<span class="small">(maintenance)</span>`}</div>
+    <div><b>Current weekly (estimate):</b> ${fmtDose(proposal.currentWeekly)} mg/week</div>
+    <div><b>Suggested weekly:</b> ${fmtDose(proposal.wkTarget)} mg/week</div>
+    ${byDateLine}
+    <div class="sep"></div>
+    <div><b>Suggested regimen pattern (daily):</b></div>
+    <div style="margin-top:6px">${list}</div>
+    <div class="sep"></div>
+    <div class="small">${escapeHtml(modelLine)}</div>
+    <div class="small">History points used: ${proposal.pairs.length}</div>
+  `;
+
+  const tomorrow = addDaysLocal(new Date(), 1);
+  $("maintStart").value = fmtMDY(tomorrow);
+  $("maintBox").style.display = "block";
+}
+
+function isOutOfRange(val, L, H){ return isFinite(val) && (val<L || val>H); }
+function isLabileByHistory(L,H){
+  const recent = listRecentINRs(180).slice(0,6);
+  if(recent.length < 2) return false;
+  const c2 = recent.slice(0,2).every(x=>isOutOfRange(x.val,L,H));
+  if(c2) return true;
+  const last3 = recent.slice(0,3);
+  if(last3.length>=3){
+    const oor = last3.filter(x=>isOutOfRange(x.val,L,H)).length;
+    if(oor>=2) return true;
+  }
+  const oor6 = recent.filter(x=>isOutOfRange(x.val,L,H)).length;
+  const tir = 1 - (oor6 / recent.length);
+  return tir < 0.5;
+}
+
+function generateMaintenanceOption(){
+  const {L,H,midpoint} = getTargetRange();
+  const p = activePatient(); if(!p) return;
+
+  const labile = isLabileByHistory(L,H);
+  if(!labile){
+    modal.open(
+      "Maintenance optimization",
+      `Based on recent INR history, the patient does not appear persistently labile/out of range.<br><br>
+       If you still want a maintenance suggestion, enter more INR history (and dosing history) first.`
+    );
+    return;
+  }
+
+  const userTarget = toNum($("targetInrOne").value);
+  const targetInr = isFinite(userTarget) ? userTarget : midpoint;
+
+  const res = suggestWeeklyForTarget(targetInr);
+  if(!res.ok){
+    modal.open("Maintenance option", escapeHtml(res.reason||"Unable to generate regimen option."));
+    return;
+  }
+  renderMaintProposal(res, targetInr, null);
+}
+
+function generateTargetByDate(){
+  const p = activePatient(); if(!p) return;
+
+  const userTarget = toNum($("targetInrOne").value);
+  if(!isFinite(userTarget) || userTarget<=0){
+    modal.open("Target INR", "Enter a valid <b>Target INR</b> (example: 2.2).");
+    return;
+  }
+
+  const targetIso = $("targetInrDate").value || "";
+  if(!targetIso){
+    modal.open("Target date", "Pick a <b>Target date</b>.");
+    return;
+  }
+
+  const res = suggestWeeklyForTargetByDate(userTarget, targetIso);
+  if(!res.ok){
+    modal.open("Target by date", escapeHtml(res.reason||"Unable to generate target regimen."));
+    return;
+  }
+
+  renderMaintProposal(res, userTarget, res.byDate);
+}
+
+function applyMaintenanceForward(){
+  if(!lastMaintProposal) return;
+  const p = activePatient(); if(!p) return;
+
+  const startIso = parseMDYToIso($("maintStart").value);
+  if(!startIso){
+    modal.open("Start date","Please enter a valid date as MM/DD/YYYY.");
+    return;
+  }
+
+  const reg = lastMaintProposal.regBuilt.regimen;
+
+  const todayIso = isoLocal(new Date());
+  const doApply = ()=>{
+    const s = activePatient().state;
+    ensureRegimenPhases(s);
+    const exists = s.regimenPhases.find(x=>x.startIso===startIso);
+    if(exists){
+      modal.open(
+        "Regimen phase exists",
+        `A regimen phase already starts on <b>${escapeHtml(fmtMDY(fromIso(startIso)))}</b>.<br><br>
+         Replace that phase?`,
+        [
+          {label:"Replace phase", cls:"btn primary", onClick:()=>{ modal.close(); finalizeApply(startIso, reg); }},
+          {label:"Cancel", cls:"btn secondary", onClick:()=>modal.close()}
+        ]
+      );
+      return;
+    }
+    finalizeApply(startIso, reg);
+  };
+
+  if(startIso < todayIso){
+    modal.open(
+      "Start date is in the past",
+      `You entered <b>${escapeHtml($("maintStart").value)}</b> which is before today.<br><br>
+       Apply anyway?`,
+      [
+        {label:"Apply", cls:"btn primary", onClick:()=>{ modal.close(); doApply(); }},
+        {label:"Cancel", cls:"btn secondary", onClick:()=>modal.close()}
+      ]
+    );
+    return;
+  }
+
+  doApply();
+}
+
+function finalizeApply(startIso, reg){
+  setNewRegimenPhase(startIso, reg);
+  syncRegimenUI();
+
+  modal.open(
+    "Applied regimen forward",
+    `New maintenance regimen phase starts <b>${escapeHtml(fmtMDY(fromIso(startIso)))}</b>.<br>
+     Past phases preserved for regimen→INR tracking.`
+  );
+
+  $("maintBox").style.display = "none";
+  lastMaintProposal = null;
+  $("maintSummary").value = "";
+  $("maintDetails").innerHTML = "";
+
+  renderAllVisual(false);
+}
+
+/* ---- lay summary + verbal (unchanged structure) ---- */
+function laySummaryHtml(r){
+  const {L,H,label} = r;
+  if(!r.hasRec){
+    return {lead:`<div class="patientLead"><b>Your INR:</b> — <span style="color:#666">Enter today’s INR then click <b>Get recommendation</b>.</span></div>`, pred:``, clinician:``, plan7:``, algoLine:``};
+  }
+
+  const inrTxt = formatInrOneDecimal(r.inr);
+  let status = "in range";
+  if(r.inr < L) status = "below range";
+  else if(r.inr > H) status = "above range";
+
+  const holdN = Math.max(0, r.holdsChosen||0);
+  let dir = "";
+  if(r.consult){
+    dir = `<b>High INR:</b> follow the high-INR pathway and consult Medical Director / provider as needed.`;
+  } else if(holdN>0){
+    dir = `<b>Do NOT take warfarin for ${holdN} day${holdN===1?"":"s"}.</b> Then follow the 7-day plan below.`;
+  } else if(r.pctChosen === 0){
+    dir = `<b>Keep your warfarin dose the same.</b> Follow the 7-day plan below.`;
+  } else if(r.pctChosen > 0){
+    dir = `<b>Your warfarin dose needs to go up.</b> Follow the 7-day plan below.`;
+  } else {
+    dir = `<b>Your warfarin dose needs to go down.</b> Follow the 7-day plan below.`;
+  }
+
+  const lead =
+    `<div class="patientLead">
+      <b>Your INR ${inrTxt} is ${status}</b> <span style="color:#666">(target ${label}).</span><br>
+      ${dir}
+    </div>`;
+
+  const predVal = predictedInrEstimate(r);
+  const pred =
+    (predVal !== null)
+      ? `<div class="predLine"><b>Estimated next INR:</b> <b>${predVal.toFixed(1)}</b> <span style="color:#666">(estimate only)</span></div>`
+      : `<div class="predLine"><b>Estimated next INR:</b> <span style="color:#666">— (enter more dose history for a better estimate)</span></div>`;
+
+  const scopeTxt = activePatient().state.applyBeyondRepeat ? "Today + tomorrow (max)" : "Today only";
+  const algoLine =
+    `<div class="pillNote">
+      <b>Algorithm used:</b> ${escapeHtml(r.algoUsed)}.
+      ${r.algoUsed==="UCLA" ? `This matches the UCLA table bands for goals 2.0–3.0 and 2.5–3.5.` : `Fallback logic used for non-UCLA goal ranges.`}
+      <br><b>Dose achievability:</b> scheduled doses are snapped to achievable tablet combinations (½ tablets allowed).
+      <br><b>Scope:</b> ${escapeHtml(scopeTxt)} (applied on button press).
+    </div>`;
+
+  const clinician =
+    `<div class="sep"></div>
+     <div class="small" style="color:#111">
+       • <b>Plan details:</b> ${r.plan}
+     </div>`;
+
+  const rows = next7PlanRows();
+  const plan7 = buildPlanTableHtml(rows);
+
+  return {lead, pred, clinician, plan7, algoLine};
+}
+
+function renderVerbal(){
+  const p = activePatient(); if(!p) return;
+  const s = p.state;
+  const r = computeRecommendation();
+
+  ensureTodayINROnCalendar();
+
+  const repIso = computeRepeatIso();
+  const repDate = fromIso(repIso);
+
+  const pt = s.ptName ? `<b>${escapeHtml(s.ptName)}</b>: ` : "";
+  const age = getAgeYearsFromMdy(s.dob);
+  const ageTxt = isFinite(age) ? ` <span class="small">Age: <b>${age}</b>.</span>` : "";
+
+  let intxLine = "";
+  const pulled = interactionRepeatOverrideDays();
+  if((s.interactions||[]).length){
+    intxLine = ` <span class="small">Interaction risk present${pulled?` (repeat INR pulled to ≤ ${pulled} day(s))`:""}.</span>`;
+  }
+
+  const lay = laySummaryHtml(r);
+
+  $("verbal").innerHTML = `
+    <div style="margin-bottom:6px">${pt}${ageTxt}${intxLine}</div>
+    ${lay.lead}
+    ${lay.plan7}
+    ${lay.pred}
+    ${lay.algoLine}
+    ${lay.clinician}
+  `;
+
+  $("repeatLine").innerHTML = `<b>Repeat INR:</b> <b>${fmtMDY(repDate)}</b> (in ${r.repeatDays} day${r.repeatDays===1?"":"s"}).`;
+}
+
+/* ---- interactions ---- */
+function renderInteractions(){ $("intxText").innerHTML = interactionNarrative(); }
+
+/* ---- bridging (updated to always use canonical kg/cm stored in state) ---- */
+function roundEnoxTo10(mg){
+  const v = Math.round(mg);
+  const mod = v % 10;
+  if(mod === 5) return v - 5;
+  if(mod > 5) return v + (10 - mod);
+  return v - mod;
+}
+function renderBridging(){
+  const p = activePatient(); if(!p) return;
+  const s = p.state;
+  const need = s.bridgeNeed === "yes";
+  $("bridgeText").innerHTML = need ? "—" : "";
+  if(!need) return;
+
+  // s.wt is canonical kg
+  const wt = toNum(s.wt);
+  const bmi = toNum(s.bmi);
+  const crcl = toNum(s.crcl);
+  const agent = s.bridgeAgent;
+
+  if(!isFinite(wt) || wt<=0){
+    $("bridgeText").innerHTML = `Enter <b>weight</b> to calculate bridging dosing.`;
+    return;
+  }
+  if(!isFinite(crcl) || crcl<=0){
+    $("bridgeText").innerHTML = `Enter <b>CrCl (mL/min)</b> to apply the renal-specific bridging protocol.`;
+    return;
+  }
+
+  const bmiKnown = isFinite(bmi) && bmi>0;
+  const obese40 = bmiKnown ? (bmi >= 40) : false;
+
+  let html = "";
+
+  if(agent === "enox"){
+    const renalLow = crcl < 30;
+    const perKg = obese40 ? 0.8 : 1.0;
+    const freqText = renalLow ? "SC daily" : "SC BID";
+    const freqDetail = renalLow ? "once daily" : "twice daily";
+
+    const raw = wt * perKg;
+    const rounded = roundEnoxTo10(raw);
+
+    html = `
+      <div><b>Enoxaparin bridging:</b> ${s.bridgeInd ? `(${escapeHtml(s.bridgeInd)})` : ""}</div>
+      <div class="sep"></div>
+      <div><b>Criteria:</b>
+        CrCl <b>${escapeHtml(String(crcl))}</b> mL/min •
+        BMI ${bmiKnown ? `<b>${escapeHtml(String(bmi))}</b>` : `<b>—</b>`}
+        ${bmiKnown ? `` : `<span class="small" style="color:#b00020">(BMI not entered → assuming BMI &lt; 40)</span>`}
+      </div>
+      <div class="sep"></div>
+      <div><b>Protocol dose:</b> <b>${perKg.toFixed(1)} mg/kg</b> ${freqText}
+        <span class="small">(BMI ${obese40 ? "≥ 40" : "< 40"} • ${renalLow ? "CrCl < 30" : "CrCl > 30"})</span>
+      </div>
+      <div style="margin-top:6px">
+        Calculated: <b>${Math.round(raw)} mg</b> → rounded: <b>${rounded} mg</b> <span class="small">(${freqDetail})</span>
+      </div>
+    `;
+  } else {
+    if(crcl < 30){
+      html = `<div><b>Fondaparinux:</b> <span style="color:#b00020"><b>contraindicated if CrCl &lt; 30</b></span>.</div>`;
+    } else {
+      let dose = 7.5;
+      if(wt < 50) dose = 5;
+      else if(wt > 100) dose = 10;
+
+      const caution = (crcl >= 30 && crcl <= 50)
+        ? `<div class="small" style="margin-top:6px;color:#b00020"><b>Caution:</b> CrCl 30–50 mL/min (per protocol note)</div>`
+        : ``;
+
+      html = `
+        <div><b>Fondaparinux bridging:</b> ${s.bridgeInd ? `(${escapeHtml(s.bridgeInd)})` : ""}</div>
+        <div class="sep"></div>
+        <div>Weight-based dose: <b>${dose} mg SC daily</b></div>
+        ${caution}
+      `;
+    }
+  }
+
+  $("bridgeText").innerHTML = html;
+}
+
+/* ---- Print Pack ---- */
+function renderPrintPack(){
+  const p = activePatient(); if(!p) return;
+  const s = p.state;
+  const r = computeRecommendation();
+  const repIso = computeRepeatIso();
+  const repDate = fromIso(repIso);
+
+  const header = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px">
+      <div>
+        <div style="font-size:20px;font-weight:900">ThromboLogic INR</div>
+        <div class="small">${escapeHtml(VERSION)}</div>
+      </div>
+      <div class="small" style="text-align:right">
+        Printed: <b>${escapeHtml(new Date().toLocaleString())}</b>
+      </div>
+    </div>
+  `;
+
+  const ptLine = `
+    <div style="border:1px solid var(--border);border-radius:12px;background:#fff;padding:10px">
+      <div style="font-weight:900">${escapeHtml(s.ptName || "—")}</div>
+      <div class="small">
+        ${escapeHtml([s.mrn?`MRN ${s.mrn}`:"", s.dob?`DOB ${s.dob}`:"", s.phone?`${s.phone}`:""].filter(Boolean).join(" • ")) || "—"}
+      </div>
+    </div>
+  `;
+
+  const lay = laySummaryHtml(r);
+  const notes = `
+    <div class="sep"></div>
+    <div style="border:1px solid var(--border);border-radius:12px;background:#fff;padding:10px">
+      <div style="font-weight:900;margin-bottom:6px">Provider notes</div>
+      <div style="white-space:pre-wrap">${escapeHtml(s.providerNotes || "").trim() || "—"}</div>
+    </div>
+  `;
+
+  const repeat = `
+    <div class="sep"></div>
+    <div style="border:1px solid var(--border);border-radius:12px;background:#fff;padding:10px">
+      <div><b>Repeat INR:</b> <b>${escapeHtml(fmtMDY(repDate))}</b> (in ${r.repeatDays} day${r.repeatDays===1?"":"s"}).</div>
+    </div>
+  `;
+
+  $("printPack").innerHTML = header + ptLine + `<div class="sep"></div>` + lay.lead + lay.plan7 + lay.pred + lay.algoLine + lay.clinician + repeat + notes;
+}
+
+/* ---- Save / Delete / Clear / Search ---- */
+function currentMetaFromUI(){
+  return {
+    ptName: $("ptName").value.trim(),
+    dob: $("dob").value.trim(),
+    gender: ($("gender").value || "").trim(),
+    phone: $("phone").value.trim(),
+    mrn: $("mrn").value.trim()
+  };
+}
+function saveFlow(){
+  const meta = currentMetaFromUI();
+  const p = activePatient(); if(!p) return;
+  const hasAny = !!(meta.ptName || meta.dob || meta.phone || meta.mrn);
+  if(!hasAny){
+    modal.open("Nothing to save","Enter at least a name, DOB, phone, or MRN before saving.");
+    return;
+  }
+
+  const mrn = (meta.mrn||"").trim();
+  if(mrn){
+    const targetId = `MRN:${mrn}`;
+    const exists = patients.find(x=>x.id === targetId);
+    const isCurrentSame = (!p.isDraft && p.id === targetId);
+    if(exists && !isCurrentSame){
+      modal.open(
+        "MRN already exists",
+        `A record with MRN <b>${escapeHtml(mrn)}</b> already exists.<br><br>
+         <b>${escapeHtml(exists.meta?.ptName || "(No name)")}</b><br>
+         <span class="small">${escapeHtml([exists.meta?.dob?`DOB ${exists.meta.dob}`:"", exists.meta?.phone||""].filter(Boolean).join(" • "))}</span>
+         <div class="hint" style="margin-top:10px">Choose what to do next.</div>`,
+        [
+          {label:"Open existing", cls:"btn secondary", onClick:()=>{ modal.close(); setActive(targetId); }},
+          {label:"Merge into existing", cls:"btn primary", onClick:()=>{
+            const cur = activePatient();
+            exists.meta = Object.assign({}, exists.meta, meta);
+            exists.state = Object.assign({}, exists.state, cur.state);
+            savePatients();
+            modal.close();
+            setActive(targetId);
+          }},
+          {label:"Cancel", cls:"btn ghost", onClick:()=>modal.close()}
+        ]
+      );
+      return;
+    }
+  }
+
+  const id = makePatientId(meta);
+  const cur = activePatient();
+  const idx = patients.findIndex(x=>x.id===id);
+  if(idx>=0){
+    patients[idx].meta = Object.assign({}, patients[idx].meta, meta);
+    patients[idx].state = Object.assign({}, patients[idx].state, cur.state);
+  }else{
+    patients.push({id, meta, state: cur.state});
+  }
+  savePatients();
+  setActive(id);
+  modal.open("Saved","Patient record saved.");
+}
+function deleteFlow(){
+  const p = activePatient(); if(!p) return;
+  if(p.isDraft){
+    modal.open("Delete","This is an unsaved entry. Use <b>Clear all</b> to reset the screen.");
+    return;
+  }
+  const name = p.meta?.ptName || p.id;
+  if(!confirm(`Delete patient "${name}"? This cannot be undone.`)) return;
+  patients = patients.filter(x=>x.id !== p.id);
+  savePatients();
+  draftState = blankState();
+  setActive(DRAFT_ID);
+  $("ptSearch").value = "";
+  $("searchResults").style.display="none";
+}
+function clearScreenFlow(){
+  draftState = blankState();
+  setActive(DRAFT_ID);
+  $("ptSearch").value = "";
+  $("searchResults").style.display="none";
+
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  document.querySelector('.tab[data-tab="rec"]').classList.add("active");
+  $("tab-rec").style.display="block";
+  $("tab-bridge").style.display="none";
+  $("tab-interact").style.display="none";
+  $("tab-notes").style.display="none";
+}
+
+/* ---- regimen copy (VISIBLE calendar cells via DOM) ---- */
+function copyRegimenToVisible(){
+  const p = activePatient(); if(!p) return;
+  const s = p.state;
+  ensureRegimenPhases(s);
+
+  const isos = Array.from(document.querySelectorAll("#cal .day"))
+    .map(el=>el.dataset.iso)
+    .filter(Boolean);
+
+  if(!isos.length){
+    modal.open("Calendar not ready","No visible calendar days found. Scroll slightly, then try again.");
+    return;
+  }
+
+  for(const iso of isos){
+    const mg = regimenDoseForIso(iso);
+    if(!isFinite(mg)) continue;
+    const day = getDay(iso);
+    if(String(day.actual||"").trim() !== "") continue;
+    day.scheduled = String(mg);
+    day.scheduledLocked = false;
+    day.scheduledSource = "regimen";
+    s.days[iso] = day;
+  }
+  if(!p.isDraft) savePatients();
+  renderAllVisual(false);
+}
+
+/* =========================
+   FIX: Apply new regimen forward button
+   ========================= */
+function applyRegimenForwardFromButton(){
+  const p = activePatient(); if(!p) return;
+  const s = p.state;
+  ensureRegimenPhases(s);
+
+  const startIso = ($("regStartDate").value || "").trim();
+  if(!startIso){
+    modal.open("New regimen start date","Pick a start date first.");
+    return;
+  }
+
+  const reg = Object.assign({}, s.regimen || {});
+  const any = Object.values(reg).some(v=>isFinite(toNum(v)));
+  if(!any){
+    modal.open("Regimen is empty","Enter at least one daily regimen dose before applying forward.");
+    return;
+  }
+
+  const exists = s.regimenPhases.find(x=>x.startIso === startIso);
+  if(exists){
+    modal.open(
+      "Regimen phase exists",
+      `A regimen phase already starts on <b>${escapeHtml(fmtMDY(fromIso(startIso)))}</b>.<br><br>
+       Replace that phase with the current regimen?`,
+      [
+        {label:"Replace phase", cls:"btn primary", onClick:()=>{ modal.close(); setNewRegimenPhase(startIso, reg); syncRegimenUI(); renderAllVisual(false); }},
+        {label:"Cancel", cls:"btn secondary", onClick:()=>modal.close()}
+      ]
+    );
+    return;
+  }
+
+  setNewRegimenPhase(startIso, reg);
+  syncRegimenUI();
+  modal.open("Applied regimen forward", `New regimen phase starts <b>${escapeHtml(fmtMDY(fromIso(startIso)))}</b>. Past phases preserved.`);
+  renderAllVisual(false);
+}
+
+/* ---- render all ---- */
+function renderAllVisual(forceRecenterCalendar){
+  renderCalendar(!!forceRecenterCalendar);
+  renderKPIs();
+  renderVerbal();
+  renderBridging();
+  renderInteractions();
+  renderPrintPack();
+}
+
+/* ---- events + sync ---- */
+function hookEvents(){
+  const sync = ()=>{
+    const p = activePatient(); if(!p) return;
+    const s = p.state;
+    ensureUnits(s);
+
+    s.ptName = $("ptName").value.trim();
+    s.dob = $("dob").value.trim();
+    s.phone = $("phone").value.trim();
+    s.gender = $("gender").value || "";
+    s.mrn = $("mrn").value.trim();
+
+    // Canonicalize wt/ht on the fly (store kg/cm)
+    const kg = readWeightKgFromUI();
+    s.wt = isFinite(kg) ? fmtDose(kg) : "";
+    const cm = readHeightCmFromUI();
+    s.ht = isFinite(cm) ? fmtDose(cm) : "";
+
+    s.crcl = $("crcl").value.trim();
+    syncAutoBMI();
+
+    s.targetRange = $("targetRange").value;
+    s.customL = $("customL").value.trim();
+    s.customH = $("customH").value.trim();
+
+    s.inrToday = $("inrToday").value;
+    s.applyBeyondRepeat = $("applyBeyondRepeat").checked;
+
+    s.providerNotes = $("providerNotes").value;
+    s.bridgeNeed = $("bridgeNeed").value;
+    s.bridgeAgent = $("bridgeAgent").value;
+    s.bridgeInd = $("bridgeInd").value.trim();
+    s.enoxFreq = $("enoxFreq").value;
+
+    const ints = [];
+    document.querySelectorAll(".intx").forEach(cb=>{ if(cb.checked) ints.push(cb.value); });
+    s.interactions = ints;
+
+    $("customRangeWrap").style.display = (s.targetRange === "custom") ? "block" : "none";
+    const need = s.bridgeNeed === "yes";
+    $("bridgeAgent").disabled = !need;
+    $("bridgeBox").style.display = need ? "block" : "none";
+
+    ensureRegimenPhases(s);
+
+    if(!p.isDraft) savePatients();
+    renderAllVisual(false);
+  };
+
+  ["ptName","gender","crcl","mrn","targetRange","customL","customH","inrToday","bridgeNeed","bridgeAgent","bridgeInd","enoxFreq","applyBeyondRepeat"]
+    .forEach(id=> $(id).addEventListener("input", sync));
+
+  $("wt").addEventListener("blur", ()=>{
+    sync();
+    // reformat displayed value in chosen unit (clean 1dp)
+    const p = activePatient(); if(!p) return;
+    writeWeightUIFromKg(toNum(p.state.wt));
+  });
+  $("ht").addEventListener("blur", ()=>{
+    sync();
+    const p = activePatient(); if(!p) return;
+    writeHeightUIFromCm(toNum(p.state.ht));
+  });
+
+  $("wtUnit").addEventListener("click", toggleWeightUnit);
+  $("htUnit").addEventListener("click", toggleHeightUnit);
+
+  $("inrToday").addEventListener("blur", ()=>{
+    const p = activePatient(); if(!p) return;
+    const fixed = formatInrOneDecimal($("inrToday").value);
+    if(fixed !== ""){
+      $("inrToday").value = fixed;
+      p.state.inrToday = fixed;
+      ensureTodayINROnCalendar();
+      if(!p.isDraft) savePatients();
+      renderAllVisual(false);
+    }
+  });
+
+  $("phone").addEventListener("input", (e)=>{ e.target.value = formatPhone(e.target.value); sync(); });
+
+  // DOB: auto-slash as MM/DD/YYYY while typing, normalize on blur, 2-digit year => 4-digit
+  $("dob").addEventListener("input", (e)=>{
+    const digits = (e.target.value || "").replace(/[^\d]/g,"").slice(0,8); // MMDDYYYY max
+    if(digits.length <= 2) e.target.value = digits;
+    else if(digits.length <= 4) e.target.value = digits.slice(0,2) + "/" + digits.slice(2);
+    else e.target.value = digits.slice(0,2) + "/" + digits.slice(2,4) + "/" + digits.slice(4);
+  });
+
+  $("dob").addEventListener("blur", ()=>{
+    const before = $("dob").value.trim();
+    const norm = normalizeDOB_MMDYYYY(before);
+    $("dob").value = norm;
+
+    const p = activePatient(); if(!p) return;
+    p.state.dob = norm;
+
+    if(norm && !isValidDOB_MMDYYYY(norm)){
+      modal.open("DOB format", `Please enter DOB as <b>MM/DD/YYYY</b> (example: 01/26/1970).`);
+    }
+    if(!p.isDraft) savePatients();
+    renderAllVisual(false);
+  });
+
+  $("providerNotes").addEventListener("focus", ()=>{
+    const ta = $("providerNotes");
+    const p = activePatient(); if(!p) return;
+    if(ta.value.trim() === "Click here to type provider notes before printing."){
+      ta.value = "";
+      p.state.providerNotes = "";
+      if(!p.isDraft) savePatients();
+    }
+  });
+  $("providerNotes").addEventListener("input", sync);
+
+  document.querySelectorAll(".intx").forEach(cb=>cb.addEventListener("change", sync));
+
+  $("tabs").addEventListener("click", (e)=>{
+    const btn = e.target.closest(".tab");
+    if(!btn) return;
+    document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+    btn.classList.add("active");
+    const tab = btn.dataset.tab;
+    $("tab-rec").style.display = tab==="rec" ? "block":"none";
+    $("tab-bridge").style.display = tab==="bridge" ? "block":"none";
+    $("tab-interact").style.display = tab==="interact" ? "block":"none";
+    $("tab-notes").style.display = tab==="notes" ? "block":"none";
+  });
+
+  $("btnToday").addEventListener("click", ()=>{
+    const p = activePatient(); if(!p) return;
+    p.state.calAnchorOffsetDays = 0;
+    if(!p.isDraft) savePatients();
+    renderAllVisual(true);
+  });
+
+  $("btnSearch").addEventListener("click", ()=>{
+    const q = $("ptSearch").value.trim();
+    if(q.length < 2){ $("searchResults").style.display="none"; return; }
+    showSearchResults(patients.filter(p=>matchesPatient(p,q)));
+  });
+  $("ptSearch").addEventListener("input", ()=>{
+    const q = $("ptSearch").value.trim();
+    if(q.length < 2){ $("searchResults").style.display="none"; return; }
+    showSearchResults(patients.filter(p=>matchesPatient(p,q)));
+  });
+
+  $("btnSavePt").addEventListener("click", saveFlow);
+  $("btnDeletePt").addEventListener("click", deleteFlow);
+
+  $("btnClear").addEventListener("click", ()=>{
+    modal.open(
+      "Clear all",
+      "This clears the current screen (inputs + calendar data for the unsaved draft).<br><b>Saved patients will not be deleted.</b>",
+      [
+        {label:"Clear screen", cls:"btn primary", onClick:()=>{ modal.close(); clearScreenFlow(); }},
+        {label:"Cancel", cls:"btn secondary", onClick:()=>modal.close()}
+      ]
+    );
+  });
+
+  $("btnPrint").addEventListener("click", ()=>{
+    renderAllVisual(false);
+    renderPrintPack();
+    window.print();
+  });
+
+  $("btnClearRegimen").addEventListener("click", ()=>{
+    const p = activePatient(); if(!p) return;
+    p.state.regimen = {};
+    ensureRegimenPhases(p.state);
+    if(!p.isDraft) savePatients();
+    syncRegimenUI();
+    renderAllVisual(false);
+  });
+  $("btnCopyRegimen").addEventListener("click", copyRegimenToVisible);
+
+  // FIXED: Apply regimen forward
+  $("btnApplyRegimenForward").addEventListener("click", applyRegimenForwardFromButton);
+
+  // On-demand apply recommendation
+  $("btnGetRec").addEventListener("click", ()=>{
+    const p = activePatient(); if(!p) return;
+    const fixed = formatInrOneDecimal($("inrToday").value);
+    if(fixed !== ""){
+      $("inrToday").value = fixed;
+      p.state.inrToday = fixed;
+      ensureTodayINROnCalendar();
+      if(!p.isDraft) savePatients();
+    }
+    applyRecommendationToCalendar();
+    renderAllVisual(false);
+  });
+
+  // Maintenance buttons
+  $("btnGenMaint").addEventListener("click", generateMaintenanceOption);
+  $("btnGenTarget").addEventListener("click", generateTargetByDate);
+  $("btnApplyMaint").addEventListener("click", applyMaintenanceForward);
+  $("btnHideMaint").addEventListener("click", ()=>{
+    $("maintBox").style.display="none";
+    lastMaintProposal = null;
+    $("maintSummary").value = "";
+    $("maintDetails").innerHTML = "";
+  });
+  $("maintStart").addEventListener("input", (e)=>{
+    const v = (e.target.value||"").replace(/[^\d]/g,"").slice(0,8);
+    if(v.length<=2) e.target.value = v;
+    else if(v.length<=4) e.target.value = v.slice(0,2)+"/"+v.slice(2);
+    else e.target.value = v.slice(0,2)+"/"+v.slice(2,4)+"/"+v.slice(4);
+  });
+
+  $("btnDemo").addEventListener("click", ()=>{
+    draftState = blankState();
+    setActive(DRAFT_ID);
+    const p = activePatient();
+    const s = p.state;
+
+    s.ptName = "Demo Patient";
+    s.dob = "01/15/1950";
+    s.phone = "(818) 555-1234";
+    s.mrn = "123456";
+    s.wt = "78"; s.wtUnit = "kg";
+    s.ht = "170"; s.htUnit = "cm";
+    s.crcl = "55";
+    s.tablets = [2.5,5];
+    s.targetRange = "2.0-3.0";
+    s.inrToday = "3.6";
+    s.applyBeyondRepeat = false;
+    s.bridgeNeed = "yes";
+    s.bridgeAgent = "enox";
+    s.bridgeInd = "Peri-procedural (demo)";
+    s.enoxFreq = "q12";
+    s.interactions = ["amio"];
+    s.calAnchorOffsetDays = 0;
+
+    s.regimen = {0:7.5,1:7.5,2:7.5,3:7.5,4:7.5,5:7.5,6:7.5};
+    s.regimenPhases = [{startIso:"1900-01-01", regimen:Object.assign({}, s.regimen)}];
+
+    const today = new Date();
+    for(let i=0;i<20;i++){
+      const iso = isoLocal(addDaysLocal(today, -i));
+      const d = getDay(iso);
+      d.scheduled = "7.5";
+      d.scheduledLocked = false;
+      d.scheduledSource = "";
+      s.days[iso] = d;
+    }
+    getDay(isoLocal(addDaysLocal(today, -14))).inr = "2.1";
+    getDay(isoLocal(addDaysLocal(today, -10))).inr = "3.6";
+    getDay(isoLocal(addDaysLocal(today, -7))).inr = "3.2";
+    getDay(isoLocal(addDaysLocal(today, -3))).inr = "3.8";
+    ensureTodayINROnCalendar();
+
+    bindInputs();
+    renderAllVisual(true);
+  });
+}
+
+/* ---- init ---- */
+initRegimen();
+initPills();
+bindInputs();
+hookEvents();
+hookInfiniteScroll();
+renderAllVisual(true);
+</script>
+</body>
+</html>
