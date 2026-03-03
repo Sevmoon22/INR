@@ -3228,16 +3228,21 @@ function hookEvents(){
   document.querySelectorAll(".intx").forEach(cb=>cb.addEventListener("change", sync));
 
   $("tabs").addEventListener("click", (e)=>{
-    const btn = e.target.closest(".tab");
-    if(!btn) return;
-    document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
-    btn.classList.add("active");
-    const tab = btn.dataset.tab;
-    $("tab-rec").style.display = tab==="rec" ? "block":"none";
-    $("tab-bridge").style.display = tab==="bridge" ? "block":"none";
-    $("tab-interact").style.display = tab==="interact" ? "block":"none";
-    $("tab-notes").style.display = tab==="notes" ? "block":"none";
-  });
+  const btn = e.target.closest(".tab");
+  if(!btn) return;
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  btn.classList.add("active");
+  const tab = btn.dataset.tab;
+
+  $("tab-rec").style.display = tab==="rec" ? "block":"none";
+  $("tab-graph").style.display = tab==="graph" ? "block":"none";
+  $("tab-bridge").style.display = tab==="bridge" ? "block":"none";
+  $("tab-interact").style.display = tab==="interact" ? "block":"none";
+  $("tab-notes").style.display = tab==="notes" ? "block":"none";
+
+  // If user clicks into Graph, render immediately
+  if(tab==="graph") renderGraph();
+});
 
   $("btnToday").addEventListener("click", ()=>{
     const p = activePatient(); if(!p) return;
