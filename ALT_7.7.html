@@ -3048,13 +3048,17 @@ function hookEvents(){
       }
 
       // Use that INR for the recommendation context
-      s.inrToday = found.valStr;
-      $("inrToday").value = found.valStr;
-      s.lastRecoInrIso = found.iso;
+     // Use that INR for the recommendation context
+s.inrToday = found.valStr;
+$("inrToday").value = found.valStr;
+s.lastRecoInrIso = found.iso;
 
-      // If the found INR is today, keep calendar synced
-      ensureTodayINROnCalendar();
-      if(!p.isDraft) savePatients();
+// ✅ Only sync into today's calendar INR cell if the INR date is actually today
+if(found.iso === isoLocal(new Date())){
+  ensureTodayINROnCalendar();
+}
+
+if(!p.isDraft) savePatients();
     }
 
     applyRecommendationToCalendar();
