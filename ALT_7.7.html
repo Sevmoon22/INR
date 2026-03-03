@@ -3244,6 +3244,28 @@ function hookEvents(){
   if(tab==="graph") renderGraph();
 });
 
+  if($("graphView")){
+  $("graphView").addEventListener("change", ()=>{
+    const p = activePatient(); if(!p) return;
+    p.state.graphView = $("graphView").value || "timeline";
+    if(!p.isDraft) savePatients();
+    renderGraph();
+  });
+}
+if($("graphDays")){
+  $("graphDays").addEventListener("change", ()=>{
+    const p = activePatient(); if(!p) return;
+    p.state.graphDays = Number($("graphDays").value)||120;
+    if(!p.isDraft) savePatients();
+    renderGraph();
+  });
+}
+if($("btnGraphRefresh")){
+  $("btnGraphRefresh").addEventListener("click", ()=>{
+    renderGraph();
+  });
+}
+  
   $("btnToday").addEventListener("click", ()=>{
     const p = activePatient(); if(!p) return;
     p.state.calAnchorOffsetDays = 0;
