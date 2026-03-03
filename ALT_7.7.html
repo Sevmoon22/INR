@@ -533,7 +533,49 @@
           <div class="hint" id="repeatLine"></div>
         </div>
       </div>
+<!-- Graph -->
+<div id="tab-graph" style="display:none">
+  <h2 style="margin-top:10px">INR ↔ 7-day total dose relationship</h2>
+  <div class="hint">
+    Each point uses the INR recorded on that date and the <b>total mg taken in the 7 days leading up to that date</b> (based on Actual if present, otherwise Scheduled).
+  </div>
 
+  <div class="row no-print" style="margin-top:10px; align-items:flex-end">
+    <div class="field" style="width:170px">
+      <label>View</label>
+      <select id="graphView">
+        <option value="timeline" selected>Timeline</option>
+        <option value="scatter">Scatter</option>
+      </select>
+    </div>
+
+    <div class="field" style="width:170px">
+      <label>Lookback window</label>
+      <select id="graphDays">
+        <option value="60">Last 60 days</option>
+        <option value="120" selected>Last 120 days</option>
+        <option value="240">Last 240 days</option>
+      </select>
+    </div>
+
+    <button class="btn secondary" id="btnGraphRefresh">Refresh graph</button>
+
+    <div class="field" style="min-width:240px; flex:1">
+      <label>Hover info</label>
+      <input id="graphHover" readonly placeholder="Hover points to see Date • INR • 7-day total" />
+    </div>
+  </div>
+
+  <div class="card" style="background:#fff; margin-top:10px">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap">
+      <div class="small" id="graphSubtitle">—</div>
+      <div class="small" id="graphLegend">Band = target range</div>
+    </div>
+    <div style="margin-top:8px">
+      <canvas id="graphCanvas" width="1100" height="420" style="width:100%; height:auto; border:1px solid var(--border); border-radius:12px;"></canvas>
+    </div>
+  </div>
+</div>
       <!-- Bridging -->
       <div id="tab-bridge" style="display:none">
         <h2 style="margin-top:10px">Bridging requirement</h2>
