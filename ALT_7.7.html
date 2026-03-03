@@ -2808,6 +2808,43 @@ function renderGraph(){
   canvas.onmousemove = onMove;
   canvas.onmouseleave = ()=>{ hoverOut.value=""; canvas.style.cursor="default"; };
 }
+
+  function openGraphInNewTab(){
+  const c = $("inrGraphCanvas") || document.querySelector("canvas"); // adjust id if yours differs
+  if(!c || !c.toDataURL) return;
+
+  const dataUrl = c.toDataURL("image/png");
+
+  const w = window.open("", "_blank");
+  if(!w) return;
+
+  w.document.write(`
+    <!doctype html>
+    <html>
+    <head>
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <title>INR Graph</title>
+      <style>
+        body{ margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; background:#0b0b0b; color:#fff; }
+        .bar{ position:sticky; top:0; display:flex; gap:10px; align-items:center; padding:10px 12px; background:#111; border-bottom:1px solid #222; }
+        .wrap{ padding:12px; }
+        img{ width:100%; height:auto; max-width:1400px; display:block; margin:0 auto; background:#fff; border-radius:12px; }
+        button{ cursor:pointer; padding:8px 10px; border-radius:10px; border:1px solid #333; background:#1a1a1a; color:#fff; }
+      </style>
+    </head>
+    <body>
+      <div class="bar">
+        <button onclick="window.close()">Close</button>
+        <button onclick="window.print()">Print</button>
+      </div>
+      <div class="wrap">
+        <img src="${dataUrl}" alt="INR Graph"/>
+      </div>
+    </body>
+    </html>
+  `);
+  w.document.close();
+}
   
 /* ---- bridging ---- */
 function roundEnoxTo10(mg){
