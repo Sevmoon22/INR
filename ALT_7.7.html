@@ -1374,6 +1374,8 @@ function bindInputs(){
 
   $("inrToday").value = s.inrToday || "";
   $("applyBeyondRepeat").checked = !!s.applyBeyondRepeat;
+  if($("graphView")) $("graphView").value = s.graphView || "timeline";
+  if($("graphDays")) $("graphDays").value = String(s.graphDays || 120);
 
   $("providerNotes").value = s.providerNotes || "";
   $("bridgeNeed").value = s.bridgeNeed || "no";
