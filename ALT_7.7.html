@@ -2578,7 +2578,232 @@ function renderVerbal(){
 
 /* ---- interactions ---- */
 function renderInteractions(){ $("intxText").innerHTML = interactionNarrative(); }
+  
+/* =========================
+   GRAPH: INR ↔ 7-day total dose
+   ========================= */
+function graphSettings(){
+  const p = activePatient(); if(!p) return {view:"timeline", days:120};
+  const s = p.state;
+  if(!s.graphView) s.graphView = "timeline";
+  if(!s.graphDays) s.graphDays = 120;
+  return {view: s.graphView, days: Number(s.graphDays)||120};
+}
 
+function collectGraphPoints(lookbackDays){
+  const p = activePatient(); if(!p) return [];
+  const s = p.state;
+  const pts = [];
+  const today = new Date();
+
+  for(let i=0;i<=lookbackDays;i++){
+    const iso = isoLocal(addDaysLocal(today, -i));
+    let inr = toNum(getDay(iso).inr);
+
+    // Optionally include "today" if user entered Current INR (today) but didn't save in calendar
+    if(i===0){
+      const t = toNum(s.inrToday);
+      if(isFinite(t)) inr = t;
+    }
+
+    if(!isFinite(inr)) continue;
+
+    const wk = sum7DayDoseAt(iso); // ✅ your chosen metric
+    if(!(wk>0)) continue;
+
+    pts.push({
+      iso,
+      date: fromIso(iso),
+      inr: Math.round(inr*10)/10,
+      wk: Math.round(wk*10)/10
+    });
+  }
+
+  // Oldest -> newest for timeline
+  pts.sort((a,b)=> a.iso<b.iso?-1:a.iso>b.iso?1:0);
+  return pts;
+}
+
+function drawAxes(ctx, box){
+  ctx.strokeStyle = "#ddd";
+  ctx.lineWidth = 1;
+
+  // Border
+  ctx.strokeRect(box.x, box.y, box.w, box.h);
+}
+
+function shadeBandY(ctx, box, yScale, yMin, yMax, bandL, bandH){
+  // Shade therapeutic range band
+  const y1 = yScale(bandH);
+  const y2 = yScale(bandL);
+  const top = Math.min(y1,y2), h = Math.abs(y2-y1);
+  ctx.fillStyle = "rgba(13,110,253,0.12)";
+  ctx.fillRect(box.x, top, box.w, h);
+
+  ctx.strokeStyle = "rgba(13,110,253,0.35)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(box.x, y1); ctx.lineTo(box.x+box.w, y1);
+  ctx.moveTo(box.x, y2); ctx.lineTo(box.x+box.w, y2);
+  ctx.stroke();
+}
+
+function renderGraph(){
+  const p = activePatient(); if(!p) return;
+  const s = p.state;
+
+  const canvas = $("graphCanvas");
+  const hoverOut = $("graphHover");
+  const subtitle = $("graphSubtitle");
+  if(!canvas || !hoverOut || !subtitle) return;
+
+  const {L,H,label} = getTargetRange();
+  const gs = graphSettings();
+  const pts = collectGraphPoints(gs.days);
+
+  subtitle.textContent = pts.length
+    ? `Target range: ${label} • Points: ${pts.length} • Metric: 7-day total dose (mg)`
+    : `No usable INR+dose points found in the selected window. (Need INR + dose history in prior 7 days.)`;
+
+  const ctx = canvas.getContext("2d");
+  const W = canvas.width, Hh = canvas.height;
+  ctx.clearRect(0,0,W,Hh);
+
+  const pad = {l:58, r:18, t:18, b:42};
+  const box = {x:pad.l, y:pad.t, w:W-pad.l-pad.r, h:Hh-pad.t-pad.b};
+
+  drawAxes(ctx, box);
+
+  if(!pts.length){
+    hoverOut.value = "";
+    return;
+  }
+
+  // Common tooltip storage
+  const hit = []; // {x,y,r, text}
+
+  // Choose view
+  if(gs.view === "timeline"){
+    // X = index/time; Y-left = INR; Y-right = weekly dose
+    const inrMin = Math.max(0.8, Math.min(1.5, ...pts.map(p=>p.inr)) - 0.4);
+    const inrMax = Math.max(4.5, Math.max(...pts.map(p=>p.inr)) + 0.4);
+
+    const wkMin = Math.max(0, Math.min(...pts.map(p=>p.wk)) - 5);
+    const wkMax = Math.max(...pts.map(p=>p.wk) + 5, wkMin + 10);
+
+    const xScale = (i)=> box.x + (pts.length===1 ? box.w/2 : (i/(pts.length-1))*box.w);
+    const yInr = (v)=> box.y + box.h - ((v-inrMin)/(inrMax-inrMin))*box.h;
+    const yWk  = (v)=> box.y + box.h - ((v-wkMin)/(wkMax-wkMin))*box.h;
+
+    // Shade INR therapeutic band on INR scale (left)
+    shadeBandY(ctx, box, yInr, inrMin, inrMax, L, H);
+
+    // Grid + labels (minimal)
+    ctx.fillStyle = "#666";
+    ctx.font = "12px system-ui";
+    ctx.fillText("INR", 12, box.y + 12);
+    ctx.fillText("7-day total (mg)", W-120, box.y + 12);
+
+    // Lines
+    ctx.lineWidth = 2;
+
+    // INR line
+    ctx.strokeStyle = "#0b5ed7";
+    ctx.beginPath();
+    pts.forEach((p,i)=>{
+      const x = xScale(i), y = yInr(p.inr);
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+
+    // Weekly line
+    ctx.strokeStyle = "#ff9f0a";
+    ctx.beginPath();
+    pts.forEach((p,i)=>{
+      const x = xScale(i), y = yWk(p.wk);
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+
+    // Points + sparse date labels
+    pts.forEach((p,i)=>{
+      const x = xScale(i);
+
+      // INR dot
+      const yi = yInr(p.inr);
+      ctx.fillStyle = "#0b5ed7";
+      ctx.beginPath(); ctx.arc(x, yi, 4, 0, Math.PI*2); ctx.fill();
+      hit.push({x, y: yi, r: 7, text: `${fmtMDY(p.date)} • INR ${p.inr.toFixed(1)} • 7-day ${p.wk.toFixed(1)} mg`});
+
+      // Weekly dot
+      const yw = yWk(p.wk);
+      ctx.fillStyle = "#ff9f0a";
+      ctx.beginPath(); ctx.arc(x, yw, 4, 0, Math.PI*2); ctx.fill();
+      hit.push({x, y: yw, r: 7, text: `${fmtMDY(p.date)} • INR ${p.inr.toFixed(1)} • 7-day ${p.wk.toFixed(1)} mg`});
+
+      // Date labels every ~6 points
+      if(i===0 || i===pts.length-1 || (pts.length>12 && i % Math.ceil(pts.length/8)===0)){
+        ctx.fillStyle = "#666";
+        ctx.font = "11px system-ui";
+        const lab = `${pad2(p.date.getMonth()+1)}/${pad2(p.date.getDate())}`;
+        ctx.fillText(lab, x-14, box.y + box.h + 18);
+      }
+    });
+
+  } else {
+    // Scatter: X = weekly dose, Y = INR
+    const xMin = Math.max(0, Math.min(...pts.map(p=>p.wk)) - 5);
+    const xMax = Math.max(...pts.map(p=>p.wk) + 5, xMin + 10);
+
+    const yMin = Math.max(0.8, Math.min(1.5, ...pts.map(p=>p.inr)) - 0.4);
+    const yMax = Math.max(4.5, Math.max(...pts.map(p=>p.inr)) + 0.4);
+
+    const xScale = (v)=> box.x + ((v-xMin)/(xMax-xMin))*box.w;
+    const yScale = (v)=> box.y + box.h - ((v-yMin)/(yMax-yMin))*box.h;
+
+    // Shade therapeutic band in Y
+    shadeBandY(ctx, box, yScale, yMin, yMax, L, H);
+
+    ctx.fillStyle = "#666";
+    ctx.font = "12px system-ui";
+    ctx.fillText("7-day total (mg)", 12, box.y + 12);
+    ctx.fillText("INR", W-40, box.y + 12);
+
+    pts.forEach(p=>{
+      const x = xScale(p.wk);
+      const y = yScale(p.inr);
+
+      // color by in-range status
+      const inRange = (p.inr>=L && p.inr<=H);
+      ctx.fillStyle = inRange ? "#0b5ed7" : "#b00020";
+      ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI*2); ctx.fill();
+
+      hit.push({x, y, r: 8, text: `${fmtMDY(p.date)} • INR ${p.inr.toFixed(1)} • 7-day ${p.wk.toFixed(1)} mg`});
+    });
+  }
+
+  // Tooltip handling
+  const rectForEvent = ()=>canvas.getBoundingClientRect();
+  const onMove = (ev)=>{
+    const r = rectForEvent();
+    const mx = (ev.clientX - r.left) * (canvas.width / r.width);
+    const my = (ev.clientY - r.top) * (canvas.height / r.height);
+
+    let best = null, bestD = Infinity;
+    for(const h of hit){
+      const dx = mx - h.x, dy = my - h.y;
+      const d = Math.sqrt(dx*dx + dy*dy);
+      if(d <= h.r && d < bestD){
+        bestD = d; best = h;
+      }
+    }
+    hoverOut.value = best ? best.text : "";
+    canvas.style.cursor = best ? "pointer" : "default";
+  };
+
+  canvas.onmousemove = onMove;
+  canvas.onmouseleave = ()=>{ hoverOut.value=""; canvas.style.cursor="default"; };
+}
 /* ---- bridging ---- */
 function roundEnoxTo10(mg){
   const v = Math.round(mg);
