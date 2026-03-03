@@ -3197,6 +3197,12 @@ function hookEvents(){
     renderAllVisual(false);
   };
 
+  const graphCanvas = $("inrGraphCanvas"); // <-- use your real canvas id
+if(graphCanvas){
+  graphCanvas.style.cursor = "zoom-in";
+  graphCanvas.addEventListener("click", openGraphInNewTab);
+}
+
   ["ptName","gender","crcl","mrn","targetRange","customL","customH","inrToday","bridgeNeed","bridgeAgent","bridgeInd","enoxFreq","applyBeyondRepeat"]
     .forEach(id=> $(id).addEventListener("input", sync));
 
