@@ -1691,13 +1691,23 @@ function computeRepeatIso(){
 function ensureTodayINROnCalendar(){
   const p = activePatient(); if(!p) return;
   const s = p.state;
+
+  const todayIso = isoLocal(new Date());
+
+  // ✅ Only mirror "inrToday" into today's calendar cell if the INR being used is actually for today.
+  // If lastRecoInrIso is set and it's NOT today, do not write into today's cell.
+  const refIso = (s.lastRecoInrIso && /^\d{4}-\d{2}-\d{2}$/.test(s.lastRecoInrIso))
+    ? s.lastRecoInrIso
+    : todayIso;
+
+  if(refIso !== todayIso) return;
+
   const inrStr = formatInrOneDecimal(s.inrToday);
-  if(inrStr){
-    const todayIso = isoLocal(new Date());
-    const d = getDay(todayIso);
-    d.inr = inrStr;
-    s.days[todayIso] = d;
-  }
+  if(!inrStr) return;
+
+  const d = getDay(todayIso);
+  d.inr = inrStr;
+  s.days[todayIso] = d;
 }
 
 /* ---- recommendation application (today, optional tomorrow) ---- */
