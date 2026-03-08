@@ -2522,11 +2522,16 @@ function renderVerbal(){
 function renderInteractions(){ $("intxText").innerHTML = interactionNarrative(); }
 
 function graphSettings(){
-  const p = activePatient(); if(!p) return {view:"timeline", days:120};
+  const p = activePatient(); if(!p) return {view:"timeline", days:120, showDoseLine:true};
   const s = p.state;
   if(!s.graphView) s.graphView = "timeline";
   if(!s.graphDays) s.graphDays = 120;
-  return {view: s.graphView, days: Number(s.graphDays)||120};
+  if(s.showDoseLine === undefined) s.showDoseLine = true;
+  return {
+    view: s.graphView,
+    days: Number(s.graphDays)||120,
+    showDoseLine: s.showDoseLine !== false
+  };
 }
 function collectGraphPoints(lookbackDays){
   const p = activePatient(); if(!p) return [];
