@@ -3286,7 +3286,14 @@ function hookEvents(){
   if($("btnGraphOpen")){
     $("btnGraphOpen").addEventListener("click", openGraphInNewTab);
   }
-
+  if($("toggleDoseLine")){
+  $("toggleDoseLine").addEventListener("change", ()=>{
+    const p = activePatient(); if(!p) return;
+    p.state.showDoseLine = $("toggleDoseLine").checked;
+    if(!p.isDraft) savePatients();
+    renderGraph();
+  });
+}
   ["ptName","gender","crcl","mrn","targetRange","customL","customH","inrToday","bridgeNeed","bridgeAgent","bridgeInd","enoxFreq","applyBeyondRepeat"]
     .forEach(id=> $(id).addEventListener("input", sync));
 
