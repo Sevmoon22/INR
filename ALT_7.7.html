@@ -2628,15 +2628,9 @@ function collectGraphPoints(lookbackDays){
   return pts;
 }
 
-  pts.sort((a,b)=> a.iso < b.iso ? -1 : a.iso > b.iso ? 1 : 0);
-  return pts;
-}
-
 function drawAxes(ctx, box){
   ctx.strokeStyle = "#ddd";
   ctx.lineWidth = 1;
-
-  // Border
   ctx.strokeRect(box.x, box.y, box.w, box.h);
 }
 
@@ -2657,7 +2651,7 @@ function shadeBandY(ctx, box, yScale, bandL, bandH){
   ctx.stroke();
 }
 
-  function prepCanvasForDPR(canvas){
+function prepCanvasForDPR(canvas){
   const rect = canvas.getBoundingClientRect();
   const dpr = window.devicePixelRatio || 1;
 
@@ -2668,22 +2662,20 @@ function shadeBandY(ctx, box, yScale, bandL, bandH){
   canvas.height = Math.round(cssHeight * dpr);
 
   const ctx = canvas.getContext("2d");
-  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-  return {ctx,width:cssWidth,height:cssHeight};
+  return { ctx, width: cssWidth, height: cssHeight };
 }
 
-  function niceInrTicks(yMin, yMax, bandL, bandH){
+function niceInrTicks(yMin, yMax, bandL, bandH){
   const ticks = new Set();
 
-  // Regular INR ticks every 0.5
   const start = Math.floor(yMin * 2) / 2;
   const end = Math.ceil(yMax * 2) / 2;
   for(let v = start; v <= end + 0.001; v += 0.5){
     ticks.add(Number(v.toFixed(1)));
   }
 
-  // Always force therapeutic band values onto the axis
   ticks.add(Number(bandL.toFixed(1)));
   ticks.add(Number(bandH.toFixed(1)));
 
@@ -2700,7 +2692,6 @@ function drawInrYAxis(ctx, box, yScale, yMin, yMax, bandL, bandH){
   for(const v of ticks){
     const y = yScale(v);
 
-    // Grid line
     ctx.strokeStyle = (Math.abs(v - bandL) < 0.001 || Math.abs(v - bandH) < 0.001)
       ? "rgba(13,110,253,0.45)"
       : "#ececec";
@@ -2710,14 +2701,12 @@ function drawInrYAxis(ctx, box, yScale, yMin, yMax, bandL, bandH){
     ctx.lineTo(box.x + box.w, y);
     ctx.stroke();
 
-    // Label
     ctx.fillStyle = (Math.abs(v - bandL) < 0.001 || Math.abs(v - bandH) < 0.001)
       ? "#0b5ed7"
       : "#666";
     ctx.fillText(v.toFixed(1), box.x - 8, y);
   }
 
-  // Axis title
   ctx.save();
   ctx.translate(16, box.y + box.h / 2);
   ctx.rotate(-Math.PI / 2);
@@ -2728,10 +2717,9 @@ function drawInrYAxis(ctx, box, yScale, yMin, yMax, bandL, bandH){
   ctx.fillText("INR", 0, 0);
   ctx.restore();
 }
-  
-  function renderGraph(){
+
+function renderGraph(){
   const p = activePatient(); if(!p) return;
-  const s = p.state;
 
   const canvas = $("graphCanvas");
   const hoverOut = $("graphHover");
@@ -2747,55 +2735,53 @@ function drawInrYAxis(ctx, box, yScale, yMin, yMax, bandL, bandH){
     : `No usable INR+dose points found in the selected window. (Need INR + dose history in prior 7 days.)`;
 
   const prepared = prepCanvasForDPR(canvas);
-const ctx = prepared.ctx;
-const W = prepared.width;
-const Hh = prepared.height;
+  const ctx = prepared.ctx;
+  const W = prepared.width;
+  const Hh = prepared.height;
 
-ctx.clearRect(0,0,W,Hh);
-  
-  const pad = {l:58, r:18, t:18, b:42};
+  ctx.clearRect(0, 0, W, Hh);
+
+  const pad = {l:68, r:18, t:18, b:42};
   const box = {x:pad.l, y:pad.t, w:W-pad.l-pad.r, h:Hh-pad.t-pad.b};
 
   drawAxes(ctx, box);
 
   if(!pts.length){
     hoverOut.value = "";
+    canvas.onmousemove = null;
+    canvas.onmouseleave = null;
     return;
   }
 
-  // Common tooltip storage
-  const hit = []; // {x,y,r, text}
+  const hit = [];
 
-  // Choose view
   if(gs.view === "timeline"){
-    // X = index/time; Y-left = INR; Y-right = weekly dose
     const inrMin = Math.max(0.8, Math.min(1.5, ...pts.map(p=>p.inr)) - 0.4);
     const inrMax = Math.max(4.5, Math.max(...pts.map(p=>p.inr)) + 0.4);
 
-    const wkMin = Math.max(0, Math.min(...pts.map(p=>p.wk)) - 5);
-    const wkMax = Math.max(...pts.map(p=>p.wk) + 5, wkMin + 10);
+    let wkMin = Math.max(0, Math.min(...pts.map(p=>p.wk)) - 5);
+    let wkMax = Math.max(...pts.map(p=>p.wk)) + 5;
+    if(wkMax - wkMin < 10){
+      const mid = (wkMin + wkMax) / 2;
+      wkMin = Math.max(0, mid - 5);
+      wkMax = mid + 5;
+    }
 
     const xScale = (i)=> box.x + (pts.length===1 ? box.w/2 : (i/(pts.length-1))*box.w);
-const yInr = (v)=> box.y + box.h - ((v-inrMin)/(inrMax-inrMin))*box.h;
-const yWk  = (v)=> box.y + box.h - ((v-wkMin)/(wkMax-wkMin))*box.h;
+    const yInr = (v)=> box.y + box.h - ((v-inrMin)/(inrMax-inrMin))*box.h;
+    const yWk  = (v)=> box.y + box.h - ((v-wkMin)/(wkMax-wkMin))*box.h;
 
-// Shade INR therapeutic band on INR scale
-shadeBandY(ctx, box, yInr, L, H);
+    shadeBandY(ctx, box, yInr, L, H);
+    drawInrYAxis(ctx, box, yInr, inrMin, inrMax, L, H);
 
-// Draw INR y-axis tick labels + grid
-drawInrYAxis(ctx, box, yInr, inrMin, inrMax, L, H);
+    ctx.fillStyle = "#666";
+    ctx.font = "12px system-ui";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText("7-day total (mg)", W - 120, box.y + 12);
 
-// Top labels
-ctx.fillStyle = "#666";
-ctx.font = "12px system-ui";
-ctx.textAlign = "left";
-ctx.textBaseline = "alphabetic";
-ctx.fillText("7-day total (mg)", W - 120, box.y + 12);
-
-    // Lines
     ctx.lineWidth = 2;
 
-    // INR line
     ctx.strokeStyle = "#0b5ed7";
     ctx.beginPath();
     pts.forEach((p,i)=>{
@@ -2804,7 +2790,6 @@ ctx.fillText("7-day total (mg)", W - 120, box.y + 12);
     });
     ctx.stroke();
 
-    // Weekly line
     ctx.strokeStyle = "#ff9f0a";
     ctx.beginPath();
     pts.forEach((p,i)=>{
@@ -2813,23 +2798,23 @@ ctx.fillText("7-day total (mg)", W - 120, box.y + 12);
     });
     ctx.stroke();
 
-    // Points + sparse date labels
     pts.forEach((p,i)=>{
       const x = xScale(i);
 
-      // INR dot
       const yi = yInr(p.inr);
       ctx.fillStyle = "#0b5ed7";
-      ctx.beginPath(); ctx.arc(x, yi, 4, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath();
+      ctx.arc(x, yi, 4, 0, Math.PI*2);
+      ctx.fill();
       hit.push({x, y: yi, r: 12, text: `${fmtMDY(p.date)} • INR ${p.inr.toFixed(1)} • 7-day ${p.wk.toFixed(1)} mg`});
 
-      // Weekly dot
       const yw = yWk(p.wk);
       ctx.fillStyle = "#ff9f0a";
-      ctx.beginPath(); ctx.arc(x, yw, 4, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath();
+      ctx.arc(x, yw, 4, 0, Math.PI*2);
+      ctx.fill();
       hit.push({x, y: yw, r: 12, text: `${fmtMDY(p.date)} • INR ${p.inr.toFixed(1)} • 7-day ${p.wk.toFixed(1)} mg`});
 
-      // Date labels every ~6 points
       if(i===0 || i===pts.length-1 || (pts.length>12 && i % Math.ceil(pts.length/8)===0)){
         ctx.fillStyle = "#666";
         ctx.font = "11px system-ui";
@@ -2839,80 +2824,79 @@ ctx.fillText("7-day total (mg)", W - 120, box.y + 12);
     });
 
   } else {
-    // Scatter: X = weekly dose, Y = INR
     let xMin = Math.max(0, Math.min(...pts.map(p=>p.wk)) - 5);
-let xMax = Math.max(...pts.map(p=>p.wk)) + 5;
+    let xMax = Math.max(...pts.map(p=>p.wk)) + 5;
 
-let yMin = Math.max(0.8, Math.min(1.5, ...pts.map(p=>p.inr)) - 0.4);
-let yMax = Math.max(4.5, Math.max(...pts.map(p=>p.inr)) + 0.4);
+    let yMin = Math.max(0.8, Math.min(1.5, ...pts.map(p=>p.inr)) - 0.4);
+    let yMax = Math.max(4.5, Math.max(...pts.map(p=>p.inr)) + 0.4);
 
-// Prevent collapsed scatter axes
-if(xMax - xMin < 10){
-  const mid = (xMin + xMax) / 2;
-  xMin = Math.max(0, mid - 5);
-  xMax = mid + 5;
-}
+    if(xMax - xMin < 10){
+      const mid = (xMin + xMax) / 2;
+      xMin = Math.max(0, mid - 5);
+      xMax = mid + 5;
+    }
 
-if(yMax - yMin < 1){
-  const mid = (yMin + yMax) / 2;
-  yMin = Math.max(0.5, mid - 0.5);
-  yMax = mid + 0.5;
-}
-    
-// Shade therapeutic band in Y
-shadeBandY(ctx, box, yScale, L, H);
+    if(yMax - yMin < 1){
+      const mid = (yMin + yMax) / 2;
+      yMin = Math.max(0.5, mid - 0.5);
+      yMax = mid + 0.5;
+    }
 
-// Draw INR y-axis tick labels + grid
-drawInrYAxis(ctx, box, yScale, yMin, yMax, L, H);
+    const xScale = (v)=> box.x + ((v-xMin)/(xMax-xMin))*box.w;
+    const yScale = (v)=> box.y + box.h - ((v-yMin)/(yMax-yMin))*box.h;
 
-ctx.fillStyle = "#666";
-ctx.font = "12px system-ui";
-ctx.textAlign = "left";
-ctx.textBaseline = "alphabetic";
-ctx.fillText("7-day total (mg)", 12, box.y + 12);
+    shadeBandY(ctx, box, yScale, L, H);
+    drawInrYAxis(ctx, box, yScale, yMin, yMax, L, H);
+
+    ctx.fillStyle = "#666";
+    ctx.font = "12px system-ui";
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText("7-day total (mg)", 12, box.y + 12);
 
     pts.forEach(p=>{
       const x = xScale(p.wk);
       const y = yScale(p.inr);
 
-      // color by in-range status
-      const inRange = (p.inr>=L && p.inr<=H);
+      const inRange = (p.inr >= L && p.inr <= H);
       ctx.fillStyle = inRange ? "#0b5ed7" : "#b00020";
-      ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath();
+      ctx.arc(x, y, 5, 0, Math.PI*2);
+      ctx.fill();
 
       hit.push({x, y, r: 12, text: `${fmtMDY(p.date)} • INR ${p.inr.toFixed(1)} • 7-day ${p.wk.toFixed(1)} mg`});
     });
   }
 
-  // Tooltip handling
   const rectForEvent = ()=>canvas.getBoundingClientRect();
-const onMove = (ev)=>{
-  const r = rectForEvent();
+  const onMove = (ev)=>{
+    const r = rectForEvent();
+    const mx = ev.clientX - r.left;
+    const my = ev.clientY - r.top;
 
-  // Use CSS/display coordinates, not internal retina-scaled canvas pixels
-  const mx = ev.clientX - r.left;
-  const my = ev.clientY - r.top;
+    let best = null;
+    let bestD = Infinity;
 
-  let best = null;
-  let bestD = Infinity;
+    for(const h of hit){
+      const dx = mx - h.x;
+      const dy = my - h.y;
+      const d = Math.sqrt(dx*dx + dy*dy);
 
-  for(const h of hit){
-    const dx = mx - h.x;
-    const dy = my - h.y;
-    const d = Math.sqrt(dx*dx + dy*dy);
-
-    if(d <= h.r && d < bestD){
-      bestD = d;
-      best = h;
+      if(d <= h.r && d < bestD){
+        bestD = d;
+        best = h;
+      }
     }
-  }
 
-  hoverOut.value = best ? best.text : "";
-  canvas.style.cursor = best ? "pointer" : "zoom-in";
-};
+    hoverOut.value = best ? best.text : "";
+    canvas.style.cursor = best ? "pointer" : "zoom-in";
+  };
 
   canvas.onmousemove = onMove;
-  canvas.onmouseleave = ()=>{ hoverOut.value=""; canvas.style.cursor="default"; };
+  canvas.onmouseleave = ()=>{
+    hoverOut.value = "";
+    canvas.style.cursor = "zoom-in";
+  };
 }
 
 function openGraphInNewTab(){
