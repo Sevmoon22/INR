@@ -2660,7 +2660,23 @@ function shadeBandY(ctx, box, yScale, yMin, yMax, bandL, bandH){
   ctx.stroke();
 }
 
-function renderGraph(){
+  function prepCanvasForDPR(canvas){
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+
+  const cssWidth = Math.max(300, Math.round(rect.width));
+  const cssHeight = Math.max(220, Math.round(rect.height || (cssWidth * 420 / 1100)));
+
+  canvas.width = Math.round(cssWidth * dpr);
+  canvas.height = Math.round(cssHeight * dpr);
+
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+
+  return {ctx,width:cssWidth,height:cssHeight};
+}
+
+  function renderGraph(){
   const p = activePatient(); if(!p) return;
   const s = p.state;
 
@@ -2677,10 +2693,13 @@ function renderGraph(){
     ? `Target range: ${label} • Points: ${pts.length} • Metric: 7-day total dose (mg)`
     : `No usable INR+dose points found in the selected window. (Need INR + dose history in prior 7 days.)`;
 
-  const ctx = canvas.getContext("2d");
-  const W = canvas.width, Hh = canvas.height;
-  ctx.clearRect(0,0,W,Hh);
+  const prepared = prepCanvasForDPR(canvas);
+const ctx = prepared.ctx;
+const W = prepared.width;
+const Hh = prepared.height;
 
+ctx.clearRect(0,0,W,Hh);
+  
   const pad = {l:58, r:18, t:18, b:42};
   const box = {x:pad.l, y:pad.t, w:W-pad.l-pad.r, h:Hh-pad.t-pad.b};
 
