@@ -2840,14 +2840,25 @@ ctx.fillText("7-day total (mg)", W - 120, box.y + 12);
 
   } else {
     // Scatter: X = weekly dose, Y = INR
-    const xMin = Math.max(0, Math.min(...pts.map(p=>p.wk)) - 5);
-const xMax = Math.max(...pts.map(p=>p.wk) + 5, xMin + 10);
+    let xMin = Math.max(0, Math.min(...pts.map(p=>p.wk)) - 5);
+let xMax = Math.max(...pts.map(p=>p.wk)) + 5;
 
-const yMin = Math.max(0.8, Math.min(1.5, ...pts.map(p=>p.inr)) - 0.4);
-const yMax = Math.max(4.5, Math.max(...pts.map(p=>p.inr)) + 0.4);
-    const xScale = (v)=> box.x + ((v-xMin)/(xMax-xMin))*box.w;
-const yScale = (v)=> box.y + box.h - ((v-yMin)/(yMax-yMin))*box.h;
+let yMin = Math.max(0.8, Math.min(1.5, ...pts.map(p=>p.inr)) - 0.4);
+let yMax = Math.max(4.5, Math.max(...pts.map(p=>p.inr)) + 0.4);
 
+// Prevent collapsed scatter axes
+if(xMax - xMin < 10){
+  const mid = (xMin + xMax) / 2;
+  xMin = Math.max(0, mid - 5);
+  xMax = mid + 5;
+}
+
+if(yMax - yMin < 1){
+  const mid = (yMin + yMax) / 2;
+  yMin = Math.max(0.5, mid - 0.5);
+  yMax = mid + 0.5;
+}
+    
 // Shade therapeutic band in Y
 shadeBandY(ctx, box, yScale, L, H);
 
