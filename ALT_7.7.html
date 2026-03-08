@@ -2677,6 +2677,62 @@ function shadeBandY(ctx, box, yScale, bandL, bandH){
   return {ctx,width:cssWidth,height:cssHeight};
 }
 
+  function niceInrTicks(yMin, yMax, bandL, bandH){
+  const ticks = new Set();
+
+  // Regular INR ticks every 0.5
+  const start = Math.floor(yMin * 2) / 2;
+  const end = Math.ceil(yMax * 2) / 2;
+  for(let v = start; v <= end + 0.001; v += 0.5){
+    ticks.add(Number(v.toFixed(1)));
+  }
+
+  // Always force therapeutic band values onto the axis
+  ticks.add(Number(bandL.toFixed(1)));
+  ticks.add(Number(bandH.toFixed(1)));
+
+  return Array.from(ticks).sort((a,b)=>a-b);
+}
+
+function drawInrYAxis(ctx, box, yScale, yMin, yMax, bandL, bandH){
+  const ticks = niceInrTicks(yMin, yMax, bandL, bandH);
+
+  ctx.font = "11px system-ui";
+  ctx.textAlign = "right";
+  ctx.textBaseline = "middle";
+
+  for(const v of ticks){
+    const y = yScale(v);
+
+    // Grid line
+    ctx.strokeStyle = (Math.abs(v - bandL) < 0.001 || Math.abs(v - bandH) < 0.001)
+      ? "rgba(13,110,253,0.45)"
+      : "#ececec";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(box.x, y);
+    ctx.lineTo(box.x + box.w, y);
+    ctx.stroke();
+
+    // Label
+    ctx.fillStyle = (Math.abs(v - bandL) < 0.001 || Math.abs(v - bandH) < 0.001)
+      ? "#0b5ed7"
+      : "#666";
+    ctx.fillText(v.toFixed(1), box.x - 8, y);
+  }
+
+  // Axis title
+  ctx.save();
+  ctx.translate(16, box.y + box.h / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = "#444";
+  ctx.font = "12px system-ui";
+  ctx.fillText("INR", 0, 0);
+  ctx.restore();
+}
+  
   function renderGraph(){
   const p = activePatient(); if(!p) return;
   const s = p.state;
