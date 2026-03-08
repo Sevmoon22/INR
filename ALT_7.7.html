@@ -2815,22 +2815,30 @@ ctx.clearRect(0,0,W,Hh);
 
   // Tooltip handling
   const rectForEvent = ()=>canvas.getBoundingClientRect();
-  const onMove = (ev)=>{
-    const r = rectForEvent();
-    const mx = (ev.clientX - r.left) * (canvas.width / r.width);
-    const my = (ev.clientY - r.top) * (canvas.height / r.height);
+const onMove = (ev)=>{
+  const r = rectForEvent();
 
-    let best = null, bestD = Infinity;
-    for(const h of hit){
-      const dx = mx - h.x, dy = my - h.y;
-      const d = Math.sqrt(dx*dx + dy*dy);
-      if(d <= h.r && d < bestD){
-        bestD = d; best = h;
-      }
+  // Use CSS/display coordinates, not internal retina-scaled canvas pixels
+  const mx = ev.clientX - r.left;
+  const my = ev.clientY - r.top;
+
+  let best = null;
+  let bestD = Infinity;
+
+  for(const h of hit){
+    const dx = mx - h.x;
+    const dy = my - h.y;
+    const d = Math.sqrt(dx*dx + dy*dy);
+
+    if(d <= h.r && d < bestD){
+      bestD = d;
+      best = h;
     }
-    hoverOut.value = best ? best.text : "";
-    canvas.style.cursor = best ? "pointer" : "default";
-  };
+  }
+
+  hoverOut.value = best ? best.text : "";
+  canvas.style.cursor = best ? "pointer" : "zoom-in";
+};
 
   canvas.onmousemove = onMove;
   canvas.onmouseleave = ()=>{ hoverOut.value=""; canvas.style.cursor="default"; };
