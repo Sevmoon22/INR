@@ -2825,13 +2825,13 @@ ctx.fillText("7-day total (mg)", W - 120, box.y + 12);
       const yi = yInr(p.inr);
       ctx.fillStyle = "#0b5ed7";
       ctx.beginPath(); ctx.arc(x, yi, 4, 0, Math.PI*2); ctx.fill();
-      hit.push({x, y: yi, r: 7, text: `${fmtMDY(p.date)} • INR ${p.inr.toFixed(1)} • 7-day ${p.wk.toFixed(1)} mg`});
+      hit.push({x, y: yi, r: 12, text: `${fmtMDY(p.date)} • INR ${p.inr.toFixed(1)} • 7-day ${p.wk.toFixed(1)} mg`});
 
       // Weekly dot
       const yw = yWk(p.wk);
       ctx.fillStyle = "#ff9f0a";
       ctx.beginPath(); ctx.arc(x, yw, 4, 0, Math.PI*2); ctx.fill();
-      hit.push({x, y: yw, r: 7, text: `${fmtMDY(p.date)} • INR ${p.inr.toFixed(1)} • 7-day ${p.wk.toFixed(1)} mg`});
+      hit.push({x, y: yw, r: 12, text: `${fmtMDY(p.date)} • INR ${p.inr.toFixed(1)} • 7-day ${p.wk.toFixed(1)} mg`});
 
       // Date labels every ~6 points
       if(i===0 || i===pts.length-1 || (pts.length>12 && i % Math.ceil(pts.length/8)===0)){
@@ -2874,7 +2874,7 @@ ctx.fillText("7-day total (mg)", 12, box.y + 12);
       ctx.fillStyle = inRange ? "#0b5ed7" : "#b00020";
       ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI*2); ctx.fill();
 
-      hit.push({x, y, r: 8, text: `${fmtMDY(p.date)} • INR ${p.inr.toFixed(1)} • 7-day ${p.wk.toFixed(1)} mg`});
+      hit.push({x, y, r: 12, text: `${fmtMDY(p.date)} • INR ${p.inr.toFixed(1)} • 7-day ${p.wk.toFixed(1)} mg`});
     });
   }
 
