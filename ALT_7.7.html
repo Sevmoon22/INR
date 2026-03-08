@@ -3270,10 +3270,14 @@ function hookEvents(){
     renderAllVisual(false);
   };
 
-  const graphCanvas = $("inrGraphCanvas"); // <-- use your real canvas id
+  const graphCanvas = $("graphCanvas");
 if(graphCanvas){
   graphCanvas.style.cursor = "zoom-in";
   graphCanvas.addEventListener("click", openGraphInNewTab);
+}
+
+if($("btnGraphOpen")){
+  $("btnGraphOpen").addEventListener("click", openGraphInNewTab);
 }
 
   ["ptName","gender","crcl","mrn","targetRange","customL","customH","inrToday","bridgeNeed","bridgeAgent","bridgeInd","enoxFreq","applyBeyondRepeat"]
