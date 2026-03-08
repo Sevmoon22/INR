@@ -2715,13 +2715,15 @@ function renderGraph(){
     });
     ctx.stroke();
 
-    ctx.strokeStyle = "#ff9f0a";
-    ctx.beginPath();
-    pts.forEach((p,i)=>{
-      const x = xScale(i), y = yWk(p.wk);
-      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-    });
-    ctx.stroke();
+    if(gs.showDoseLine){
+  ctx.strokeStyle = "#ff9f0a";
+  ctx.beginPath();
+  pts.forEach((p,i)=>{
+    const x = xScale(i), y = yWk(p.wk);
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+}
 
     pts.forEach((p,i)=>{
       const x = xScale(i);
