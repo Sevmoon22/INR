@@ -2604,25 +2604,12 @@ function graphSettings(){
 
 function collectGraphPoints(lookbackDays){
   const p = activePatient(); if(!p) return [];
-  const s = p.state;
   const pts = [];
   const today = new Date();
-  const todayIso = isoLocal(today);
 
   for(let i=0; i<=lookbackDays; i++){
     const iso = isoLocal(addDaysLocal(today, -i));
-    let inr = NaN;
-
-    // Use today's INR only if it is actually meant for today
-    if(
-      iso === todayIso &&
-      s.lastRecoInrIso === todayIso &&
-      isFinite(toNum(s.inrToday))
-    ){
-      inr = toNum(s.inrToday);
-    } else {
-      inr = toNum(getDay(iso).inr);
-    }
+    const inr = toNum(getDay(iso).inr);
 
     if(!isFinite(inr)) continue;
 
@@ -2636,6 +2623,10 @@ function collectGraphPoints(lookbackDays){
       wk: Math.round(wk * 10) / 10
     });
   }
+
+  pts.sort((a,b)=> a.iso < b.iso ? -1 : a.iso > b.iso ? 1 : 0);
+  return pts;
+}
 
   pts.sort((a,b)=> a.iso < b.iso ? -1 : a.iso > b.iso ? 1 : 0);
   return pts;
