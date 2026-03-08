@@ -2607,32 +2607,37 @@ function collectGraphPoints(lookbackDays){
   const s = p.state;
   const pts = [];
   const today = new Date();
+  const todayIso = isoLocal(today);
 
-  for(let i=0;i<=lookbackDays;i++){
+  for(let i=0; i<=lookbackDays; i++){
     const iso = isoLocal(addDaysLocal(today, -i));
-    let inr = toNum(getDay(iso).inr);
+    let inr = NaN;
 
-    // Optionally include "today" if user entered Current INR (today) but didn't save in calendar
-    if(i===0){
-      const t = toNum(s.inrToday);
-      if(isFinite(t)) inr = t;
+    // Use today's INR only if it is actually meant for today
+    if(
+      iso === todayIso &&
+      s.lastRecoInrIso === todayIso &&
+      isFinite(toNum(s.inrToday))
+    ){
+      inr = toNum(s.inrToday);
+    } else {
+      inr = toNum(getDay(iso).inr);
     }
 
     if(!isFinite(inr)) continue;
 
-    const wk = sum7DayDoseAt(iso); // ✅ your chosen metric
-    if(!(wk>0)) continue;
+    const wk = sum7DayDoseAt(iso);
+    if(!(wk > 0)) continue;
 
     pts.push({
       iso,
       date: fromIso(iso),
-      inr: Math.round(inr*10)/10,
-      wk: Math.round(wk*10)/10
+      inr: Math.round(inr * 10) / 10,
+      wk: Math.round(wk * 10) / 10
     });
   }
 
-  // Oldest -> newest for timeline
-  pts.sort((a,b)=> a.iso<b.iso?-1:a.iso>b.iso?1:0);
+  pts.sort((a,b)=> a.iso < b.iso ? -1 : a.iso > b.iso ? 1 : 0);
   return pts;
 }
 
