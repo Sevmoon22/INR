@@ -1351,6 +1351,7 @@ function bindInputs(){
   $("applyBeyondRepeat").checked = !!s.applyBeyondRepeat;
   if($("graphView")) $("graphView").value = s.graphView || "timeline";
   if($("graphDays")) $("graphDays").value = String(s.graphDays || 120);
+  if($("toggleDoseLine")) $("toggleDoseLine").checked = s.showDoseLine !== false;
 
   $("providerNotes").value = s.providerNotes || "";
   $("bridgeNeed").value = s.bridgeNeed || "no";
