@@ -2735,12 +2735,14 @@ function renderGraph(){
       ctx.fill();
       hit.push({x, y: yi, r: 12, text: `${fmtMDY(p.date)} • INR ${p.inr.toFixed(1)} • 7-day ${p.wk.toFixed(1)} mg`});
 
-      const yw = yWk(p.wk);
-      ctx.fillStyle = "#ff9f0a";
-      ctx.beginPath();
-      ctx.arc(x, yw, 4, 0, Math.PI*2);
-      ctx.fill();
-      hit.push({x, y: yw, r: 12, text: `${fmtMDY(p.date)} • INR ${p.inr.toFixed(1)} • 7-day ${p.wk.toFixed(1)} mg`});
+      if(gs.showDoseLine){
+  const yw = yWk(p.wk);
+  ctx.fillStyle = "#ff9f0a";
+  ctx.beginPath();
+  ctx.arc(x, yw, 4, 0, Math.PI*2);
+  ctx.fill();
+  hit.push({x, y: yw, r: 12, text: `${fmtMDY(p.date)} • INR ${p.inr.toFixed(1)} • 7-day ${p.wk.toFixed(1)} mg`});
+}
 
       if(i===0 || i===pts.length-1 || (pts.length>12 && i % Math.ceil(pts.length/8)===0)){
         ctx.fillStyle = "#666";
