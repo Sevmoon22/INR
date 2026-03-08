@@ -558,6 +558,19 @@
           <button class="btn secondary" id="btnGraphRefresh">Refresh graph</button>
           <button class="btn ghost" id="btnGraphOpen">Open large graph</button>
 
+          <button class="btn secondary" id="btnGraphRefresh">Refresh graph</button>
+<button class="btn ghost" id="btnGraphOpen">Open large graph</button>
+
+<label class="btn ghost" style="display:inline-flex;align-items:center;gap:6px;">
+  <input type="checkbox" id="toggleDoseLine" checked />
+  Show 7-day dose line
+</label>
+
+<div class="field" style="min-width:240px; flex:1">
+  <label>Hover info</label>
+  <input id="graphHover" readonly placeholder="Hover points to see Date • INR • 7-day total" />
+</div>
+          
           <div class="field" style="min-width:240px; flex:1">
             <label>Hover info</label>
             <input id="graphHover" readonly placeholder="Hover points to see Date • INR • 7-day total" />
