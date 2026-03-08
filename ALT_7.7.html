@@ -2655,6 +2655,11 @@ function renderGraph(){
   const {L,H,label} = getTargetRange();
   const gs = graphSettings();
   const pts = collectGraphPoints(gs.days);
+  if(legend){
+  legend.textContent = gs.showDoseLine
+    ? "Blue = INR • Orange = 7-day warfarin dose • Blue band = target range • click graph to enlarge"
+    : "Blue = INR • Blue band = target range • click graph to enlarge";
+}
 
   subtitle.textContent = pts.length
     ? `Target range: ${label} • Points: ${pts.length} • Metric: 7-day total dose (mg)`
