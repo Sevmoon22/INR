@@ -2780,17 +2780,21 @@ ctx.clearRect(0,0,W,Hh);
     const wkMax = Math.max(...pts.map(p=>p.wk) + 5, wkMin + 10);
 
     const xScale = (i)=> box.x + (pts.length===1 ? box.w/2 : (i/(pts.length-1))*box.w);
-    const yInr = (v)=> box.y + box.h - ((v-inrMin)/(inrMax-inrMin))*box.h;
-    const yWk  = (v)=> box.y + box.h - ((v-wkMin)/(wkMax-wkMin))*box.h;
+const yInr = (v)=> box.y + box.h - ((v-inrMin)/(inrMax-inrMin))*box.h;
+const yWk  = (v)=> box.y + box.h - ((v-wkMin)/(wkMax-wkMin))*box.h;
 
-    // Shade INR therapeutic band on INR scale (left)
-    shadeBandY(ctx, box, yInr, inrMin, inrMax, L, H);
+// Shade INR therapeutic band on INR scale
+shadeBandY(ctx, box, yInr, L, H);
 
-    // Grid + labels (minimal)
-    ctx.fillStyle = "#666";
-    ctx.font = "12px system-ui";
-    ctx.fillText("INR", 12, box.y + 12);
-    ctx.fillText("7-day total (mg)", W-120, box.y + 12);
+// Draw INR y-axis tick labels + grid
+drawInrYAxis(ctx, box, yInr, inrMin, inrMax, L, H);
+
+// Top labels
+ctx.fillStyle = "#666";
+ctx.font = "12px system-ui";
+ctx.textAlign = "left";
+ctx.textBaseline = "alphabetic";
+ctx.fillText("7-day total (mg)", W - 120, box.y + 12);
 
     // Lines
     ctx.lineWidth = 2;
