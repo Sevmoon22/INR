@@ -2644,19 +2644,20 @@ function drawAxes(ctx, box){
   ctx.strokeRect(box.x, box.y, box.w, box.h);
 }
 
-function shadeBandY(ctx, box, yScale, yMin, yMax, bandL, bandH){
-  // Shade therapeutic range band
+function shadeBandY(ctx, box, yScale, bandL, bandH){
   const y1 = yScale(bandH);
   const y2 = yScale(bandL);
-  const top = Math.min(y1,y2), h = Math.abs(y2-y1);
+  const top = Math.min(y1, y2);
+  const h = Math.abs(y2 - y1);
+
   ctx.fillStyle = "rgba(13,110,253,0.12)";
   ctx.fillRect(box.x, top, box.w, h);
 
-  ctx.strokeStyle = "rgba(13,110,253,0.35)";
+  ctx.strokeStyle = "rgba(13,110,253,0.40)";
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(box.x, y1); ctx.lineTo(box.x+box.w, y1);
-  ctx.moveTo(box.x, y2); ctx.lineTo(box.x+box.w, y2);
+  ctx.moveTo(box.x, y1); ctx.lineTo(box.x + box.w, y1);
+  ctx.moveTo(box.x, y2); ctx.lineTo(box.x + box.w, y2);
   ctx.stroke();
 }
 
