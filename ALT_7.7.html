@@ -2851,15 +2851,19 @@ ctx.fillText("7-day total (mg)", W - 120, box.y + 12);
     const yMax = Math.max(4.5, Math.max(...pts.map(p=>p.inr)) + 0.4);
 
     const xScale = (v)=> box.x + ((v-xMin)/(xMax-xMin))*box.w;
-    const yScale = (v)=> box.y + box.h - ((v-yMin)/(yMax-yMin))*box.h;
+const yScale = (v)=> box.y + box.h - ((v-yMin)/(yMax-yMin))*box.h;
 
-    // Shade therapeutic band in Y
-    shadeBandY(ctx, box, yScale, yMin, yMax, L, H);
+// Shade therapeutic band in Y
+shadeBandY(ctx, box, yScale, L, H);
 
-    ctx.fillStyle = "#666";
-    ctx.font = "12px system-ui";
-    ctx.fillText("7-day total (mg)", 12, box.y + 12);
-    ctx.fillText("INR", W-40, box.y + 12);
+// Draw INR y-axis tick labels + grid
+drawInrYAxis(ctx, box, yScale, yMin, yMax, L, H);
+
+ctx.fillStyle = "#666";
+ctx.font = "12px system-ui";
+ctx.textAlign = "left";
+ctx.textBaseline = "alphabetic";
+ctx.fillText("7-day total (mg)", 12, box.y + 12);
 
     pts.forEach(p=>{
       const x = xScale(p.wk);
