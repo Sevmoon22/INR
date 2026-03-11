@@ -1667,21 +1667,26 @@ function computeRecommendation(){
       plan = `${holdsChosen>0 ? `Hold <b>${holdsChosen}</b> dose${holdsChosen===1?"":"s"}, then ` : ""}${pctChosen===0 ? `continue current regimen.` : `adjust weekly dose by <b>${pctChosen>0?"+":""}${fmtDose(pctChosen)}%</b>.`} ${algoNote}`;
     }
 
-    // Repeat INR logic forced to match your photo exactly:
-    // 1) any regimen change = 1 week
-    // 2) if INR in range AND stable regimen = ladder 1→2→3→4→6→8 weeks
-    // 3) otherwise = 1 week
-    const regimenChanged = (pctChosen !== 0) || (holdsChosen > 0) || consult;
-    const inRangeStable = !regimenChanged && inr >= L && inr <= H;
+   // Repeat INR logic
+// Priority:
+// 1) High INR (>= 5.0) = no later than 2 days
+// 2) Any other regimen change = 1 week
+// 3) If INR in range and stable = ladder 1→2→3→4→6→8 weeks
+// 4) Otherwise = 1 week
+const highInrCritical = inr >= 5.0;
+const regimenChanged = (pctChosen !== 0) || (holdsChosen > 0) || consult;
+const inRangeStable = !regimenChanged && inr >= L && inr <= H;
 
-    if(regimenChanged){
-      repeatDays = 7;
-    } else if(inRangeStable){
-      const streak = countStableInRangeINRs(L,H);
-      repeatDays = followupDaysFromStreak(streak);
-    } else {
-      repeatDays = 7;
-    }
+if(highInrCritical){
+  repeatDays = 2;
+} else if(regimenChanged){
+  repeatDays = 7;
+} else if(inRangeStable){
+  const streak = countStableInRangeINRs(L,H);
+  repeatDays = followupDaysFromStreak(streak);
+} else {
+  repeatDays = 7;
+}
   }
 
   const suggestedWeekly = (currentWeekly>0) ? (currentWeekly * (1 + pctChosen/100)) : 0;
