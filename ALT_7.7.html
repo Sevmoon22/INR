@@ -1604,7 +1604,7 @@ function followupDaysFromStreak(streak){
   if(streak === 2) return 14; // 2 weeks
   return 7; // 1 week
 }
-function computeRecommendation(){
+ffunction computeRecommendation(){
   const p = activePatient(); if(!p) return {repeatDays:7, hasRec:false};
   const s = p.state;
   const {L,H,label} = getTargetRange();
@@ -1620,7 +1620,7 @@ function computeRecommendation(){
   const regWk = regimenWeeklyTotal();
   const currentWeekly = (weekly>0 ? weekly : (wtd>0 ? wtd : (regWk>0 ? regWk : 0)));
 
-  let repeatDays=7;
+  let repeatDays = 7;
   let pctMin=0, pctMax=0, pctChosen=0;
   let holdsMin=0, holdsMax=0, holdsChosen=0;
   let algoUsed = "generic";
@@ -1646,41 +1646,49 @@ function computeRecommendation(){
       const status = (inr < L) ? "below" : (inr > H) ? "above" : "in range";
       baseLine = `INR <b>${formatInrOneDecimal(inr)}</b> is <b>${status}</b> target (<b>${label}</b>). <span class="small">Algorithm: <b>UCLA</b> priority.</span>`;
 
-      if(inr >= 5.0) repeatDays = 3;
-      else if(pctChosen !== 0 || holdsChosen > 0) repeatDays = 7;
-      else {
-        const streak = countStableInRangeINRs(L,H);
-        repeatDays = followupDaysFromStreak(streak);
-      }
-
-      if(consult) plan = `High INR plan: ${escapeHtml(algoNote)}`;
-      else {
+      if(consult){
+        plan = `High INR plan: ${escapeHtml(algoNote)}`;
+      } else {
         const pctTxt = (pctChosen === 0)
           ? `No weekly % change recommended.`
           : `Weekly dose change: <b>${pctChosen>0?"+":""}${fmtDose(pctChosen)}%</b> (range ${pctMin}% to ${pctMax}%).`;
+
         const holdTxt = (holdsChosen>0)
           ? `<b>Hold warfarin</b> for <b>${holdsChosen}</b> dose${holdsChosen===1?"":"s"} (table range ${holdsMin}–${holdsMax}).`
           : `No hold doses.`;
+
         plan = `${holdTxt} ${pctTxt} ${algoNote ? `<span class="small">Note: ${escapeHtml(algoNote)}</span>` : ""}`;
       }
     } else {
       const g = genericBand(L,H,inr);
       pctChosen = g.pctChosen || 0;
       holdsChosen = g.holdsChosen || 0;
-      repeatDays = g.repeatDays || 7;
       algoNote = g.note || "";
 
       baseLine = `INR <b>${formatInrOneDecimal(inr)}</b> assessed vs target (<b>${label}</b>). <span class="small">Algorithm: <b>generic fallback</b>.</span>`;
       plan = `${holdsChosen>0 ? `Hold <b>${holdsChosen}</b> dose${holdsChosen===1?"":"s"}, then ` : ""}${pctChosen===0 ? `continue current regimen.` : `adjust weekly dose by <b>${pctChosen>0?"+":""}${fmtDose(pctChosen)}%</b>.`} ${algoNote}`;
+    }
+
+    // Repeat INR logic forced to match your photo exactly:
+    // 1) any regimen change = 1 week
+    // 2) if INR in range AND stable regimen = ladder 1→2→3→4→6→8 weeks
+    // 3) otherwise = 1 week
+    const regimenChanged = (pctChosen !== 0) || (holdsChosen > 0) || consult;
+    const inRangeStable = !regimenChanged && inr >= L && inr <= H;
+
+    if(regimenChanged){
+      repeatDays = 7;
+    } else if(inRangeStable){
+      const streak = countStableInRangeINRs(L,H);
+      repeatDays = followupDaysFromStreak(streak);
+    } else {
+      repeatDays = 7;
     }
   }
 
   const suggestedWeekly = (currentWeekly>0) ? (currentWeekly * (1 + pctChosen/100)) : 0;
   const avgNow = currentWeekly>0 ? (currentWeekly/7) : NaN;
   const avgNew = suggestedWeekly>0 ? (suggestedWeekly/7) : NaN;
-
-  const intxMinDays = interactionRepeatOverrideDays();
-  if(intxMinDays !== null) repeatDays = Math.min(repeatDays, intxMinDays);
 
   const direction = (!hasRec) ? "" : (inr > H ? "down" : (inr < L ? "up" : ""));
 
