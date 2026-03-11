@@ -1497,12 +1497,9 @@ function regimenDoseForIso(iso){
 }
 
 function interactionRepeatOverrideDays(){
-  const p = activePatient(); if(!p) return null;
-  const ints = p.state.interactions || [];
-  if(!ints.length) return null;
-  if(ints.some(x=>["amio","tmp","metro","fluc"].includes(x))) return 3;
-  if(ints.includes("rif")) return 5;
-  if(ints.includes("pheny")) return 7;
+  // Protocol override disabled so repeat INR follows clinic ladder exactly:
+  // - any regimen change = 1 week
+  // - stable/in-range = 1→2→3→4→6→8 weeks
   return null;
 }
 function interactionNarrative(){
