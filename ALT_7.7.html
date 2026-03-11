@@ -1585,22 +1585,25 @@ function listRecentINRs(maxLookbackDays=180){
 }
 function countStableInRangeINRs(L,H){
   const arr = listRecentINRs(180);
-  let count=0;
+  let count = 0;
+
   for(const item of arr){
-    if(item.val>=L && item.val<=H) count++;
+    if(item.val >= L && item.val <= H) count++;
     else break;
   }
   return count;
 }
-function followupDaysFromStreak(streak){
-  if(streak >= 6) return 56;
-  if(streak === 5) return 42;
-  if(streak === 4) return 28;
-  if(streak === 3) return 21;
-  if(streak === 2) return 14;
-  return 7;
-}
 
+function followupDaysFromStreak(streak){
+  // Clinic ladder from your photo:
+  // 1 week → 2 weeks → 3 weeks → 4 weeks → 6 weeks → 8 weeks
+  if(streak >= 6) return 56; // 8 weeks
+  if(streak === 5) return 42; // 6 weeks
+  if(streak === 4) return 28; // 4 weeks
+  if(streak === 3) return 21; // 3 weeks
+  if(streak === 2) return 14; // 2 weeks
+  return 7; // 1 week
+}
 function computeRecommendation(){
   const p = activePatient(); if(!p) return {repeatDays:7, hasRec:false};
   const s = p.state;
