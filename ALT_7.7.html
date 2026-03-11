@@ -1604,7 +1604,7 @@ function followupDaysFromStreak(streak){
   if(streak === 2) return 14; // 2 weeks
   return 7; // 1 week
 }
-ffunction computeRecommendation(){
+function computeRecommendation(){
   const p = activePatient(); if(!p) return {repeatDays:7, hasRec:false};
   const s = p.state;
   const {L,H,label} = getTargetRange();
