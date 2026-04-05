@@ -2038,31 +2038,47 @@ function predictedInrEstimate(r){
   return Math.round(pred*10)/10;
 }
 
-function next7PlanRows(){
+function next7PlanRows(r){
   const today = new Date();
   const rows = [];
+
+  const useRegimenPlan =
+    !!r &&
+    r.hasRec &&
+    !r.consult &&
+    (Math.max(0, r.holdsChosen || 0) === 0) &&
+    ((r.pctChosen || 0) === 0);
+
   for(let i=0;i<7;i++){
     const d = addDaysLocal(today, i);
     const iso = isoLocal(d);
     const day = getDay(iso);
-    const dose = (String(day.actual||"").trim()!=="") ? day.actual : day.scheduled;
-    rows.push({date: fmtMDY(d), iso, dose: (dose!==undefined && dose!==null) ? String(dose) : ""});
+
+    let dose = "";
+
+    // Always let actual entered dose win
+    if(String(day.actual || "").trim() !== ""){
+      dose = day.actual;
+    } else if(useRegimenPlan){
+      // In-range / no-change scenario:
+      // show the current regimen projected onto dates
+      const regDose = regimenDoseForIso(iso);
+      dose = isFinite(regDose) ? fmtDose(regDose) : "";
+    } else {
+      // Dose-change scenario:
+      // keep using calendar scheduled doses
+      dose = day.scheduled;
+    }
+
+    rows.push({
+      date: fmtMDY(d),
+      iso,
+      dose: (dose !== undefined && dose !== null) ? String(dose) : ""
+    });
   }
+
   return rows;
 }
-function buildPlanTableHtml(rows){
-  const trs = rows.map(r=>{
-    const doseTxt = (String(r.dose||"").trim()==="") ? "—" : `${escapeHtml(r.dose)} mg`;
-    return `<tr><td style="width:38%"><b>${escapeHtml(r.date)}</b></td><td>${doseTxt}</td></tr>`;
-  }).join("");
-  return `
-    <table class="planTable" aria-label="7-day plan">
-      <thead><tr><th>Date</th><th>Warfarin dose</th></tr></thead>
-      <tbody>${trs}</tbody>
-    </table>
-  `;
-}
-
 function collectDoseInrPairs(maxLookbackDays=240){
   const p = activePatient(); if(!p) return [];
   const out = [];
