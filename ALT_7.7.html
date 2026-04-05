@@ -2506,7 +2506,7 @@ function laySummaryHtml(r){
        • <b>Plan details:</b> ${r.plan}
      </div>`;
 
-  const rows = next7PlanRows();
+  const rows = next7PlanRows(r);
   const plan7 = buildPlanTableHtml(rows);
 
   return {lead, pred, clinician, plan7, algoLine};
