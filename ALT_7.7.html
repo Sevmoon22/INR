@@ -1777,14 +1777,44 @@ function applyRecommendationToCalendar(){
   clearOldRecoScheduledInWindow(startIso, 21);
 
   const todayIso = isoLocal(new Date());
-  const tomorrowIso = isoLocal(addDaysLocal(new Date(), 1));
-
   const wantTomorrow = !!s.applyBeyondRepeat;
-  const holdN = Math.max(0, r.holdsChosen||0);
+  const holdN = Math.max(0, r.holdsChosen || 0);
+
+  const isNoChangeScenario =
+    !r.consult &&
+    holdN === 0 &&
+    ((r.pctChosen || 0) === 0);
+
+  // NEW:
+  // If INR is in range / no change, sync the visible future calendar window
+  // to the current regimen, but do not overwrite Actual doses or manually locked days.
+  if(isNoChangeScenario){
+    const { days } = calendarWindowInfinite();
+
+    days.forEach(({ iso })=>{
+      if(iso < todayIso) return;
+
+      const d = getDay(iso);
+
+      if(String(d.actual || "").trim() !== "") return;
+      if(!!d.scheduledLocked) return;
+
+      const regDose = regimenDoseForIso(iso);
+      d.scheduled = isFinite(regDose) ? fmtDose(regDose) : "";
+      d.scheduledSource = "";
+      d.scheduledLocked = false;
+      s.days[iso] = d;
+    });
+
+    if(!p.isDraft) savePatients();
+    return;
+  }
+
+  const tomorrowIso = isoLocal(addDaysLocal(new Date(), 1));
   const includeTomorrow = (holdN >= 2) ? true : wantTomorrow;
 
   const targets = [todayIso].concat(includeTomorrow ? [tomorrowIso] : []);
-  const mult = 1 + (r.pctChosen||0)/100;
+  const mult = 1 + (r.pctChosen || 0) / 100;
   const direction = r.direction || "";
 
   let holdsApplied = 0;
@@ -1799,6 +1829,31 @@ function applyRecommendationToCalendar(){
       holdsApplied++;
     }
   }
+
+  for(const iso of targets){
+    if(!isEditableForAuto(iso)) continue;
+    const d = getDay(iso);
+    if(d.scheduledSource === "reco" && String(d.scheduled) === "0") continue;
+
+    let base = regimenDoseForIso(iso);
+    if(!isFinite(base)){
+      const existing = toNum(d.scheduled);
+      if(isFinite(existing)) base = existing;
+    }
+    if(!isFinite(base) || base < 0) continue;
+
+    let dose = base;
+    if((r.pctChosen || 0) !== 0) dose = base * mult;
+    dose = snapDailyDoseFeasible(dose, direction);
+
+    d.scheduled = fmtDose(dose);
+    d.scheduledSource = "reco";
+    d.scheduledLocked = false;
+    s.days[iso] = d;
+  }
+
+  if(!p.isDraft) savePatients();
+}
 
   for(const iso of targets){
     if(!isEditableForAuto(iso)) continue;
