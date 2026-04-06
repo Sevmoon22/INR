@@ -568,10 +568,6 @@
   <input id="graphHover" readonly placeholder="Hover points to see Date • INR • 7-day total" />
 </div>
           
-          <div class="field" style="min-width:240px; flex:1">
-            <label>Hover info</label>
-            <input id="graphHover" readonly placeholder="Hover points to see Date • INR • 7-day total" />
-          </div>
         </div>
 
         <div class="card" style="background:#fff; margin-top:10px">
@@ -3286,7 +3282,11 @@ function renderAllVisual(forceRecenterCalendar){
   renderBridging();
   renderInteractions();
   renderPrintPack();
-  renderGraph();
+
+  // Only render graph when the graph tab is visible
+  if($("tab-graph") && $("tab-graph").style.display !== "none"){
+    renderGraph();
+  }
 }
 
 function hookEvents(){
