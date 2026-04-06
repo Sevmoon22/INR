@@ -1855,31 +1855,6 @@ function applyRecommendationToCalendar(){
   if(!p.isDraft) savePatients();
 }
 
-  for(const iso of targets){
-    if(!isEditableForAuto(iso)) continue;
-    const d = getDay(iso);
-    if(d.scheduledSource==="reco" && String(d.scheduled)==="0") continue;
-
-    let base = regimenDoseForIso(iso);
-    if(!isFinite(base)){
-      const existing = toNum(d.scheduled);
-      if(isFinite(existing)) base = existing;
-    }
-    if(!isFinite(base) || base < 0) continue;
-
-    let dose = base;
-    if((r.pctChosen||0) !== 0) dose = base * mult;
-    dose = snapDailyDoseFeasible(dose, direction);
-
-    d.scheduled = fmtDose(dose);
-    d.scheduledSource = "reco";
-    d.scheduledLocked = false;
-    s.days[iso] = d;
-  }
-
-  if(!p.isDraft) savePatients();
-}
-
 const CAL_WEEKS_BEFORE = 8;
 const CAL_WEEKS_AFTER  = 8;
 let calWeekHeightPx = 140;
