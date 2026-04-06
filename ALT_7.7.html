@@ -2108,6 +2108,24 @@ function next7PlanRows(r){
 
   return rows;
 }
+function buildPlanTableHtml(rows){
+  const trs = rows.map(r=>{
+    const doseTxt = (String(r.dose || "").trim() === "") ? "—" : `${escapeHtml(r.dose)} mg`;
+    return `<tr><td style="width:38%"><b>${escapeHtml(r.date)}</b></td><td>${doseTxt}</td></tr>`;
+  }).join("");
+
+  return `
+    <table class="planTable" aria-label="7-day plan">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Warfarin dose</th>
+        </tr>
+      </thead>
+      <tbody>${trs}</tbody>
+    </table>
+  `;
+}
 function collectDoseInrPairs(maxLookbackDays=240){
   const p = activePatient(); if(!p) return [];
   const out = [];
