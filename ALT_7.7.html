@@ -1614,9 +1614,12 @@ function computeRecommendation(){
   const contextIso = (s.lastRecoInrIso && /^\d{4}-\d{2}-\d{2}$/.test(s.lastRecoInrIso)) ? s.lastRecoInrIso : todayIso;
 
   const weekly = sum7DayDoseAt(contextIso);
-  const wtd = lagWeightedDoseAt(contextIso);
-  const regWk = regimenWeeklyTotal();
-  const currentWeekly = (weekly>0 ? weekly : (wtd>0 ? wtd : (regWk>0 ? regWk : 0)));
+const wtd = lagWeightedDoseAt(contextIso);
+const regWk = regimenWeeklyTotal();
+
+// Use maintenance regimen first for recommendation math.
+// Fall back to dose history only if regimen is empty.
+const currentWeekly = (regWk > 0 ? regWk : (weekly > 0 ? weekly : (wtd > 0 ? wtd : 0)));
 
   let repeatDays = 7;
   let pctMin=0, pctMax=0, pctChosen=0;
