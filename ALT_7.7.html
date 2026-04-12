@@ -1517,12 +1517,32 @@ function uclaBandForGoal(goalLabel, inr){
 
   const mk = (action, pctMin, pctMax, pctChosen, holdsMin, holdsMax, holdsChosen, note) => ({
     action, pctMin, pctMax, pctChosen, holdsMin, holdsMax, holdsChosen,
-    note: note || "", consult: false
+    note: note || "",
+    consult: false,
+    day1Mode: "none"
   });
 
-  if(inr >= 5.0){
-    const o = mk("High INR", 0,0,0, 1,2,2, "Consult Medical Director. Hold 1–2 doses. Repeat INR within next 3 days; monitor frequently.");
+  if(inr >= 6.0){
+    const o = mk(
+      "High INR",
+      0,0,0,
+      2,2,2,
+      "Consult Medical Director. Hold 2 doses (day 0 and day 1). Repeat INR on day 2; monitor frequently."
+    );
     o.consult = true;
+    o.day1Mode = "hold";
+    return o;
+  }
+
+  if(inr >= 5.0){
+    const o = mk(
+      "High INR",
+      0,0,0,
+      1,1,1,
+      "Consult Medical Director. Hold 1 dose (day 0), then reduce day 1 dose by 50%. Repeat INR on day 2; monitor frequently."
+    );
+    o.consult = true;
+    o.day1Mode = "half";
     return o;
   }
 
