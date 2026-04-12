@@ -1657,6 +1657,7 @@ let baseLine="", plan="";
     if(u){
       algoUsed = "UCLA";
       consult = !!u.consult;
+      day1Mode = u.day1Mode || "none";
       pctMin = u.pctMin; pctMax = u.pctMax; pctChosen = u.pctChosen;
       holdsMin = u.holdsMin; holdsMax = u.holdsMax; holdsChosen = u.holdsChosen;
       algoNote = u.note || "";
