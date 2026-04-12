@@ -1717,17 +1717,18 @@ if(highInrCritical){
   const direction = (!hasRec) ? "" : (inr > H ? "down" : (inr < L ? "up" : ""));
 
   return {
-    hasRec, L, H, label, inr,
-    algoUsed,
-    pctMin, pctMax, pctChosen,
-    holdsMin, holdsMax, holdsChosen,
-    consult,
-    currentWeekly, suggestedWeekly, avgNow, avgNew,
-    repeatDays,
-    baseLine, plan,
-    direction,
-    contextIso
-  };
+  hasRec, L, H, label, inr,
+  algoUsed,
+  pctMin, pctMax, pctChosen,
+  holdsMin, holdsMax, holdsChosen,
+  consult,
+  day1Mode,
+  currentWeekly, suggestedWeekly, avgNow, avgNew,
+  repeatDays,
+  baseLine, plan,
+  direction,
+  contextIso
+};
 }
 function computeRepeatIso(){
   const r = computeRecommendation();
