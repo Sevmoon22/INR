@@ -1833,12 +1833,49 @@ function applyRecommendationToCalendar(){
   }
 
   const tomorrowIso = isoLocal(addDaysLocal(new Date(), 1));
-  const includeTomorrow = (holdN >= 2) ? true : wantTomorrow;
+const includeTomorrow =
+  (r.day1Mode === "half") ||
+  (r.day1Mode === "hold") ||
+  (holdN >= 2) ||
+  wantTomorrow;
 
-  const targets = [todayIso].concat(includeTomorrow ? [tomorrowIso] : []);
-  const mult = 1 + (r.pctChosen || 0) / 100;
-  const direction = r.direction || "";
+const targets = [todayIso].concat(includeTomorrow ? [tomorrowIso] : []);
+const mult = 1 + (r.pctChosen || 0) / 100;
+const direction = r.direction || "";
 
+// Special critical-INR handling:
+// INR 5.0–5.9  => hold day 0, give 50% on day 1
+// INR >= 6.0   => hold day 0 and day 1
+if(r.day1Mode === "half"){
+  if(isEditableForAuto(todayIso)){
+    const d0 = getDay(todayIso);
+    d0.scheduled = "0";
+    d0.scheduledSource = "reco";
+    d0.scheduledLocked = false;
+    s.days[todayIso] = d0;
+  }
+
+  if(isEditableForAuto(tomorrowIso)){
+    const d1 = getDay(tomorrowIso);
+
+    let base1 = regimenDoseForIso(tomorrowIso);
+    if(!isFinite(base1)){
+      const existing1 = toNum(d1.scheduled);
+      if(isFinite(existing1)) base1 = existing1;
+    }
+
+    if(isFinite(base1) && base1 >= 0){
+      let dose1 = base1 * 0.5;
+      dose1 = snapDailyDoseFeasible(dose1, "down");
+
+      d1.scheduled = fmtDose(dose1);
+      d1.scheduledSource = "reco";
+      d1.scheduledLocked = false;
+      s.days[tomorrowIso] = d1;
+    }
+  }
+
+} else {
   let holdsApplied = 0;
   for(const iso of targets){
     if(!isEditableForAuto(iso)) continue;
@@ -1873,6 +1910,7 @@ function applyRecommendationToCalendar(){
     d.scheduledLocked = false;
     s.days[iso] = d;
   }
+}
 
   if(!p.isDraft) savePatients();
 }
