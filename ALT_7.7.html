@@ -1552,7 +1552,7 @@ function uclaBandForGoal(goalLabel, inr){
     if(inr >= 2.0 && inr <= 3.0) return mk("No change", 0,0,0, 0,0,0, "");
     if(inr >= 3.1 && inr <= 3.5) return mk("Decrease", -10, 0, -5, 0,0,0, "");
     if(inr >= 3.6 && inr <= 4.0) return mk("Decrease", -10, -5, -7.5, 0,0,0, "");
-if(inr >= 4.0 && inr <= 4.9) return mk("Decrease", -15, -10, -12.5, 0,0,0, "If bleeding/clinical concern, escalate per protocol.");
+    if(inr >= 4.0 && inr <= 4.9) return mk("Decrease", -15, -10, -12.5, 0,0,0, "If bleeding/clinical concern, escalate per protocol.");
   }
 
   if(goalLabel === "2.5-3.5"){
