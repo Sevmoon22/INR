@@ -2679,7 +2679,18 @@ function renderVerbal(){
     ${lay.algoLine}
     ${lay.clinician}
   `;
+let extraNotes = "";
 
+if(bleedingRiskOn){
+  extraNotes += `<br><br><span class="small"><b>Bleeding risk mode:</b> conservative dosing and earlier INR follow-up applied.</span>`;
+}
+
+if(apsModeOn){
+  extraNotes += `<br><br><span class="small"><b>APS mode:</b> INR may overestimate anticoagulation intensity. Interpret with clinical context and trend. Consider confirmatory testing if needed.</span>`;
+}
+
+$("verbal").innerHTML += extraNotes;
+  
   $("repeatLine").innerHTML = `<b>Repeat INR:</b> <b>${fmtMDY(repDate)}</b> (in ${r.repeatDays} day${r.repeatDays===1?"":"s"}).`;
 }
 
