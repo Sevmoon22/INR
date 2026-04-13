@@ -1671,7 +1671,18 @@ const currentWeekly = (regWk > 0 ? regWk : (weekly > 0 ? weekly : (wtd > 0 ? wtd
       algoUsed = "UCLA";
       consult = !!u.consult;
       day1Mode = u.day1Mode || "none";
-      pctMin = u.pctMin; pctMax = u.pctMax; pctChosen = u.pctChosen;
+pctMin = u.pctMin;
+pctMax = u.pctMax;
+pctChosen = u.pctChosen;
+
+// 🔹 APPLY TOGGLES
+if(bleedingRiskOn){
+  pctChosen *= 0.6;
+}
+
+if(apsModeOn && pctChosen < 0){
+  pctChosen *= 0.7;
+}
       holdsMin = u.holdsMin; holdsMax = u.holdsMax; holdsChosen = u.holdsChosen;
       algoNote = u.note || "";
 
