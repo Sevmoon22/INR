@@ -1630,6 +1630,8 @@ function followupDaysFromStreak(streak){
   return 7; // 1 week
 }
 function computeRecommendation(){
+  const bleedingRiskOn = !!document.getElementById('bleedingRiskToggle')?.checked;
+  const apsModeOn = !!document.getElementById('apsToggle')?.checked;
   const p = activePatient(); if(!p) return {repeatDays:7, hasRec:false};
   const s = p.state;
   const {L,H,label} = getTargetRange();
