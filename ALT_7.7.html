@@ -1724,11 +1724,17 @@ const inRangeStable = !regimenChanged && inr >= L && inr <= H;
 
 if(highInrCritical){
   repeatDays = 2;
+
 } else if(regimenChanged){
   repeatDays = 7;
+
+  if(bleedingRiskOn) repeatDays = Math.min(repeatDays, 5);
+  if(apsModeOn) repeatDays = Math.min(repeatDays, 3);
+
 } else if(inRangeStable){
   const streak = countStableInRangeINRs(L,H);
   repeatDays = followupDaysFromStreak(streak);
+
 } else {
   repeatDays = 7;
 }
