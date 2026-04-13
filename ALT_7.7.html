@@ -1683,7 +1683,13 @@ if(bleedingRiskOn){
 if(apsModeOn && pctChosen < 0){
   pctChosen *= 0.7;
 }
-      holdsMin = u.holdsMin; holdsMax = u.holdsMax; holdsChosen = u.holdsChosen;
+      holdsMin = u.holdsMin; 
+      holdsMax = u.holdsMax; 
+      holdsChosen = u.holdsChosen;
+      // 🔹 APS HOLD PROTECTION
+if(apsModeOn && inr < 5.0){
+  holdsChosen = 0;
+}
       algoNote = u.note || "";
 
       const status = (inr < L) ? "below" : (inr > H) ? "above" : "in range";
