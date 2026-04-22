@@ -1545,8 +1545,8 @@ function uclaBandForGoal(goalLabel, inr){
     return o;
   }
 
-  if(inr >= 5.0 && (!apsModeOn || inr >= 6.0)){
-    const o = mk(
+if(inr >= 5.0){
+  const o = mk(
       "High INR",
       0,0,0,
       1,1,1,
