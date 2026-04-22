@@ -1709,10 +1709,25 @@ if(apsModeOn && inr < 5.0){
         plan = `${holdTxt} ${pctTxt} ${algoNote ? `<span class="small">Note: ${escapeHtml(algoNote)}</span>` : ""}`;
       }
     } else {
-      const g = genericBand(L,H,inr);
-      pctChosen = g.pctChosen || 0;
-      holdsChosen = g.holdsChosen || 0;
-      algoNote = g.note || "";
+  const g = genericBand(L,H,inr);
+  pctChosen = g.pctChosen || 0;
+  holdsChosen = g.holdsChosen || 0;
+
+  // APPLY TOGGLES TO GENERIC/CUSTOM RANGE
+  if(bleedingRiskOn){
+    pctChosen *= 0.6;
+  }
+
+  if(apsModeOn && pctChosen < 0){
+    pctChosen *= 0.7;
+  }
+
+  // APS HOLD PROTECTION FOR CUSTOM RANGE
+  if(apsModeOn && inr < 5.0){
+    holdsChosen = 0;
+  }
+
+  algoNote = g.note || "";
 
       baseLine = `INR <b>${formatInrOneDecimal(inr)}</b> assessed vs target (<b>${label}</b>). <span class="small">Algorithm: <b>generic fallback</b>.</span>`;
       plan = `${holdsChosen>0 ? `Hold <b>${holdsChosen}</b> dose${holdsChosen===1?"":"s"}, then ` : ""}${pctChosen===0 ? `continue current regimen.` : `adjust weekly dose by <b>${pctChosen>0?"+":""}${fmtDose(pctChosen)}%</b>.`} ${algoNote}`;
