@@ -2674,7 +2674,8 @@ function renderVerbal(){
   const p = activePatient(); if(!p) return;
   const s = p.state;
   const r = computeRecommendation();
-
+  const bleedingRiskOn = !!document.getElementById('bleedingRiskToggle')?.checked;
+  const apsModeOn = !!document.getElementById('apsToggle')?.checked;
   ensureTodayINROnCalendar();
 
   const repIso = computeRepeatIso();
