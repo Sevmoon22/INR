@@ -1457,7 +1457,13 @@ function lagWeightedDoseAt(iso){
 function last7IsoListFrom(refIso){
   const ref = fromIso(refIso);
   const arr = [];
-  for(let i=6;i>=0;i--) arr.push(isoLocal(addDaysLocal(ref, -i)));
+
+  // 7 completed dose days BEFORE the INR date.
+  // Example: INR on 5/7 uses 4/30 through 5/6, not 5/7.
+  for(let i=7;i>=1;i--){
+    arr.push(isoLocal(addDaysLocal(ref, -i)));
+  }
+
   return arr;
 }
 function sum7DayDoseAt(refIso){
