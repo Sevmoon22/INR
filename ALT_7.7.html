@@ -3525,7 +3525,8 @@ function hookEvents(){
     const ints = [];
     document.querySelectorAll(".intx").forEach(cb=>{ if(cb.checked) ints.push(cb.value); });
     s.interactions = ints;
-
+    s.amioDose = $("amioDose")?.value || "200";
+    s.amioDays = $("amioDays")?.value || "0";
     $("customRangeWrap").style.display = (s.targetRange === "custom") ? "block" : "none";
     const need = s.bridgeNeed === "yes";
     $("bridgeAgent").disabled = !need;
