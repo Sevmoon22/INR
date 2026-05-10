@@ -1383,7 +1383,8 @@ function bindInputs(){
   document.querySelectorAll(".intx").forEach(cb=>{
     cb.checked = (s.interactions || []).includes(cb.value);
   });
-
+  if($("amioDose")) $("amioDose").value = s.amioDose || "200";
+  if($("amioDays")) $("amioDays").value = s.amioDays || "0";
   $("customRangeWrap").style.display = (s.targetRange === "custom") ? "block" : "none";
 
   const need = s.bridgeNeed === "yes";
