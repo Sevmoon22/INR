@@ -1523,7 +1523,41 @@ function regimenDoseForIso(iso){
   const v = toNum((phase.regimen||{})[dow]);
   return isFinite(v) ? v : NaN;
 }
+function getAmiodaroneInteractionPlan({
+  weeklyDose,
+  inr,
+  targetLow,
+  targetHigh,
+  amioDose = 200,
+  daysSinceStart = 0,
+  bleedingRisk = false
+}) {
+  let targetReduction = 0;
 
+  if (amioDose >= 400) targetReduction = 0.40;
+  else if (amioDose >= 200) targetReduction = 0.30;
+  else if (amioDose >= 100) targetReduction = 0.20;
+  else targetReduction = 0.15;
+
+  if (bleedingRisk) targetReduction += 0.05;
+
+  const ramp = Math.min(Math.max(daysSinceStart, 0) / 42, 1);
+  let activeReduction = targetReduction * ramp;
+
+  if (inr > targetHigh) activeReduction = Math.max(activeReduction, 0.15);
+  if (inr >= 4.0) activeReduction = Math.max(activeReduction, 0.25);
+  if (inr < targetLow) activeReduction = Math.min(activeReduction, 0.10);
+
+  const suggestedWeeklyDose = weeklyDose * (1 - activeReduction);
+
+  return {
+    activeReduction,
+    percentReduction: Math.round(activeReduction * 100),
+    suggestedWeeklyDose: Math.round(suggestedWeeklyDose * 2) / 2,
+    repeatInDays: inr >= 4.0 ? 3 : 7,
+    note: `Amiodarone interaction: expected delayed INR increase. Consider eventual weekly dose reduction toward ~${Math.round(suggestedWeeklyDose * 2) / 2} mg/week if INR trend supports it. Interaction effect evolves over 6–8 weeks.`
+  };
+}
 function interactionRepeatOverrideDays(){
   // Protocol override disabled so repeat INR follows clinic ladder exactly:
   // - any regimen change = 1 week
