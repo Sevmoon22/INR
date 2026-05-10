@@ -648,6 +648,21 @@
           <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:6px 10px;border-radius:999px;background:var(--blue);border:1px solid #d7e7ff">
             <input type="checkbox" class="intx" value="amio"> Amiodarone
           </label>
+          <div class="row" style="width:100%;margin-top:8px">
+  <div class="field" style="width:170px">
+    <label>Amiodarone dose</label>
+    <select id="amioDose">
+      <option value="100">100 mg/day</option>
+      <option value="200" selected>200 mg/day</option>
+      <option value="400">400 mg/day or loading dose</option>
+    </select>
+  </div>
+
+  <div class="field" style="width:170px">
+    <label>Days since start/change</label>
+    <input id="amioDays" type="number" min="0" value="0">
+  </div>
+</div>
           <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:6px 10px;border-radius:999px;background:var(--blue);border:1px solid #d7e7ff">
             <input type="checkbox" class="intx" value="tmp"> TMP-SMX
           </label>
