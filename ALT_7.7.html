@@ -2727,14 +2727,7 @@ function laySummaryHtml(r){
       ? `<div class="predLine"><b>Estimated next INR:</b> <b>${predVal.toFixed(1)}</b> <span style="color:#666">(estimate only)</span></div>`
       : `<div class="predLine"><b>Estimated next INR:</b> <span style="color:#666">— (enter more dose history for a better estimate)</span></div>`;
 
-  const scopeTxt = activePatient().state.applyBeyondRepeat ? "Today + tomorrow (max)" : "Today only";
-  const algoLine =
-    `<div class="pillNote">
-      <b>Algorithm used:</b> ${escapeHtml(r.algoUsed)}.
-      ${r.algoUsed==="UCLA" ? `This matches the UCLA table bands for goals 2.0–3.0 and 2.5–3.5.` : `Fallback logic used for non-UCLA goal ranges.`}
-      <br><b>Dose achievability:</b> scheduled doses are snapped to achievable tablet combinations (½ tablets allowed).
-      <br><b>Scope:</b> ${escapeHtml(scopeTxt)} (applied on button press).
-    </div>`;
+  const algoLine = ``;
 
   const clinician =
     `<div class="sep"></div>
