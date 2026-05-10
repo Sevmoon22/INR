@@ -2786,7 +2786,9 @@ if(bleedingRiskOn){
 if(apsModeOn){
 extraNotes += `<br><br><span class="small"><b>APS mode:</b> INR may overestimate anticoagulation intensity. Interpret with clinical context and trend. Consider confirmatory testing if needed.</span>`;
 }
-
+if(r.amioPlan){
+  extraNotes += `<br><br><span class="small"><b>Amiodarone interaction:</b> ${escapeHtml(r.amioPlan.note)}</span>`;
+}
 $("verbal").innerHTML += extraNotes;
   
   $("repeatLine").innerHTML = `<b>Repeat INR:</b> <b>${fmtMDY(repDate)}</b> (in ${r.repeatDays} day${r.repeatDays===1?"":"s"}).`;
