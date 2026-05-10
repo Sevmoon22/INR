@@ -1824,7 +1824,25 @@ if(highInrCritical){
   const avgNew = suggestedWeekly>0 ? (suggestedWeekly/7) : NaN;
 
   const direction = (!hasRec) ? "" : (inr > H ? "down" : (inr < L ? "up" : ""));
+  const amioActive = (s.interactions || []).includes("amio");
+let amioPlan = null;
 
+if(amioActive && hasRec && currentWeekly > 0){
+  amioPlan = getAmiodaroneInteractionPlan({
+    weeklyDose: currentWeekly,
+    inr,
+    targetLow: L,
+    targetHigh: H,
+    amioDose: Number(s.amioDose || 200),
+    daysSinceStart: Number(s.amioDays || 0),
+    bleedingRisk: bleedingRiskOn
+  });
+
+  // Pull repeat INR earlier unless already critical
+  if(!consult && inr < 5.0){
+    repeatDays = Math.min(repeatDays, amioPlan.repeatInDays);
+  }
+}
   return {
   hasRec, L, H, label, inr,
   algoUsed,
