@@ -3728,10 +3728,14 @@ function hookEvents(){
   });
 
   $("btnPrint").addEventListener("click", ()=>{
-    renderAllVisual(false);
-    renderPrintPack();
+  renderPrintPack();
+
+  document.body.classList.add("printing-pdf");
+
+  setTimeout(()=>{
     window.print();
-  });
+  }, 100);
+});
 
   $("btnClearRegimen").addEventListener("click", ()=>{
     const p = activePatient(); if(!p) return;
