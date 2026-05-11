@@ -3569,8 +3569,7 @@ function hookEvents(){
     renderGraph();
   });
 }
-  ["ptName","gender","crcl","mrn","targetRange","customL","customH","inrToday","bridgeNeed","bridgeAgent","bridgeInd","enoxFreq","applyBeyondRepeat"]
-    .forEach(id=> $(id).addEventListener("input", sync));
+["ptName","gender","crcl","mrn","targetRange","customL","customH","inrToday","bridgeNeed","bridgeAgent","bridgeInd","enoxFreq","applyBeyondRepeat","bleedingRiskToggle","apsToggle"]    .forEach(id=> $(id).addEventListener("input", sync));
 
   $("wt").addEventListener("blur", ()=>{
     sync();
