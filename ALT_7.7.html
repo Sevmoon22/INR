@@ -275,15 +275,32 @@
 
   .print-only{display:none}
   @media print{
-    body{margin:0;overflow:visible}
-    .no-print{display:none !important}
-    .card{box-shadow:none}
-    #calendarCard{display:none !important}
-    .print-only{display:block !important}
-    .main{display:block; padding:0}
-    .leftScroll{overflow:visible}
-    .app{height:auto}
+  body{
+    margin:0;
+    overflow:visible;
+    background:#fff;
   }
+
+  .app{
+    display:none !important;
+  }
+
+  .no-print{
+    display:none !important;
+  }
+
+  .print-only{
+    display:block !important;
+  }
+
+  #printPack{
+    padding:14px !important;
+  }
+
+  .card{
+    box-shadow:none !important;
+  }
+}
 </style>
 </head>
 
