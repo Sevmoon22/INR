@@ -276,29 +276,31 @@
   .print-only{display:none}
   @media print{
   body{
-    margin:0;
-    overflow:visible;
-    background:#fff;
+    margin:0 !important;
+    overflow:visible !important;
+    background:#fff !important;
   }
 
-  .app{
+  body.printing-pdf .app{
     display:none !important;
+    visibility:hidden !important;
+    height:0 !important;
+    overflow:hidden !important;
+  }
+
+  body.printing-pdf #printPack{
+    display:block !important;
+    visibility:visible !important;
+    position:static !important;
+    padding:14px !important;
+  }
+
+  body.printing-pdf .print-only{
+    display:block !important;
   }
 
   .no-print{
     display:none !important;
-  }
-
-  .print-only{
-    display:block !important;
-  }
-
-  #printPack{
-    padding:14px !important;
-  }
-
-  .card{
-    box-shadow:none !important;
   }
 }
 </style>
