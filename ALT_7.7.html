@@ -1389,13 +1389,27 @@ function blankState(){
   };
 }
 
-let patients = loadPatients();
-let activeId = localStorage.getItem(DB_KEYS.ACTIVE) || DRAFT_ID;
 let draftState = blankState();
+let patients = loadPatients();
+
+let activeId = localStorage.getItem(DB_KEYS.ACTIVE) || DRAFT_ID;
+if(activeId !== DRAFT_ID && !patients.some(p => p.id === activeId)){
+  console.warn("Saved active patient was missing. Resetting to draft.");
+  activeId = DRAFT_ID;
+  localStorage.setItem(DB_KEYS.ACTIVE, DRAFT_ID);
+}
 
 function activePatient(){
-  if(activeId === DRAFT_ID) return { id:DRAFT_ID, meta:{}, state:draftState, isDraft:true };
-  return patients.find(p=>p.id===activeId) || null;
+  if(activeId === DRAFT_ID){
+    return { id:DRAFT_ID, meta:{}, state:draftState, isDraft:true };
+  }
+
+  const found = patients.find(p=>p.id===activeId);
+  if(found) return found;
+
+  activeId = DRAFT_ID;
+  localStorage.setItem(DB_KEYS.ACTIVE, DRAFT_ID);
+  return { id:DRAFT_ID, meta:{}, state:draftState, isDraft:true };
 }
 function setActive(id){
   activeId = id;
