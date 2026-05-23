@@ -1144,33 +1144,168 @@ function snapDoseFeasible(targetMg, tablets, direction){
   return {ok:true, dose:rec.dose, comboText: comboToText(rec.combo, tabs)};
 }
 
-function loadPatients(){
+const PATIENT_BACKUP_KEY = "TL_PATIENTS_V1_BACKUP";
+const PATIENT_AUTOSAVE_KEY = "TL_PATIENTS_V1_AUTOSAVE";
+
+const OLD_PATIENT_KEYS = [
+  "TL_PATIENTS",
+  "TL_PATIENTS_V0",
+  "THROMBOLOGIC_PATIENTS",
+  "thrombologicPatients",
+  "inrPatients",
+  "patients"
+];
+
+function safeJsonParse(raw, fallback){
   try{
-    const raw = localStorage.getItem(DB_KEYS.PATIENTS);
-    const arr = raw ? JSON.parse(raw) : [];
-    return Array.isArray(arr) ? arr : [];
-  }catch{ return []; }
+    if(!raw) return fallback;
+    const parsed = JSON.parse(raw);
+    return parsed ?? fallback;
+  }catch(err){
+    console.warn("Patient storage JSON parse failed:", err);
+    return fallback;
+  }
 }
-function savePatients(){ localStorage.setItem(DB_KEYS.PATIENTS, JSON.stringify(patients)); }
+
+function digitsOnly(s){
+  return String(s||"").replace(/\D/g,"");
+}
+
+function normalizePatientRecord(p){
+  if(!p || typeof p !== "object") return null;
+
+  const state = Object.assign(blankState(), p.state || p || {});
+  const meta = Object.assign({}, p.meta || {});
+
+  meta.ptName = (meta.ptName || state.ptName || state.patientName || state.name || "").trim();
+  meta.dob = (meta.dob || state.dob || state.DOB || "").trim();
+  meta.gender = (meta.gender || state.gender || "").trim();
+  meta.phone = (meta.phone || state.phone || "").trim();
+  meta.mrn = (meta.mrn || state.mrn || state.MRN || "").trim();
+
+  state.ptName = meta.ptName;
+  state.dob = meta.dob;
+  state.gender = meta.gender;
+  state.phone = meta.phone;
+  state.mrn = meta.mrn;
+
+  let id = p.id || makePatientId(meta);
+  if(!id || id === "P:||") id = "RECOVERED:" + Date.now() + ":" + Math.random().toString(36).slice(2);
+
+  return { id, meta, state };
+}
+
+function dedupePatients(arr){
+  const map = new Map();
+
+  for(const raw of arr){
+    const p = normalizePatientRecord(raw);
+    if(!p) continue;
+
+    const key = p.id;
+    if(!map.has(key)){
+      map.set(key, p);
+    }else{
+      const old = map.get(key);
+      map.set(key, {
+        id: key,
+        meta: Object.assign({}, old.meta, p.meta),
+        state: Object.assign({}, old.state, p.state)
+      });
+    }
+  }
+
+  return Array.from(map.values());
+}
+
+function loadPatientsFromKey(key){
+  const raw = localStorage.getItem(key);
+  const parsed = safeJsonParse(raw, []);
+  return Array.isArray(parsed) ? dedupePatients(parsed) : [];
+}
+
+function loadPatients(){
+  let arr = loadPatientsFromKey(DB_KEYS.PATIENTS);
+
+  if(!arr.length){
+    console.warn("Primary patient storage empty or unreadable. Trying backup...");
+    arr = loadPatientsFromKey(PATIENT_BACKUP_KEY);
+  }
+
+  if(!arr.length){
+    console.warn("Backup empty or unreadable. Trying autosave...");
+    arr = loadPatientsFromKey(PATIENT_AUTOSAVE_KEY);
+  }
+
+  if(!arr.length){
+    console.warn("Trying older patient storage keys...");
+    for(const key of OLD_PATIENT_KEYS){
+      const oldArr = loadPatientsFromKey(key);
+      if(oldArr.length){
+        arr = oldArr;
+        break;
+      }
+    }
+  }
+
+  arr = dedupePatients(arr);
+
+  if(arr.length){
+    localStorage.setItem(DB_KEYS.PATIENTS, JSON.stringify(arr));
+    localStorage.setItem(PATIENT_BACKUP_KEY, JSON.stringify(arr));
+  }
+
+  return arr;
+}
+
+function savePatients(){
+  try{
+    const clean = dedupePatients(patients);
+    patients = clean;
+
+    const previous = localStorage.getItem(DB_KEYS.PATIENTS);
+    if(previous){
+      localStorage.setItem(PATIENT_BACKUP_KEY, previous);
+    }
+
+    const json = JSON.stringify(clean);
+    localStorage.setItem(DB_KEYS.PATIENTS, json);
+    localStorage.setItem(PATIENT_AUTOSAVE_KEY, json);
+  }catch(err){
+    console.error("Unable to save patient records:", err);
+    modal.open(
+      "Save error",
+      "The patient record could not be saved. Browser storage may be full or blocked. Do not close this page until you export or copy the data."
+    );
+  }
+}
 
 function makePatientId(meta){
   const mrn = (meta.mrn||"").trim();
   if(mrn) return `MRN:${mrn}`;
+
   const nm = normalizeForSearch(meta.ptName||"");
   const dob = (meta.dob||"").trim();
-  const ph = (meta.phone||"").trim();
+  const ph = digitsOnly(meta.phone||"");
+
   return `P:${nm}|${dob}|${ph}`.replace(/\s+/g," ");
 }
-function digitsOnly(s){ return String(s||"").replace(/\D/g,""); }
 
 function matchesPatient(p, q){
   const raw = String(q||"").trim();
   if(raw.length < 2) return false;
 
+  const meta = p.meta || {};
+  const state = p.state || {};
+
   const qq = normalizeForSearch(raw);
-  const blobText = [p.id, p.meta?.ptName, p.meta?.dob, p.meta?.gender, p.meta?.phone, p.meta?.mrn]
-    .map(normalizeForSearch)
-    .join(" | ");
+
+  const blobText = [
+    p.id,
+    meta.ptName, meta.dob, meta.gender, meta.phone, meta.mrn,
+    state.ptName, state.patientName, state.name, state.dob, state.DOB,
+    state.gender, state.phone, state.mrn, state.MRN
+  ].map(normalizeForSearch).join(" | ");
 
   if(qq && blobText.includes(qq)) return true;
 
@@ -1179,9 +1314,8 @@ function matchesPatient(p, q){
 
   const blobDigits = digitsOnly([
     p.id,
-    p.meta?.dob,
-    p.meta?.phone,
-    p.meta?.mrn
+    meta.dob, meta.phone, meta.mrn,
+    state.dob, state.DOB, state.phone, state.mrn, state.MRN
   ].join(" "));
 
   return blobDigits.includes(qDigits);
