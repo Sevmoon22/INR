@@ -3636,51 +3636,19 @@ function applyRegimenForwardFromButton(){
     return;
   }
 
-  function applyPhaseAndRewriteCalendar(){
-    setNewRegimenPhase(startIso, reg);
-
-    const { days } = calendarWindowInfinite();
-
-    days.forEach(({ iso })=>{
-      if(iso < startIso) return;
-
-      const d = getDay(iso);
-
-      // Do not overwrite actual taken doses
-      if(String(d.actual || "").trim() !== "") return;
-
-      // Do not overwrite manually locked days
-      if(!!d.scheduledLocked) return;
-
-      const mg = regimenDoseForIso(iso);
-      d.scheduled = isFinite(mg) ? fmtDose(mg) : "";
-      d.scheduledSource = "regimen";
-      d.scheduledLocked = false;
-      s.days[iso] = d;
-    });
-
-    if(!p.isDraft) savePatients();
-    syncRegimenUI();
-    modal.open("Applied regimen forward", `New regimen phase starts <b>${escapeHtml(fmtMDY(fromIso(startIso)))}</b>. Calendar updated forward from that date.`);
-    renderAllVisual(false);
-  }
-
   const exists = s.regimenPhases.find(x=>x.startIso === startIso);
   if(exists){
     modal.open(
       "Regimen phase exists",
       `A regimen phase already starts on <b>${escapeHtml(fmtMDY(fromIso(startIso)))}</b>.<br><br>
-       Replace that phase and update the calendar forward?`,
+       Replace that phase with the current regimen?`,
       [
-        {label:"Replace phase", cls:"btn primary", onClick:()=>{ modal.close(); applyPhaseAndRewriteCalendar(); }},
+        {label:"Replace phase", cls:"btn primary", onClick:()=>{ modal.close(); setNewRegimenPhase(startIso, reg); syncRegimenUI(); renderAllVisual(false); }},
         {label:"Cancel", cls:"btn secondary", onClick:()=>modal.close()}
       ]
     );
     return;
   }
-
-  applyPhaseAndRewriteCalendar();
-}
 
   setNewRegimenPhase(startIso, reg);
   syncRegimenUI();
