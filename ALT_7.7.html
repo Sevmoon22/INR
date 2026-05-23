@@ -2337,26 +2337,16 @@ function renderCalendar(forceRecenter){
     };
 
     const commitInr = (opts)=>{
-  const fixed = formatInrOneDecimal(inr.value);
-  const todayIso = isoLocal(new Date());
-
-  if(fixed !== "") {
-    inr.value = fixed;
-    setDay(iso, {inr: fixed}, opts);
-
-    // Only sync to "Current INR (today)" if the INR was entered on today's calendar cell.
-    if(iso === todayIso){
-      syncTodayFromCalendarINR(fixed, opts);
-    }
-  } else {
-    setDay(iso, {inr: ""}, opts);
-
-    // Only clear today's INR box if today's calendar INR was cleared.
-    if(iso === todayIso){
-      syncTodayFromCalendarINR("", opts);
-    }
-  }
-};
+      const fixed = formatInrOneDecimal(inr.value);
+      if(fixed !== "") {
+        inr.value = fixed;
+        setDay(iso, {inr: fixed}, opts);
+        syncTodayFromCalendarINR(fixed, opts);
+      } else {
+        setDay(iso, {inr: ""}, opts);
+        syncTodayFromCalendarINR("", opts);
+      }
+    };
 
     inr.addEventListener("keydown", (e)=>{
       if(e.key==="Enter"){ e.preventDefault(); commitInr(); inr.blur(); }
