@@ -3636,6 +3636,43 @@ function applyRegimenForwardFromButton(){
     return;
   }
 
+  function finishApply(){
+    setNewRegimenPhase(startIso, reg);
+
+    const { days } = calendarWindowInfinite();
+    days.forEach(({ iso })=>{
+      if(iso < startIso) return;
+
+      const mg = regimenDoseForIso(iso);
+      if(!isFinite(mg)) return;
+
+      const d = getDay(iso);
+      if(String(d.actual || "").trim() !== "") return;
+
+      d.scheduled = fmtDose(mg);
+      d.scheduledLocked = false;
+      d.scheduledSource = "regimen";
+      s.days[iso] = d;
+    });
+
+    const weekly = regimenWeeklyTotalFrom(reg);
+
+    s.manualVerbalNote =
+      `<div class="pillNote"><b>New maintenance regimen applied forward:</b> ` +
+      `starting <b>${fmtMDY(fromIso(startIso))}</b>. ` +
+      `New weekly total = <b>${fmtDose(weekly)} mg/week</b>. ` +
+      `The visible calendar has been updated forward from this date.</div>`;
+
+    syncRegimenUI();
+    if(!p.isDraft) savePatients();
+    renderAllVisual(false);
+
+    modal.open(
+      "Applied regimen forward",
+      `New regimen phase starts <b>${escapeHtml(fmtMDY(fromIso(startIso)))}</b>. Calendar updated forward.`
+    );
+  }
+
   const exists = s.regimenPhases.find(x=>x.startIso === startIso);
   if(exists){
     modal.open(
@@ -3643,17 +3680,14 @@ function applyRegimenForwardFromButton(){
       `A regimen phase already starts on <b>${escapeHtml(fmtMDY(fromIso(startIso)))}</b>.<br><br>
        Replace that phase with the current regimen?`,
       [
-        {label:"Replace phase", cls:"btn primary", onClick:()=>{ modal.close(); setNewRegimenPhase(startIso, reg); syncRegimenUI(); renderAllVisual(false); }},
+        {label:"Replace phase", cls:"btn primary", onClick:()=>{ modal.close(); finishApply(); }},
         {label:"Cancel", cls:"btn secondary", onClick:()=>modal.close()}
       ]
     );
     return;
   }
 
-  setNewRegimenPhase(startIso, reg);
-  syncRegimenUI();
-  modal.open("Applied regimen forward", `New regimen phase starts <b>${escapeHtml(fmtMDY(fromIso(startIso)))}</b>. Past phases preserved.`);
-  renderAllVisual(false);
+  finishApply();
 }
 
 function renderAllVisual(forceRecenterCalendar){
