@@ -3938,12 +3938,22 @@ window.addEventListener("afterprint", ()=>{
     const s = p.state;
 
     const fixed = formatInrOneDecimal($("inrToday").value);
-    if(fixed !== ""){
-      $("inrToday").value = fixed;
-      s.inrToday = fixed;
-      s.lastRecoInrIso = isoLocal(new Date());
-      ensureTodayINROnCalendar();
-      if(!p.isDraft) savePatients();
+if(fixed !== ""){
+  $("inrToday").value = fixed;
+  s.inrToday = fixed;
+
+  const todayIso = isoLocal(new Date());
+  const found = findRecentINRWithinDays(3);
+
+  if(found && found.valStr === fixed && found.iso !== todayIso){
+    s.lastRecoInrIso = found.iso;
+  } else {
+    s.lastRecoInrIso = todayIso;
+    ensureTodayINROnCalendar();
+  }
+
+  if(!p.isDraft) savePatients();
+}
     } else {
       const found = findRecentINRWithinDays(3);
       if(!found){
