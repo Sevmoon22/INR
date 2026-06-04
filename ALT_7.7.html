@@ -2206,7 +2206,16 @@ if(isFinite(existing)) base = existing;
 if(!isFinite(base) || base < 0) continue;
 
 let dose = base;
-if((r.pctChosen || 0) !== 0) dose = base * mult;
+
+if((r.pctChosen || 0) !== 0){
+  const currentWeekly = r.currentWeekly || regimenWeeklyTotal();
+  const targetWeekly = currentWeekly * mult;
+  const weeklyDiff = targetWeekly - currentWeekly;
+
+  // spread the weekly difference over 7 days
+  dose = base + (weeklyDiff / 7);
+}
+
 dose = snapDailyDoseFeasible(dose, direction);
 
 d.scheduled = fmtDose(dose);
