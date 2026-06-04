@@ -2138,7 +2138,12 @@ const includeTomorrow =
 (holdN >= 2) ||
 wantTomorrow;
 
-const targets = [todayIso].concat(includeTomorrow ? [tomorrowIso] : []);
+const targets = [];
+const daysToApply = ((r.pctChosen || 0) !== 0 && holdN === 0 && !r.consult) ? 7 : (includeTomorrow ? 2 : 1);
+
+for(let i=0; i<daysToApply; i++){
+  targets.push(isoLocal(addDaysLocal(new Date(), i)));
+}
 const mult = 1 + (r.pctChosen || 0) / 100;
 const direction = r.direction || "";
 
