@@ -2223,11 +2223,9 @@ if((r.pctChosen || 0) !== 0){
   const targetWeekly = currentWeekly * mult;
   const weeklyDiff = targetWeekly - currentWeekly;
 
-  // Default: concentrate small dose changes into the first 2 days.
-  // If "Generate new maintenance regimen" is checked, spread across 7 days.
-  const divisor = s.fullRegimenOverhaul ? 7 : 2;
+ const divisor = s.fullRegimenOverhaul ? 7 : daysToApply;
 
-  dose = base + (weeklyDiff / divisor);
+dose = base + (weeklyDiff / divisor);
 }
 dose = snapDailyDoseFeasible(dose, direction);
 
