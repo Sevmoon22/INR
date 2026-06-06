@@ -2144,8 +2144,13 @@ const includeTomorrow =
 (holdN >= 2) ||
 wantTomorrow;
 
+const useFullOverhaul = !!s.fullRegimenOverhaul;
+
 const targets = [];
-const daysToApply = ((r.pctChosen || 0) !== 0 && holdN === 0 && !r.consult) ? 7 : (includeTomorrow ? 2 : 1);
+const daysToApply =
+  useFullOverhaul && ((r.pctChosen || 0) !== 0) && holdN === 0 && !r.consult
+    ? 7
+    : 2;
 
 for(let i=0; i<daysToApply; i++){
   targets.push(isoLocal(addDaysLocal(new Date(), i)));
