@@ -2144,14 +2144,27 @@ const includeTomorrow =
 (holdN >= 2) ||
 wantTomorrow;
 
-const useFullOverhaul = !!s.fullRegimenOverhaul;
+let daysToApply = 1;
+
+if(s.fullRegimenOverhaul && ((r.pctChosen || 0) !== 0) && holdN === 0 && !r.consult){
+  daysToApply = 7;
+} else if(includeTomorrow){
+  daysToApply = 2;
+} else if(((r.pctChosen || 0) !== 0) && holdN === 0 && !r.consult){
+  const todayBase = regimenDoseForIso(todayIso);
+  const currentWeekly = r.currentWeekly || regimenWeeklyTotal();
+  const targetWeekly = currentWeekly * (1 + (r.pctChosen || 0) / 100);
+  const weeklyDiff = targetWeekly - currentWeekly;
+
+  const oneDayTarget = todayBase + weeklyDiff;
+  const oneDaySnapped = snapDailyDoseFeasible(oneDayTarget, r.direction || "");
+
+  if(fmtDose(oneDaySnapped) === fmtDose(todayBase)){
+    daysToApply = 2;
+  }
+}
 
 const targets = [];
-const daysToApply =
-  useFullOverhaul && ((r.pctChosen || 0) !== 0) && holdN === 0 && !r.consult
-    ? 7
-    : 2;
-
 for(let i=0; i<daysToApply; i++){
   targets.push(isoLocal(addDaysLocal(new Date(), i)));
 }
