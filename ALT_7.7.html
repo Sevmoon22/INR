@@ -4065,7 +4065,10 @@ $("tab-rec").style.display = tab==="rec" ? "block":"none";
 $("tab-graph").style.display = tab==="graph" ? "block":"none";
 $("tab-bridge").style.display = tab==="bridge" ? "block":"none";
 $("tab-interact").style.display = tab==="interact" ? "block":"none";
+$("tab-meds").style.display = tab==="meds" ? "block":"none";
 $("tab-notes").style.display = tab==="notes" ? "block":"none";
+
+if(tab==="meds") renderMedList();
 
 if(tab==="graph") renderGraph();
 });
