@@ -707,7 +707,33 @@ title="Click to enlarge graph">
 <div id="intxText" style="font-size:13px;line-height:1.35"></div>
 </div>
 </div>
+<div id="tab-meds" style="display:none">
+<h2 style="margin-top:10px">Patient medication list</h2>
+<div class="hint">Add current medications. ThromboLogic will screen for warfarin-relevant interactions.</div>
 
+<div class="row" style="margin-top:10px">
+<div class="field" style="min-width:180px;flex:1">
+<label>Medication name</label>
+<input id="medName" placeholder="e.g., amiodarone, Bactrim, aspirin" />
+</div>
+<div class="field" style="width:130px">
+<label>Dose</label>
+<input id="medDose" placeholder="e.g., 200 mg" />
+</div>
+<div class="field" style="width:150px">
+<label>Frequency</label>
+<input id="medFreq" placeholder="e.g., daily" />
+</div>
+<button class="btn primary" id="btnAddMed">Add med</button>
+</div>
+
+<div id="medListBox" style="margin-top:10px"></div>
+
+<div class="card" style="background:#fff;margin-top:10px">
+<h2 style="margin-top:0">Automatic interaction screen</h2>
+<div id="medInteractionText" style="font-size:13px;line-height:1.35"></div>
+</div>
+</div>
 <div id="tab-notes" style="display:none">
 <h2 style="margin-top:10px">Provider notes</h2>
 <textarea id="providerNotes">Click here to type provider notes before printing.</textarea>
