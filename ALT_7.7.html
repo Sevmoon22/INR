@@ -4053,7 +4053,9 @@ if(!p.isDraft) savePatients();
 $("providerNotes").addEventListener("input", sync);
 
 document.querySelectorAll(".intx").forEach(cb=>cb.addEventListener("change", sync));
-
+if($("btnAddMed")){
+$("btnAddMed").addEventListener("click", addMed);
+}
 $("tabs").addEventListener("click", (e)=>{
 const btn = e.target.closest(".tab");
 if(!btn) return;
