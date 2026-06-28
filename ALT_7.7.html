@@ -1834,7 +1834,17 @@ cb.checked = (s.interactions || []).includes(cb.value);
 
 if(!p.isDraft) savePatients();
 }
-
+function highlightInteractionEffect(text){
+return escapeHtml(text)
+.replace(/increase INR/gi, '<span style="color:#ff0000;font-weight:900;">increase INR</span>')
+.replace(/increases INR/gi, '<span style="color:#ff0000;font-weight:900;">increases INR</span>')
+.replace(/decrease INR/gi, '<span style="color:#ff0000;font-weight:900;">decrease INR</span>')
+.replace(/decreases INR/gi, '<span style="color:#ff0000;font-weight:900;">decreases INR</span>')
+.replace(/lower INR/gi, '<span style="color:#ff0000;font-weight:900;">lower INR</span>')
+.replace(/lowers INR/gi, '<span style="color:#ff0000;font-weight:900;">lowers INR</span>')
+.replace(/increase bleeding risk/gi, '<span style="color:#ff0000;font-weight:900;">increase bleeding risk</span>')
+.replace(/increases bleeding risk/gi, '<span style="color:#ff0000;font-weight:900;">increases bleeding risk</span>');
+}
 function renderMedList(){
 const box = $("medListBox");
 const text = $("medInteractionText");
