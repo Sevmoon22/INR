@@ -1770,6 +1770,139 @@ function interactionRepeatOverrideDays(){
 // - stable/in-range = 1→2→3→4→6→8 weeks
 return null;
 }
+const WARFARIN_MED_RULES = [
+{key:"amio", names:["amiodarone","pacerone","cordarone"], label:"Amiodarone", effect:"May increase INR; delayed effect over weeks."},
+{key:"tmp", names:["bactrim","septra","tmp-smx","trimethoprim","sulfamethoxazole"], label:"TMP-SMX", effect:"Can significantly increase INR."},
+{key:"metro", names:["metronidazole","flagyl"], label:"Metronidazole", effect:"Can increase INR."},
+{key:"fluc", names:["fluconazole","diflucan","ketoconazole","itraconazole","voriconazole","posaconazole"], label:"Azole antifungal", effect:"Can increase INR."},
+{key:"rif", names:["rifampin","rifabutin","rifapentine"], label:"Rifampin/rifamycin", effect:"Can lower INR."},
+{key:"pheny", names:["phenytoin","dilantin"], label:"Phenytoin", effect:"Variable INR effect; monitor closely."},
+{key:"bleed", names:["aspirin","ibuprofen","naproxen","aleve","advil","motrin","meloxicam","celecoxib","diclofenac","clopidogrel","plavix"], label:"Antiplatelet/NSAID", effect:"Increases bleeding risk even if INR is unchanged."}
+];
+
+function getMedList(){
+const p = activePatient(); if(!p) return [];
+if(!Array.isArray(p.state.medList)) p.state.medList = [];
+return p.state.medList;
+}
+
+function detectMedInteractions(){
+const meds = getMedList();
+const hits = [];
+
+for(const med of meds){
+const name = normalizeForSearch(med.name || "");
+if(!name) continue;
+
+for(const rule of WARFARIN_MED_RULES){
+if(rule.names.some(n => name.includes(normalizeForSearch(n)))){
+hits.push({
+med: med.name,
+key: rule.key,
+label: rule.label,
+effect: rule.effect
+});
+}
+}
+}
+
+return hits;
+}
+
+function applyMedicationInteractionFlags(){
+const p = activePatient(); if(!p) return;
+const s = p.state;
+const hits = detectMedInteractions();
+
+const current = new Set(s.interactions || []);
+hits.forEach(h=>{
+if(h.key !== "bleed") current.add(h.key);
+});
+
+s.interactions = Array.from(current);
+
+if(hits.some(h=>h.key === "bleed")){
+s.bleedingRisk = true;
+if($("bleedingRiskToggle")) $("bleedingRiskToggle").checked = true;
+}
+
+document.querySelectorAll(".intx").forEach(cb=>{
+cb.checked = (s.interactions || []).includes(cb.value);
+});
+
+if(!p.isDraft) savePatients();
+}
+
+function renderMedList(){
+const box = $("medListBox");
+const text = $("medInteractionText");
+if(!box || !text) return;
+
+const meds = getMedList();
+
+if(!meds.length){
+box.innerHTML = `<div class="small">No medications added yet.</div>`;
+} else {
+box.innerHTML = meds.map((m,i)=>`
+<div class="card" style="background:#fff;margin-bottom:8px">
+<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">
+<div>
+<b>${escapeHtml(m.name || "")}</b>
+<div class="small">${escapeHtml([m.dose,m.freq].filter(Boolean).join(" • "))}</div>
+</div>
+<button class="btn ghost" onclick="removeMed(${i})">Remove</button>
+</div>
+</div>
+`).join("");
+}
+
+const hits = detectMedInteractions();
+
+if(!hits.length){
+text.innerHTML = `No warfarin-relevant interactions detected from the medication list.`;
+} else {
+text.innerHTML = hits.map(h=>`
+<div style="margin-bottom:6px">
+<b>${escapeHtml(h.med)}</b> → <b>${escapeHtml(h.label)}</b>: ${escapeHtml(h.effect)}
+</div>
+`).join("") + `<div class="hint">These are anticoagulation-focused screening flags; verify clinically.</div>`;
+}
+}
+
+function addMed(){
+const p = activePatient(); if(!p) return;
+
+const name = $("medName").value.trim();
+const dose = $("medDose").value.trim();
+const freq = $("medFreq").value.trim();
+
+if(!name){
+modal.open("Medication name required","Please enter a medication name.");
+return;
+}
+
+const meds = getMedList();
+meds.push({name,dose,freq});
+
+$("medName").value = "";
+$("medDose").value = "";
+$("medFreq").value = "";
+
+applyMedicationInteractionFlags();
+renderMedList();
+renderAllVisual(false);
+}
+
+function removeMed(index){
+const p = activePatient(); if(!p) return;
+const meds = getMedList();
+meds.splice(index,1);
+
+if(!p.isDraft) savePatients();
+
+renderMedList();
+renderAllVisual(false);
+}
 function interactionNarrative(){
 const p = activePatient(); if(!p) return "—";
 const ints = p.state.interactions || [];
