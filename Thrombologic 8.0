@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="format-detection" content="telephone=no" />
+<title>ThromboLogic INR</title>
+
+<style>
+:root{
+--blue:#eaf3ff; --blue-ring:rgba(13,110,253,.25);
+--ylw:#fffef0; --man:#ffe79a; --man-b:#ffc857;
+--card:#fafafa; --border:#e6e6e6; --muted:#666;
+--warn-bg:#fff7e6; --warn-b:#ffe2ad;
+--crit-bg:#fff0f2; --crit-b:#ffd0d7;
+
+--today-strong-bg:#cfe2ff;
+--today-strong-b:#5aa2ff;
+
+--repeat-strong-bg:#ffd66a;
+--repeat-strong-b:#ff9f0a;
+
+--shadow:0 10px 24px rgba(0,0,0,.05);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+margin:0; color:#111; background:#fff;
+overflow:hidden;
+}
+
+h1{font-size:18px;margin:0 0 6px}
+h2{font-size:14px;margin:12px 0 6px}
