@@ -1881,14 +1881,12 @@ const weekly = sum7DayDoseAt(contextIso);
 const wtd = lagWeightedDoseAt(contextIso);
 const regWk = regimenWeeklyTotal();
 
-// Use maintenance regimen first for recommendation math.
-// Fall back to dose history only if regimen is empty.
 const currentWeekly = (regWk > 0 ? regWk : (weekly > 0 ? weekly : (wtd > 0 ? wtd : 0)));
 
 let repeatDays = 7;
 let pctMin=0, pctMax=0, pctChosen=0;
 let holdsMin=0, holdsMax=0, holdsChosen=0;
-let algoUsed = "generic";
+let algoUsed = "clinical-zone";
 let algoNote = "";
 let consult = false;
 let day1Mode = "none";
@@ -1898,6 +1896,29 @@ if(!hasRec){
 baseLine = `Enter today’s INR to generate a recommendation.`;
 plan = `You can still use the calendar to record doses and prior INRs.`;
 } else {
+
+const belowGap = Math.round((L - inr) * 10) / 10;
+const aboveGap = Math.round((inr - H) * 10) / 10;
+const isBorderlineLow = inr < L && belowGap <= 0.1;
+const isBorderlineHigh = inr > H && aboveGap <= 0.1;
+
+if(isBorderlineLow || isBorderlineHigh){
+pctChosen = 0;
+pctMin = 0;
+pctMax = 0;
+holdsChosen = 0;
+holdsMin = 0;
+holdsMax = 0;
+repeatDays = 7;
+algoUsed = "clinical-zone";
+algoNote = "Borderline INR deviation only; no automatic dose correction.";
+
+const status = isBorderlineLow ? "borderline below" : "borderline above";
+baseLine = `INR <b>${formatInrOneDecimal(inr)}</b> is <b>${status}</b> target (<b>${label}</b>). <span class="small">Algorithm: <b>clinical-zone conservative</b>.</span>`;
+plan = `Continue current maintenance regimen. No one-time dose correction recommended for a 0.1 INR deviation unless clinical trend or patient-specific factors justify adjustment.`;
+
+} else {
+
 const goal = s.targetRange;
 const uclaEligible = (goal === "2.0-3.0" || goal === "2.5-3.5");
 const u = uclaEligible ? uclaBandForGoal(goal, inr) : null;
@@ -1910,7 +1931,6 @@ pctMin = u.pctMin;
 pctMax = u.pctMax;
 pctChosen = u.pctChosen;
 
-// 🔹 APPLY TOGGLES
 if(bleedingRiskOn){
 pctChosen *= 0.6;
 }
@@ -1918,13 +1938,15 @@ pctChosen *= 0.6;
 if(apsModeOn && pctChosen < 0){
 pctChosen *= 0.7;
 }
+
 holdsMin = u.holdsMin; 
 holdsMax = u.holdsMax; 
 holdsChosen = u.holdsChosen;
-// 🔹 APS HOLD PROTECTION
+
 if(apsModeOn && inr < 5.0){
 holdsChosen = 0;
 }
+
 algoNote = u.note || "";
 
 const status = (inr < L) ? "below" : (inr > H) ? "above" : "in range";
@@ -1948,7 +1970,6 @@ const g = genericBand(L,H,inr);
 pctChosen = g.pctChosen || 0;
 holdsChosen = g.holdsChosen || 0;
 
-// APPLY TOGGLES TO GENERIC/CUSTOM RANGE
 if(bleedingRiskOn){
 pctChosen *= 0.6;
 }
@@ -1957,7 +1978,6 @@ if(apsModeOn && pctChosen < 0){
 pctChosen *= 0.7;
 }
 
-// APS HOLD PROTECTION FOR CUSTOM RANGE
 if(apsModeOn && inr < 5.0){
 holdsChosen = 0;
 }
@@ -1968,31 +1988,22 @@ baseLine = `INR <b>${formatInrOneDecimal(inr)}</b> assessed vs target (<b>${labe
 plan = `${holdsChosen>0 ? `Hold <b>${holdsChosen}</b> dose${holdsChosen===1?"":"s"}, then ` : ""}${pctChosen===0 ? `continue current regimen.` : `adjust weekly dose by <b>${pctChosen>0?"+":""}${fmtDose(pctChosen)}%</b>.`} ${algoNote}`;
 }
 
-// Repeat INR logic
-// Priority:
-// 1) High INR (>= 5.0) = no later than 2 days
-// 2) Any other regimen change = 1 week
-// 3) If INR in range and stable = ladder 1→2→3→4→6→8 weeks
-// 4) Otherwise = 1 week
 const highInrCritical = inr >= 5.0;
 const regimenChanged = (pctChosen !== 0) || (holdsChosen > 0) || consult;
 const inRangeStable = !regimenChanged && inr >= L && inr <= H;
 
 if(highInrCritical){
 repeatDays = 2;
-
 } else if(regimenChanged){
 repeatDays = 7;
-
 if(bleedingRiskOn) repeatDays = Math.min(repeatDays, 5);
 if(apsModeOn) repeatDays = Math.min(repeatDays, 3);
-
 } else if(inRangeStable){
 const streak = countStableInRangeINRs(L,H);
 repeatDays = followupDaysFromStreak(streak);
-
 } else {
 repeatDays = 7;
+}
 }
 }
 
@@ -2015,11 +2026,11 @@ daysSinceStart: Number(s.amioDays || 0),
 bleedingRisk: bleedingRiskOn
 });
 
-// Pull repeat INR earlier unless already critical
 if(!consult && inr < 5.0){
 repeatDays = Math.min(repeatDays, amioPlan.repeatInDays);
 }
 }
+
 return {
 hasRec, L, H, label, inr,
 algoUsed,
