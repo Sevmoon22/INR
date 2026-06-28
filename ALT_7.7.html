@@ -1875,7 +1875,7 @@ text.innerHTML = `No warfarin-relevant interactions detected from the medication
 } else {
 text.innerHTML = hits.map(h=>`
 <div style="margin-bottom:6px">
-<b>${escapeHtml(h.med)}</b> → <b>${escapeHtml(h.label)}</b>: ${escapeHtml(h.effect)}
+<b>${escapeHtml(h.med)}</b> → <b>${escapeHtml(h.label)}</b>: ${highlightInteractionEffect(h.effect)}
 </div>
 `).join("") + `<div class="hint">These are anticoagulation-focused screening flags; verify clinically.</div>`;
 }
